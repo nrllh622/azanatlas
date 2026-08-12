@@ -6,8 +6,6 @@ import GeometricDivider from '../components/GeometricDivider';
 
 const MOCK_LOCATION = { il: 'İstanbul', ilce: 'Beşiktaş' };
 
-// MOCK VERİ — gerçek hesaplama motoru (adhan npm) bir sonraki adımda bağlanacak
-// Artık 7 vakit: İmsak, Sabah, Güneş, Öğle, İkindi, Akşam, Yatsı
 const MOCK_TIMES = [
   { key: 'imsak', label: 'İmsak', time: '04:26' },
   { key: 'sabah', label: 'Sabah', time: '05:04' },
@@ -17,6 +15,10 @@ const MOCK_TIMES = [
   { key: 'aksam', label: 'Akşam', time: '20:16' },
   { key: 'yatsi', label: 'Yatsı', time: '21:48' },
 ];
+
+if (__DEV__ && MOCK_TIMES.length !== 7) {
+  console.warn(`UYARI: MOCK_TIMES 7 değil, ${MOCK_TIMES.length} vakit içeriyor!`);
+}
 
 function parseTimeToday(hhmm: string, baseDate: Date): Date {
   const [h, m] = hhmm.split(':').map(Number);
@@ -69,9 +71,9 @@ export default function HomeScreen() {
 
         <View style={styles.mainCard}>
           <Text style={styles.nextLabel}>Sonraki Vakit · {next.label}</Text>
-          <Text style={styles.countdown}>{formatCountdown(remainingMs)}</Text>
-          <View style={styles.targetRow}>
-            <Text style={styles.targetClock}>⏰ {next.time}</Text>
+          <Text style={styles.bigClock}>{next.time}</Text>
+          <View style={styles.countdownPill}>
+            <Text style={styles.countdownText}>{formatCountdown(remainingMs)}</Text>
           </View>
         </View>
 
@@ -128,9 +130,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   nextLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' },
-  countdown: { fontFamily: typography.displayFamily, color: colors.textOnLight, fontSize: 48, marginTop: spacing.xs, letterSpacing: 1 },
-  targetRow: { marginTop: spacing.xs, backgroundColor: colors.sand, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radius.pill },
-  targetClock: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 15 },
+  bigClock: { fontFamily: typography.displayFamily, color: colors.textOnLight, fontSize: 56, marginTop: spacing.xs },
+  countdownPill: { marginTop: spacing.sm, backgroundColor: colors.sand, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill },
+  countdownText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 16, letterSpacing: 0.5 },
   timesRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm },
   timeItem: {
     minWidth: 90,
