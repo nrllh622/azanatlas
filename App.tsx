@@ -6,6 +6,7 @@ import { Manrope_400Regular, Manrope_500Medium, Manrope_700Bold } from '@expo-go
 import { View, ActivityIndicator } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
 import { colors } from './src/theme';
+import { LocationProvider } from './src/context/LocationContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -25,9 +26,9 @@ export default function App() {
   }
 
   return (
-    <>
+    <LocationProvider>
       <StatusBar style="light" />
       <HomeScreen />
-    </>
+    </LocationProvider>
   );
 }
