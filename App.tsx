@@ -7,6 +7,7 @@ import { View, ActivityIndicator } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
 import { colors } from './src/theme';
 import { LocationProvider } from './src/context/LocationContext';
+import { NotificationSettingsProvider } from './src/context/NotificationSettingsContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -27,8 +28,10 @@ export default function App() {
 
   return (
     <LocationProvider>
-      <StatusBar style="light" />
-      <HomeScreen />
+      <NotificationSettingsProvider>
+        <StatusBar style="light" />
+        <HomeScreen />
+      </NotificationSettingsProvider>
     </LocationProvider>
   );
 }
