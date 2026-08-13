@@ -1,10 +1,11 @@
 // src/screens/HomeScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Modal, TouchableOpacity } from 'react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import GeometricDivider from '../components/GeometricDivider';
 import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
-import { useLocation } from '../hooks/useLocation';
+import { useLocationContext } from '../context/LocationContext';
+import LocationPickerScreen from './LocationPickerScreen';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -16,8 +17,9 @@ function formatCountdown(ms: number): string {
 }
 
 export default function HomeScreen() {
-  const location = useLocation();
+  const { location } = useLocationContext();
   const [now, setNow] = useState(new Date());
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -31,7 +33,6 @@ export default function HomeScreen() {
   const next = useMemo(() => {
     const upcoming = vakitler.find((v) => v.date.getTime() > now.getTime());
     if (upcoming) return upcoming;
-    // Bugünün tüm vakitleri geçtiyse yarının İmsak'ını hesapla
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode);
@@ -40,24 +41,15 @@ export default function HomeScreen() {
 
   const remainingMs = next.date.getTime() - now.getTime();
 
-  if (location.loading) {
-    return (
-      <SafeAreaView style={[styles.safeArea, styles.centered]}>
-        <ActivityIndicator color={colors.gold} size="large" />
-        <Text style={styles.loadingText}>Konum alınıyor…</Text>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.locationRow}>
+        <TouchableOpacity style={styles.locationRow} onPress={() => setPickerVisible(true)}>
           <Text style={styles.locationText}>
             {location.il} · {location.ilce}
           </Text>
           <Text style={styles.locationChevron}>▾</Text>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.mainCard}>
           <Text style={styles.nextLabel}>Sonraki Vakit · {next.label}</Text>
@@ -74,13 +66,8 @@ export default function HomeScreen() {
 
         <View style={styles.timesRow}>
           {vakitler.map((v) => (
-            <View
-              key={v.key}
-              style={[styles.timeItem, v.key === next.key && styles.timeItemActive]}
-            >
-              <Text style={[styles.timeLabel, v.key === next.key && styles.timeLabelActive]}>
-                {v.label}
-              </Text>
+            <View key={v.key} style={[styles.timeItem, v.key === next.key && styles.timeItemActive]}>
+              <Text style={[styles.timeLabel, v.key === next.key && styles.timeLabelActive]}>{v.label}</Text>
               <Text style={[styles.timeValue, v.key === next.key && styles.timeValueActive]}>
                 {v.date.getHours().toString().padStart(2, '0')}:
                 {v.date.getMinutes().toString().padStart(2, '0')}
@@ -89,14 +76,16 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <Modal visible={pickerVisible} animationType="slide">
+        <LocationPickerScreen onDone={() => setPickerVisible(false)} />
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
-  centered: { alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, marginTop: spacing.md },
   scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl },
   locationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg, gap: spacing.xs },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 16 },
