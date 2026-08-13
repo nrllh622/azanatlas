@@ -19,12 +19,13 @@ const PROVINCE_COORDS: Record<string, { lat: number; lng: number }> = {
 };
 
 export default function LocationPickerScreen({ onDone }: Props) {
+  const insets = useSafeAreaInsets();
   const { setLocation } = useLocationContext();
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
 
   if (!selectedProvince) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
         <Text style={styles.header}>İl Seç</Text>
         <FlatList
           data={TURKEY_PROVINCES}
