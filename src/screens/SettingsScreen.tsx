@@ -31,20 +31,24 @@ interface Props {
   onClose: () => void;
 }
 
+type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
+
 export default function SettingsScreen({ onClose }: Props) {
   const { settings, setPreAlert, setOnTimeSound } = useNotificationSettings();
-  const [pickerFor, setPickerFor] = useState
-    | { type: 'pre'; key: PreAlertVakitKey }
-    | { type: 'onTime'; key: OnTimeVakitKey }
-    | null
-  >(null);
+  const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
 
-  const currentSelectedId =
-    pickerFor?.type === 'pre'
-      ? settings.preAlerts[pickerFor.key].soundId
-      : pickerFor?.type === 'onTime'
-      ? settings.onTimeAlerts[pickerFor.key].soundId
-      : 'none';
+  let currentSelectedId = 'none';
+  let pickerTitle = '';
+
+  if (pickerFor && pickerFor.type === 'pre') {
+    currentSelectedId = settings.preAlerts[pickerFor.key].soundId;
+    const found = PRE_ALERT_LABELS.find((x) => x.key === pickerFor.key);
+    pickerTitle = (found ? found.label : '') + ' Uyarı Sesi';
+  } else if (pickerFor && pickerFor.type === 'onTime') {
+    currentSelectedId = settings.onTimeAlerts[pickerFor.key].soundId;
+    const found = ON_TIME_LABELS.find((x) => x.key === pickerFor.key);
+    pickerTitle = (found ? found.label : '') + ' Uyarı Sesi';
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -64,15 +68,13 @@ export default function SettingsScreen({ onClose }: Props) {
                 <Switch
                   value={s.enabled}
                   onValueChange={(val) => setPreAlert(key, { enabled: val })}
-                  trackColor={{ true: colors.gold }}
+                  trackColor={{ true: colors.gold, false: undefined }}
                 />
                 <Text style={styles.cardLabel}>{label}</Text>
                 <Text style={styles.cardOffset}>{s.minutesBefore}dk. önce</Text>
               </View>
-              <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key })}>
-                <Text style={styles.soundLink}>
-                  Sesi Değiştir · {getSoundById(s.soundId).label}
-                </Text>
+              <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
+                <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
               </TouchableOpacity>
             </View>
           );
@@ -84,10 +86,8 @@ export default function SettingsScreen({ onClose }: Props) {
           return (
             <View key={key} style={styles.card}>
               <Text style={styles.cardLabel}>{label}</Text>
-              <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key })}>
-                <Text style={styles.soundLink}>
-                  Sesi Değiştir · {getSoundById(s.soundId).label}
-                </Text>
+              <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
+                <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
               </TouchableOpacity>
             </View>
           );
@@ -96,15 +96,11 @@ export default function SettingsScreen({ onClose }: Props) {
 
       <SoundPickerModal
         visible={pickerFor !== null}
-        title={pickerFor ? `${
-          pickerFor.type === 'pre'
-            ? PRE_ALERT_LABELS.find((x) => x.key === pickerFor.key)?.label
-            : ON_TIME_LABELS.find((x) => x.key === pickerFor.key)?.label
-        } Uyarı Sesi` : ''}
+        title={pickerTitle}
         selectedId={currentSelectedId}
         onSelect={(id) => {
-          if (pickerFor?.type === 'pre') setPreAlert(pickerFor.key, { soundId: id });
-          if (pickerFor?.type === 'onTime') setOnTimeSound(pickerFor.key, id);
+          if (pickerFor && pickerFor.type === 'pre') setPreAlert(pickerFor.key, { soundId: id });
+          if (pickerFor && pickerFor.type === 'onTime') setOnTimeSound(pickerFor.key, id);
         }}
         onClose={() => setPickerFor(null)}
       />
