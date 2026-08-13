@@ -1,4 +1,5 @@
 // src/screens/LocationPickerScreen.tsx
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { colors, spacing, radius, typography } from '../theme';
