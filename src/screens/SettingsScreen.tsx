@@ -1,95 +1,127 @@
 // src/screens/SettingsScreen.tsx
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
-import { colors, spacing, radius, typography } from '../theme';
-import { useNotificationSettings, NotificationMode } from '../context/NotificationSettingsContext';
-import { VakitKey } from '../lib/prayerCalculator';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { colors, spacing, typography } from '../theme';
+import {
+  useNotificationSettings,
+  PreAlertVakitKey,
+  OnTimeVakitKey,
+} from '../context/NotificationSettingsContext';
+import { getSoundById } from '../data/soundCatalog';
+import SoundPickerModal from '../components/SoundPickerModal';
 
-const VAKIT_ORDER: { key: VakitKey; label: string }[] = [
-  { key: 'imsak', label: 'İmsak' },
-  { key: 'sabah', label: 'Sabah' },
-  { key: 'gunes', label: 'Güneş' },
-  { key: 'ogle', label: 'Öğle' },
-  { key: 'ikindi', label: 'İkindi' },
-  { key: 'aksam', label: 'Akşam' },
-  { key: 'yatsi', label: 'Yatsı' },
+const PRE_ALERT_LABELS: { key: PreAlertVakitKey; label: string }[] = [
+  { key: 'imsak', label: 'İmsaktan' },
+  { key: 'gunes', label: 'Güneşten' },
+  { key: 'ogle', label: 'Öğleden' },
+  { key: 'ikindi', label: 'İkindiden' },
+  { key: 'aksam', label: 'Akşamdan' },
+  { key: 'yatsi', label: 'Yatsıdan' },
 ];
 
-const MODE_LABELS: Record<NotificationMode, string> = {
-  none: 'Hiçbiri',
-  silent: 'Sessiz Bildirim',
-  sound: 'Sesli Bildirim',
-  alarm: 'Alarm Çal',
-  adhan: 'Ezan Sesi Çal',
-};
-
-const MODES: NotificationMode[] = ['adhan', 'alarm', 'sound', 'silent', 'none'];
+const ON_TIME_LABELS: { key: OnTimeVakitKey; label: string }[] = [
+  { key: 'sabah', label: 'Sabah Ezanı' },
+  { key: 'ogle', label: 'Öğle Ezanı' },
+  { key: 'ikindi', label: 'İkindi Ezanı' },
+  { key: 'aksam', label: 'Akşam Ezanı' },
+  { key: 'yatsi', label: 'Yatsı Ezanı' },
+];
 
 interface Props {
   onClose: () => void;
 }
 
 export default function SettingsScreen({ onClose }: Props) {
-  const { settings, setVakitMode } = useNotificationSettings();
+  const { settings, setPreAlert, setOnTimeSound } = useNotificationSettings();
+  const [pickerFor, setPickerFor] = useState
+    | { type: 'pre'; key: PreAlertVakitKey }
+    | { type: 'onTime'; key: OnTimeVakitKey }
+    | null
+  >(null);
+
+  const currentSelectedId =
+    pickerFor?.type === 'pre'
+      ? settings.preAlerts[pickerFor.key].soundId
+      : pickerFor?.type === 'onTime'
+      ? settings.onTimeAlerts[pickerFor.key].soundId
+      : 'none';
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Bildirim Ayarları</Text>
+        <Text style={styles.header}>Ayarlar</Text>
         <TouchableOpacity onPress={onClose}>
           <Text style={styles.closeText}>Kapat</Text>
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {VAKIT_ORDER.map((v) => (
-          <View key={v.key} style={styles.vakitBlock}>
-            <Text style={styles.vakitLabel}>{v.label}</Text>
-            <View style={styles.modeRow}>
-              {MODES.map((mode) => {
-                const active = settings[v.key]?.mode === mode;
-                return (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[styles.modeChip, active && styles.modeChipActive]}
-                    onPress={() => setVakitMode(v.key, mode)}
-                  >
-                    <Text style={[styles.modeChipText, active && styles.modeChipTextActive]}>
-                      {MODE_LABELS[mode]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+        <Text style={styles.sectionTitle}>Vakitlerden Önce Uyarılar</Text>
+        {PRE_ALERT_LABELS.map(({ key, label }) => {
+          const s = settings.preAlerts[key];
+          return (
+            <View key={key} style={styles.card}>
+              <View style={styles.cardTopRow}>
+                <Switch
+                  value={s.enabled}
+                  onValueChange={(val) => setPreAlert(key, { enabled: val })}
+                  trackColor={{ true: colors.gold }}
+                />
+                <Text style={styles.cardLabel}>{label}</Text>
+                <Text style={styles.cardOffset}>{s.minutesBefore}dk. önce</Text>
+              </View>
+              <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key })}>
+                <Text style={styles.soundLink}>
+                  Sesi Değiştir · {getSoundById(s.soundId).label}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
-        ))}
+          );
+        })}
+
+        <Text style={styles.sectionTitle}>Vakit Zamanında Uyarılar</Text>
+        {ON_TIME_LABELS.map(({ key, label }) => {
+          const s = settings.onTimeAlerts[key];
+          return (
+            <View key={key} style={styles.card}>
+              <Text style={styles.cardLabel}>{label}</Text>
+              <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key })}>
+                <Text style={styles.soundLink}>
+                  Sesi Değiştir · {getSoundById(s.soundId).label}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
       </ScrollView>
+
+      <SoundPickerModal
+        visible={pickerFor !== null}
+        title={pickerFor ? `${
+          pickerFor.type === 'pre'
+            ? PRE_ALERT_LABELS.find((x) => x.key === pickerFor.key)?.label
+            : ON_TIME_LABELS.find((x) => x.key === pickerFor.key)?.label
+        } Uyarı Sesi` : ''}
+        selectedId={currentSelectedId}
+        onSelect={(id) => {
+          if (pickerFor?.type === 'pre') setPreAlert(pickerFor.key, { soundId: id });
+          if (pickerFor?.type === 'onTime') setOnTimeSound(pickerFor.key, id);
+        }}
+        onClose={() => setPickerFor(null)}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
-  vakitBlock: { marginBottom: spacing.lg },
-  vakitLabel: { fontFamily: typography.bodyBold, color: colors.textOnDark, fontSize: 17, marginBottom: spacing.sm },
-  modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  modeChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: 'rgba(201,162,39,0.4)',
-  },
-  modeChipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-  modeChipText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 13 },
-  modeChipTextActive: { color: colors.primaryDark },
+  sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.sm },
+  card: { backgroundColor: 'rgba(250,246,236,0.08)', borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 16, flex: 1 },
+  cardOffset: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 13 },
+  soundLink: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 13, marginTop: spacing.xs },
 });
