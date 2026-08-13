@@ -1,6 +1,7 @@
 // src/screens/HomeScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography } from '../theme';
 import GeometricDivider from '../components/GeometricDivider';
 import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
@@ -9,6 +10,9 @@ import { useNotificationSettings } from '../context/NotificationSettingsContext'
 import { requestNotificationPermission, scheduleAllNotifications } from '../lib/notificationScheduler';
 import LocationPickerScreen from './LocationPickerScreen';
 import SettingsScreen from './SettingsScreen';
+import QiblaScreen from './QiblaScreen';
+
+type Screen = 'home' | 'location' | 'settings' | 'qibla';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -20,11 +24,11 @@ function formatCountdown(ms: number): string {
 }
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
   const { settings } = useNotificationSettings();
   const [now, setNow] = useState(new Date());
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [screen, setScreen] = useState<Screen>('home');
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -46,7 +50,6 @@ export default function HomeScreen() {
 
   const remainingMs = next.date.getTime() - now.getTime();
 
-  // Konum ya da bildirim tercihleri değiştiğinde bildirimleri yeniden kur
   useEffect(() => {
     (async () => {
       const granted = await requestNotificationPermission();
@@ -56,19 +59,46 @@ export default function HomeScreen() {
     })();
   }, [location.latitude, location.longitude, settings]);
 
+  if (screen === 'location') {
+    return <LocationPickerScreen onDone={() => setScreen('home')} />;
+  }
+  if (screen === 'settings') {
+    return <SettingsScreen onClose={() => setScreen('home')} />;
+  }
+  if (screen === 'qibla') {
+    return <QiblaScreen onClose={() => setScreen('home')} />;
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.safeArea}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.topRow}>
-          <TouchableOpacity style={styles.locationRow} onPress={() => setPickerVisible(true)}>
+          <TouchableOpacity
+            style={styles.locationRow}
+            onPress={() => setScreen('location')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Text style={styles.locationText}>
               {location.il} · {location.ilce}
             </Text>
             <Text style={styles.locationChevron}>▾</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
-            <Text style={styles.settingsIcon}>⚙</Text>
-          </TouchableOpacity>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => setScreen('qibla')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.headerIcon}>🧭</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => setScreen('settings')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.headerIcon}>⚙</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.mainCard}>
@@ -96,27 +126,20 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
-
-      <Modal visible={pickerVisible} animationType="slide">
-        <LocationPickerScreen onDone={() => setPickerVisible(false)} />
-      </Modal>
-
-      <Modal visible={settingsVisible} animationType="slide">
-        <SettingsScreen onClose={() => setSettingsVisible(false)} />
-      </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 16 },
-  locationChevron: { color: colors.gold, fontSize: 14 },
-  settingsButton: { padding: spacing.xs },
-  settingsIcon: { color: colors.gold, fontSize: 22 },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg, minHeight: 44 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
+  locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
+  locationChevron: { color: colors.gold, fontSize: 16 },
+  headerIcons: { flexDirection: 'row', gap: spacing.sm },
+  iconButton: { padding: spacing.sm },
+  headerIcon: { color: colors.gold, fontSize: 24 },
   mainCard: {
     backgroundColor: colors.cream,
     borderRadius: radius.lg,
