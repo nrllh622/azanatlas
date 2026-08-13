@@ -5,7 +5,10 @@ import { colors, spacing, radius, typography } from '../theme';
 import GeometricDivider from '../components/GeometricDivider';
 import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
+import { useNotificationSettings } from '../context/NotificationSettingsContext';
+import { requestNotificationPermission, scheduleAllNotifications } from '../lib/notificationScheduler';
 import LocationPickerScreen from './LocationPickerScreen';
+import SettingsScreen from './SettingsScreen';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -18,8 +21,10 @@ function formatCountdown(ms: number): string {
 
 export default function HomeScreen() {
   const { location } = useLocationContext();
+  const { settings } = useNotificationSettings();
   const [now, setNow] = useState(new Date());
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -41,15 +46,30 @@ export default function HomeScreen() {
 
   const remainingMs = next.date.getTime() - now.getTime();
 
+  // Konum ya da bildirim tercihleri değiştiğinde bildirimleri yeniden kur
+  useEffect(() => {
+    (async () => {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        await scheduleAllNotifications(vakitler, settings);
+      }
+    })();
+  }, [location.latitude, location.longitude, settings]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={styles.locationRow} onPress={() => setPickerVisible(true)}>
-          <Text style={styles.locationText}>
-            {location.il} · {location.ilce}
-          </Text>
-          <Text style={styles.locationChevron}>▾</Text>
-        </TouchableOpacity>
+        <View style={styles.topRow}>
+          <TouchableOpacity style={styles.locationRow} onPress={() => setPickerVisible(true)}>
+            <Text style={styles.locationText}>
+              {location.il} · {location.ilce}
+            </Text>
+            <Text style={styles.locationChevron}>▾</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsButton} onPress={() => setSettingsVisible(true)}>
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.mainCard}>
           <Text style={styles.nextLabel}>Sonraki Vakit · {next.label}</Text>
@@ -80,6 +100,10 @@ export default function HomeScreen() {
       <Modal visible={pickerVisible} animationType="slide">
         <LocationPickerScreen onDone={() => setPickerVisible(false)} />
       </Modal>
+
+      <Modal visible={settingsVisible} animationType="slide">
+        <SettingsScreen onClose={() => setSettingsVisible(false)} />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -87,9 +111,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xl },
-  locationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg, gap: spacing.xs },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 16 },
   locationChevron: { color: colors.gold, fontSize: 14 },
+  settingsButton: { padding: spacing.xs },
+  settingsIcon: { color: colors.gold, fontSize: 22 },
   mainCard: {
     backgroundColor: colors.cream,
     borderRadius: radius.lg,
