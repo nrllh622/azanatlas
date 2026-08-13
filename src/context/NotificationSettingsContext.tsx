@@ -1,42 +1,69 @@
 // src/context/NotificationSettingsContext.tsx
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { VakitKey } from '../lib/prayerCalculator';
 
-export type NotificationMode = 'none' | 'silent' | 'sound' | 'alarm' | 'adhan';
+export type PreAlertVakitKey = 'imsak' | 'gunes' | 'ogle' | 'ikindi' | 'aksam' | 'yatsi';
+export type OnTimeVakitKey = 'sabah' | 'ogle' | 'ikindi' | 'aksam' | 'yatsi';
 
-export interface VakitNotificationSetting {
-  mode: NotificationMode;
+export interface PreAlertSetting {
+  enabled: boolean;
+  minutesBefore: number;
+  soundId: string;
 }
 
-export type NotificationSettingsMap = Record<VakitKey, VakitNotificationSetting>;
+export interface OnTimeSetting {
+  soundId: string;
+}
 
-// Varsayılan: her vakitte sesli bildirim (kullanıcı istediği gibi değiştirebilir)
-const DEFAULT_SETTINGS: NotificationSettingsMap = {
-  imsak: { mode: 'adhan' },
-  sabah: { mode: 'adhan' },
-  gunes: { mode: 'silent' },
-  ogle: { mode: 'adhan' },
-  ikindi: { mode: 'adhan' },
-  aksam: { mode: 'adhan' },
-  yatsi: { mode: 'adhan' },
+export interface NotificationSettings {
+  preAlerts: Record<PreAlertVakitKey, PreAlertSetting>;
+  onTimeAlerts: Record<OnTimeVakitKey, OnTimeSetting>;
+}
+
+const DEFAULT_SETTINGS: NotificationSettings = {
+  preAlerts: {
+    imsak: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
+    gunes: { enabled: true, minutesBefore: 30, soundId: 'melodi1' },
+    ogle: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
+    ikindi: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
+    aksam: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
+    yatsi: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
+  },
+  onTimeAlerts: {
+    sabah: { soundId: 'essalatu_hayrun' },
+    ogle: { soundId: 'uyandirma3' },
+    ikindi: { soundId: 'uyandirma3' },
+    aksam: { soundId: 'uyandirma3' },
+    yatsi: { soundId: 'uyandirma3' },
+  },
 };
 
 interface Ctx {
-  settings: NotificationSettingsMap;
-  setVakitMode: (key: VakitKey, mode: NotificationMode) => void;
+  settings: NotificationSettings;
+  setPreAlert: (key: PreAlertVakitKey, patch: Partial<PreAlertSetting>) => void;
+  setOnTimeSound: (key: OnTimeVakitKey, soundId: string) => void;
 }
 
 const NotificationSettingsContext = createContext<Ctx | undefined>(undefined);
 
 export function NotificationSettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<NotificationSettingsMap>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
 
-  const setVakitMode = (key: VakitKey, mode: NotificationMode) => {
-    setSettings((prev) => ({ ...prev, [key]: { mode } }));
+  const setPreAlert = (key: PreAlertVakitKey, patch: Partial<PreAlertSetting>) => {
+    setSettings((prev) => ({
+      ...prev,
+      preAlerts: { ...prev.preAlerts, [key]: { ...prev.preAlerts[key], ...patch } },
+    }));
+  };
+
+  const setOnTimeSound = (key: OnTimeVakitKey, soundId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      onTimeAlerts: { ...prev.onTimeAlerts, [key]: { soundId } },
+    }));
   };
 
   return (
-    <NotificationSettingsContext.Provider value={{ settings, setVakitMode }}>
+    <NotificationSettingsContext.Provider value={{ settings, setPreAlert, setOnTimeSound }}>
       {children}
     </NotificationSettingsContext.Provider>
   );
