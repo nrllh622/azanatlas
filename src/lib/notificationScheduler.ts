@@ -1,7 +1,8 @@
 // src/lib/notificationScheduler.ts
 import * as Notifications from 'expo-notifications';
 import { VakitEntry } from './prayerCalculator';
-import { NotificationSettingsMap } from '../context/NotificationSettingsContext';
+import { NotificationSettings } from '../context/NotificationSettingsContext';
+import { getSoundById } from '../data/soundCatalog';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -18,32 +19,38 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
-// Bugünün ve yarının vakitlerini, kullanıcı tercihine göre zamanlanmış
-// bildirim olarak kur. Her çağrıda önce eski zamanlamalar temizlenir,
-// böylece konum/vakit değiştiğinde çakışma olmaz.
-export async function scheduleAllNotifications(
-  vakitler: VakitEntry[],
-  settings: NotificationSettingsMap
-) {
+export async function scheduleAllNotifications(vakitler: VakitEntry[], settings: NotificationSettings) {
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   for (const vakit of vakitler) {
-    const setting = settings[vakit.key];
-    if (!setting || setting.mode === 'none') continue;
-    if (vakit.date.getTime() <= Date.now()) continue; // geçmiş vakit için kurma
+    // Vakit zamanında uyarı
+    const onTime = (settings.onTimeAlerts as any)[vakit.key];
+    if (onTime && onTime.soundId !== 'none' && vakit.date.getTime() > Date.now()) {
+      const sound = getSoundById(onTime.soundId);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `${vakit.label} Vakti`,
+          body: `${vakit.label} vakti girdi.`,
+          sound: sound.id !== 'none' ? 'default' : undefined,
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: vakit.date },
+      });
+    }
 
-    const playsSound = setting.mode !== 'silent';
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `${vakit.label} Vakti`,
-        body: `${vakit.label} vakti girdi.`,
-        sound: playsSound ? 'default' : undefined,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: vakit.date,
-      },
-    });
+    // Vakitten önce uyarı
+    const preAlert = (settings.preAlerts as any)[vakit.key];
+    if (preAlert && preAlert.enabled && preAlert.soundId !== 'none') {
+      const alertDate = new Date(vakit.date.getTime() - preAlert.minutesBefore * 60 * 1000);
+      if (alertDate.getTime() > Date.now()) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `${vakit.label} Vaktine ${preAlert.minutesBefore} Dakika`,
+            body: `${vakit.label} vaktine az kaldı.`,
+            sound: 'default',
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alertDate },
+        });
+      }
+    }
   }
 }
