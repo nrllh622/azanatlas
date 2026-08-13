@@ -1,6 +1,6 @@
 // src/components/SoundPickerModal.tsx
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Audio } from 'expo-av';
 import { colors, spacing, typography, radius } from '../theme';
 import { SOUND_CATALOG, SoundOption } from '../data/soundCatalog';
@@ -14,12 +14,13 @@ interface Props {
 }
 
 export default function SoundPickerModal({ visible, title, selectedId, onSelect, onClose }: Props) {
+  if (!visible) return null;
+
   const playPreview = async (sound: SoundOption) => {
-    if (!sound.file) return; // "Ses yok" seçeneği - çalınacak bir şey yok
+    if (!sound.file) return;
     try {
       const { sound: player } = await Audio.Sound.createAsync(sound.file);
       await player.playAsync();
-      // Kısa önizleme sonrası belleği serbest bırak
       player.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           player.unloadAsync();
@@ -31,47 +32,50 @@ export default function SoundPickerModal({ visible, title, selectedId, onSelect,
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
-          <Text style={styles.title}>{title}</Text>
-          <FlatList
-            data={SOUND_CATALOG}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => {
-              const active = item.id === selectedId;
-              return (
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={() => {
-                    playPreview(item);
-                    onSelect(item.id);
-                  }}
-                >
-                  <View style={[styles.checkbox, active && styles.checkboxActive]}>
-                    {active && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.rowText}>{item.label}</Text>
-                </TouchableOpacity>
-              );
-            }}
-          />
-          <View style={styles.footer}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.footerBtn}>VAZGEÇ</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={[styles.footerBtn, styles.footerBtnPrimary]}>TAMAM</Text>
-            </TouchableOpacity>
-          </View>
+    <View style={styles.overlay}>
+      <View style={styles.sheet}>
+        <Text style={styles.title}>{title}</Text>
+        <FlatList
+          data={SOUND_CATALOG}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            const active = item.id === selectedId;
+            return (
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => {
+                  playPreview(item);
+                  onSelect(item.id);
+                }}
+              >
+                <View style={[styles.checkbox, active && styles.checkboxActive]}>
+                  {active && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.rowText}>{item.label}</Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.footerBtn}>VAZGEÇ</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={[styles.footerBtn, styles.footerBtnPrimary]}>TAMAM</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 100,
+  },
   sheet: { backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, maxHeight: '75%', paddingTop: spacing.md },
   title: { fontFamily: typography.bodyBold, fontSize: 18, color: colors.primaryDark, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
