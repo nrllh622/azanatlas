@@ -1,28 +1,25 @@
 // src/lib/kazaStorage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = 'azanatlas_kaza_status';
+const STORAGE_KEY = 'azanatlas_kaza_counts_v2';
 
-export type KazaStatus = 'prayed' | 'compensated';
-export type KazaMap = Record<string, KazaStatus>; // key: "YYYY-MM-DD_vakitKey"
+export type KazaCategory = 'sabah' | 'ogle' | 'ikindi' | 'aksam' | 'yatsi' | 'vitr' | 'oruc';
 
-export function makeKey(date: Date, vakitKey: string): string {
-  const d = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-  return `${d}_${vakitKey}`;
-}
+export type KazaCounts = Record<KazaCategory, number>;
 
-export async function loadKazaMap(): Promise<KazaMap> {
+const DEFAULT_COUNTS: KazaCounts = {
+  sabah: 0, ogle: 0, ikindi: 0, aksam: 0, yatsi: 0, vitr: 0, oruc: 0,
+};
+
+export async function loadKazaCounts(): Promise<KazaCounts> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    return raw ? { ...DEFAULT_COUNTS, ...JSON.parse(raw) } : { ...DEFAULT_COUNTS };
   } catch {
-    return {};
+    return { ...DEFAULT_COUNTS };
   }
 }
 
-export async function setKazaStatus(key: string, status: KazaStatus): Promise<KazaMap> {
-  const map = await loadKazaMap();
-  map[key] = status;
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-  return map;
+export async function saveKazaCounts(counts: KazaCounts): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
 }
