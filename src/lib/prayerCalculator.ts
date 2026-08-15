@@ -19,24 +19,30 @@ const LABELS: Record<VakitKey, string> = {
   yatsi: 'Yatsı',
 };
 
-// Ülke -> hesaplama yöntemi eşlemesi (ilerleyen adımlarda daha fazla ülke eklenecek)
 function getMethodForCountry(countryCode: string) {
   switch (countryCode) {
-    case 'TR':
-      return CalculationMethod.Turkey();
-    case 'US':
-    case 'CA':
-      return CalculationMethod.NorthAmerica();
-    case 'SA':
-      return CalculationMethod.UmmAlQura();
-    case 'EG':
-      return CalculationMethod.Egyptian();
-    case 'PK':
-    case 'IN':
-    case 'BD':
-      return CalculationMethod.Karachi();
-    default:
-      return CalculationMethod.MuslimWorldLeague();
+    case 'TR': return CalculationMethod.Turkey();
+    case 'US': case 'CA': return CalculationMethod.NorthAmerica();
+    case 'SA': return CalculationMethod.UmmAlQura();
+    case 'EG': return CalculationMethod.Egyptian();
+    case 'PK': case 'IN': case 'BD': return CalculationMethod.Karachi();
+    default: return CalculationMethod.MuslimWorldLeague();
+  }
+}
+
+function getMethodById(id: string) {
+  switch (id) {
+    case 'Turkey': return CalculationMethod.Turkey();
+    case 'NorthAmerica': return CalculationMethod.NorthAmerica();
+    case 'MuslimWorldLeague': return CalculationMethod.MuslimWorldLeague();
+    case 'Egyptian': return CalculationMethod.Egyptian();
+    case 'Karachi': return CalculationMethod.Karachi();
+    case 'UmmAlQura': return CalculationMethod.UmmAlQura();
+    case 'Tehran': return CalculationMethod.Tehran();
+    case 'Kuwait': return CalculationMethod.Kuwait();
+    case 'Qatar': return CalculationMethod.Qatar();
+    case 'Singapore': return CalculationMethod.Singapore();
+    default: return null;
   }
 }
 
@@ -44,14 +50,14 @@ export function calculateVakitler(
   latitude: number,
   longitude: number,
   date: Date,
-  countryCode: string = 'TR'
+  countryCode: string = 'TR',
+  methodOverride?: string
 ): VakitEntry[] {
   const coordinates = new Coordinates(latitude, longitude);
-  const params = getMethodForCountry(countryCode);
+  const overrideParams = methodOverride && methodOverride !== 'auto' ? getMethodById(methodOverride) : null;
+  const params = overrideParams || getMethodForCountry(countryCode);
   const prayerTimes = new PrayerTimes(coordinates, date, params);
 
-  // adhan kütüphanesi Sabah (Fajr) ile İmsak'ı ayırmıyor.
-  // Diyanet geleneğinde İmsak, Fajr'dan ~10 dakika önce kabul edilir.
   const imsak = new Date(prayerTimes.fajr.getTime() - 10 * 60 * 1000);
 
   return [
