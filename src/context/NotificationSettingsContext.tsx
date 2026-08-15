@@ -18,6 +18,9 @@ export interface OnTimeSetting {
 export interface NotificationSettings {
   preAlerts: Record<PreAlertVakitKey, PreAlertSetting>;
   onTimeAlerts: Record<OnTimeVakitKey, OnTimeSetting>;
+  kerahatNotifyEnabled: boolean;
+  ezanDuasiEnabled: boolean;
+  sabahAtImsakVaktinde: boolean;
 }
 
 const DEFAULT_SETTINGS: NotificationSettings = {
@@ -36,12 +39,16 @@ const DEFAULT_SETTINGS: NotificationSettings = {
     aksam: { enabled: true, soundId: 'uyandirma3' },
     yatsi: { enabled: true, soundId: 'uyandirma3' },
   },
+  kerahatNotifyEnabled: true,
+  ezanDuasiEnabled: false,
+  sabahAtImsakVaktinde: false,
 };
 
 interface Ctx {
   settings: NotificationSettings;
   setPreAlert: (key: PreAlertVakitKey, patch: Partial<PreAlertSetting>) => void;
   setOnTime: (key: OnTimeVakitKey, patch: Partial<OnTimeSetting>) => void;
+  setFlag: (key: 'kerahatNotifyEnabled' | 'ezanDuasiEnabled' | 'sabahAtImsakVaktinde', value: boolean) => void;
 }
 
 const NotificationSettingsContext = createContext<Ctx | undefined>(undefined);
@@ -63,8 +70,12 @@ export function NotificationSettingsProvider({ children }: { children: ReactNode
     }));
   };
 
+  const setFlag = (key: 'kerahatNotifyEnabled' | 'ezanDuasiEnabled' | 'sabahAtImsakVaktinde', value: boolean) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
   return (
-    <NotificationSettingsContext.Provider value={{ settings, setPreAlert, setOnTime }}>
+    <NotificationSettingsContext.Provider value={{ settings, setPreAlert, setOnTime, setFlag }}>
       {children}
     </NotificationSettingsContext.Provider>
   );
