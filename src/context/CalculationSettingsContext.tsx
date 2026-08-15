@@ -21,11 +21,29 @@ export const CALC_METHODS: { id: CalcMethodId; label: string }[] = [
 
 export const KERAHAT_OPTIONS = [15, 30, 45, 60];
 
+export type MadhabId = 'Shafi' | 'Hanafi';
+export const MADHAB_OPTIONS: { id: MadhabId; label: string }[] = [
+  { id: 'Shafi', label: 'Şafi, Maliki, Hanbeli, Türkiye' },
+  { id: 'Hanafi', label: 'Hanefi' },
+];
+
+export type HighLatRuleId = 'AngleBased' | 'MiddleOfTheNight' | 'SeventhOfTheNight' | 'None';
+export const HIGH_LAT_OPTIONS: { id: HighLatRuleId; label: string }[] = [
+  { id: 'AngleBased', label: 'Açı Tabanlı Yöntem' },
+  { id: 'MiddleOfTheNight', label: 'Gece Yarısı' },
+  { id: 'SeventhOfTheNight', label: 'Gecenin 1/7 si' },
+  { id: 'None', label: 'Yok' },
+];
+
 interface Ctx {
   methodId: CalcMethodId;
   kerahatMinutes: number;
+  madhab: MadhabId;
+  highLatRule: HighLatRuleId;
   setMethodId: (id: CalcMethodId) => void;
   setKerahatMinutes: (m: number) => void;
+  setMadhab: (m: MadhabId) => void;
+  setHighLatRule: (r: HighLatRuleId) => void;
 }
 
 const CalculationSettingsContext = createContext<Ctx | undefined>(undefined);
@@ -33,8 +51,13 @@ const CalculationSettingsContext = createContext<Ctx | undefined>(undefined);
 export function CalculationSettingsProvider({ children }: { children: ReactNode }) {
   const [methodId, setMethodId] = useState<CalcMethodId>('auto');
   const [kerahatMinutes, setKerahatMinutes] = useState(45);
+  const [madhab, setMadhab] = useState<MadhabId>('Shafi');
+  const [highLatRule, setHighLatRule] = useState<HighLatRuleId>('AngleBased');
+
   return (
-    <CalculationSettingsContext.Provider value={{ methodId, kerahatMinutes, setMethodId, setKerahatMinutes }}>
+    <CalculationSettingsContext.Provider
+      value={{ methodId, kerahatMinutes, madhab, highLatRule, setMethodId, setKerahatMinutes, setMadhab, setHighLatRule }}
+    >
       {children}
     </CalculationSettingsContext.Provider>
   );
