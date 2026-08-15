@@ -1,6 +1,6 @@
 // src/lib/qibla.ts
 // @ts-ignore
-import SunCalc from 'suncalc';
+const SunCalc = require('suncalc');
 
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
