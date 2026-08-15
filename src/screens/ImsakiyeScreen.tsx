@@ -1,4 +1,5 @@
 // src/screens/ImsakiyeScreen.tsx
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { colors, spacing, typography } from '../theme';
@@ -21,6 +22,7 @@ const GUN_ADLARI = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'C
 const AY_ADLARI = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 
 export default function ImsakiyeScreen({ onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
 
   const days = useMemo(() => {
@@ -43,7 +45,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
   let lastWeek: number | null = null;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+<View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>İmsakiye</Text>
         <TouchableOpacity onPress={onClose}>
@@ -74,7 +76,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
           );
         })}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
