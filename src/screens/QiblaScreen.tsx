@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Magnetometer } from 'expo-sensors';
-import Svg, { Circle, G, Line, Text as SvgText } from 'react-native-svg';
+import * as Location from 'expo-location';
+import Svg, { Circle, G, Line, Text as SvgText, Polygon } from 'react-native-svg';
 import { colors, spacing, typography } from '../theme';
 import { calculateQiblaBearing, calculateDistanceKm, calculateQiblaTime } from '../lib/qibla';
 import { useLocationContext } from '../context/LocationContext';
@@ -35,13 +35,17 @@ export default function QiblaScreen({ onClose }: Props) {
   );
 
   useEffect(() => {
-    Magnetometer.setUpdateInterval(150);
-    const sub = Magnetometer.addListener(({ x, y }) => {
-      let angle = Math.atan2(y, x) * (180 / Math.PI);
-      angle = (angle + 90 + 360) % 360; // telefonun üstünü 0° kabul et
-      setHeading(angle);
-    });
-    return () => sub.remove();
+    let subscription: Location.LocationSubscription | null = null;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      subscription = await Location.watchHeadingAsync((data) => {
+        setHeading(data.trueHeading >= 0 ? data.trueHeading : data.magHeading);
+      });
+    })();
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   // diff > 0: kıble sağda, kullanıcı sağa dönmeli. diff < 0: sola dönmeli.
@@ -55,6 +59,10 @@ export default function QiblaScreen({ onClose }: Props) {
     { label: 'S', angle: 180 },
     { label: 'W', angle: 270 },
   ];
+
+  const kaabaRad = ((qiblaBearing - 90) * Math.PI) / 180;
+  const kaabaX = CENTER + (RADIUS - 45) * Math.cos(kaabaRad);
+  const kaabaY = CENTER + (RADIUS - 45) * Math.sin(kaabaRad);
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top }]}>
@@ -96,17 +104,14 @@ export default function QiblaScreen({ onClose }: Props) {
                   </SvgText>
                 );
               })}
-              {/* Kıble yönü göstergesi */}
-              {(() => {
-                const rad = ((qiblaBearing - 90) * Math.PI) / 180;
-                const x = CENTER + (RADIUS - 45) * Math.cos(rad);
-                const y = CENTER + (RADIUS - 45) * Math.sin(rad);
-                return (
-                  <SvgText x={x} y={y + 10} fontSize={30} textAnchor="middle">
-                    🕋
-                  </SvgText>
-                );
-              })()}
+              {/* Kaaba işaretinin üzerinde kırmızı yön oku */}
+              <Polygon
+                points={`${kaabaX},${kaabaY - 26} ${kaabaX - 7},${kaabaY - 14} ${kaabaX + 7},${kaabaY - 14}`}
+                fill="#D64545"
+              />
+              <SvgText x={kaabaX} y={kaabaY + 10} fontSize={30} textAnchor="middle">
+                🕋
+              </SvgText>
             </G>
           </Svg>
         </View>
