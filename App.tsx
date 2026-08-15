@@ -10,6 +10,7 @@ import { colors } from './src/theme';
 import { LocationProvider } from './src/context/LocationContext';
 import { NotificationSettingsProvider } from './src/context/NotificationSettingsContext';
 import { CalculationSettingsProvider } from './src/context/CalculationSettingsContext';
+import { KazaProvider } from './src/context/KazaContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -32,10 +33,12 @@ export default function App() {
     <SafeAreaProvider>
       <LocationProvider>
         <CalculationSettingsProvider>
-          <NotificationSettingsProvider>
-            <StatusBar style="light" />
-            <HomeScreen />
-          </NotificationSettingsProvider>
+          <KazaProvider>
+            <NotificationSettingsProvider>
+              <StatusBar style="light" />
+              <HomeScreen />
+            </NotificationSettingsProvider>
+          </KazaProvider>
         </CalculationSettingsProvider>
       </LocationProvider>
     </SafeAreaProvider>
