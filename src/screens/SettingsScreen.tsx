@@ -1,7 +1,7 @@
 // src/screens/SettingsScreen.tsx
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '../theme';
 import {
   useNotificationSettings,
@@ -53,7 +53,7 @@ export default function SettingsScreen({ onClose }: Props) {
   }
 
   return (
-  <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
+    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Ayarlar</Text>
         <TouchableOpacity onPress={onClose}>
@@ -67,11 +67,7 @@ export default function SettingsScreen({ onClose }: Props) {
           return (
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
-                <Switch
-                  value={s.enabled}
-                  onValueChange={(val) => setPreAlert(key, { enabled: val })}
-                  trackColor={{ true: colors.gold, false: undefined }}
-                />
+                <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
                 <Text style={styles.cardLabel}>{label}</Text>
                 <Text style={styles.cardOffset}>{s.minutesBefore}dk. önce</Text>
               </View>
@@ -88,11 +84,7 @@ export default function SettingsScreen({ onClose }: Props) {
           return (
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
-                <Switch
-                  value={s.enabled}
-                  onValueChange={(val) => setOnTime(key, { enabled: val })}
-                  trackColor={{ true: colors.gold, false: undefined }}
-                />
+                <Switch value={s.enabled} onValueChange={(val) => setOnTime(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
                 <Text style={styles.cardLabel}>{label}</Text>
               </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
@@ -119,14 +111,14 @@ export default function SettingsScreen({ onClose }: Props) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
   sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.sm },
-  card: { backgroundColor: 'rgba(250,246,236,0.08)', borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
+  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 16, flex: 1 },
-  cardOffset: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 13 },
-  soundLink: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 13, marginTop: spacing.xs },
+  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16, flex: 1 },
+  cardOffset: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13 },
+  soundLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
 });
