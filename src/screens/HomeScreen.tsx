@@ -7,6 +7,7 @@ import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useKaza } from '../context/KazaContext';
 import { requestNotificationPermission, scheduleAllNotifications } from '../lib/notificationScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
@@ -14,8 +15,9 @@ import LocationPickerScreen from './LocationPickerScreen';
 import SettingsScreen from './SettingsScreen';
 import QiblaScreen from './QiblaScreen';
 import ImsakiyeScreen from './ImsakiyeScreen';
+import KazaScreen from './KazaScreen';
 
-type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye';
+type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye' | 'kaza';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -33,6 +35,7 @@ export default function HomeScreen() {
   const { location } = useLocationContext();
   const { settings } = useNotificationSettings();
   const { methodId, kerahatMinutes } = useCalculationSettings();
+  const { missed } = useKaza();
   const [now, setNow] = useState(new Date());
   const [screen, setScreen] = useState<Screen>('home');
 
@@ -79,6 +82,7 @@ export default function HomeScreen() {
   if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} />;
   if (screen === 'qibla') return <QiblaScreen onClose={() => setScreen('home')} />;
   if (screen === 'imsakiye') return <ImsakiyeScreen onClose={() => setScreen('home')} />;
+  if (screen === 'kaza') return <KazaScreen onClose={() => setScreen('home')} />;
 
   return (
     <View style={styles.safeArea}>
@@ -91,6 +95,14 @@ export default function HomeScreen() {
             <Text style={styles.locationChevron}>▾</Text>
           </TouchableOpacity>
           <View style={styles.headerIcons}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('kaza')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.headerIcon}>🕌</Text>
+              {missed.length > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{missed.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('imsakiye')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.headerIcon}>🗓</Text>
             </TouchableOpacity>
@@ -155,8 +167,13 @@ const styles = StyleSheet.create({
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
   locationChevron: { color: colors.gold, fontSize: 16 },
   headerIcons: { flexDirection: 'row', gap: spacing.xs },
-  iconButton: { padding: spacing.sm },
+  iconButton: { padding: spacing.sm, position: 'relative' },
   headerIcon: { color: colors.gold, fontSize: 22 },
+  badge: {
+    position: 'absolute', top: 2, right: 2, backgroundColor: colors.danger,
+    borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+  },
+  badgeText: { color: colors.white, fontSize: 10, fontFamily: typography.bodyBold },
   kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
   kerahatText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 13, textAlign: 'center' },
   iftarBanner: { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md },
