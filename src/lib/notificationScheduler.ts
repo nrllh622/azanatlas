@@ -19,6 +19,19 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
+// Titreşim ayarı gerçekten uygulanıyor (Android bildirim kanalı üzerinden).
+// "Cihazı yüzüstü çevirdiğinde sesi kapat" ve "Bildirim Çubuğu Widgeti" şu an
+// sadece ayar olarak saklanıyor — tam otomasyonları native modül gerektiriyor,
+// ayrı bir pakette ele alınacak.
+export async function configureAndroidChannel(vibrationEnabled: boolean) {
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'AzanAtlas Bildirimleri',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : [0],
+    sound: 'default',
+  });
+}
+
 const EZAN_DUASI =
   "Allahümme Rabbe hazihi'd-da'veti't-tâmmeh, ve's-salâti'l-kâimeh, âti Muhammedeni'l-vasîlete ve'l-fadîleh, veb'ashü makâmen mahmûdenillezî vaadteh.";
 

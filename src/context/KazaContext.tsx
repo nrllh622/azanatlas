@@ -1,73 +1,43 @@
 // src/context/KazaContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { calculateVakitler, VakitKey } from '../lib/prayerCalculator';
-import { loadKazaMap, setKazaStatus, makeKey, KazaMap } from '../lib/kazaStorage';
-import { useLocationContext } from './LocationContext';
-import { useCalculationSettings } from './CalculationSettingsContext';
-
-const TRACKED_VAKITLER: VakitKey[] = ['sabah', 'ogle', 'ikindi', 'aksam', 'yatsi'];
-const GOSTERILECEK_GUN_SAYISI = 14;
-
-export interface MissedEntry {
-  key: string;
-  date: Date;
-  vakitKey: VakitKey;
-  vakitLabel: string;
-}
+import { loadKazaCounts, saveKazaCounts, KazaCounts, KazaCategory } from '../lib/kazaStorage';
 
 interface Ctx {
-  missed: MissedEntry[];
-  markCompensated: (key: string) => void;
+  counts: KazaCounts;
+  totalCount: number;
+  increment: (cat: KazaCategory) => void;
+  decrement: (cat: KazaCategory) => void;
 }
 
 const KazaContext = createContext<Ctx | undefined>(undefined);
 
 export function KazaProvider({ children }: { children: ReactNode }) {
-  const { location } = useLocationContext();
-  const { methodId } = useCalculationSettings();
-  const [kazaMap, setKazaMap] = useState<KazaMap>({});
-  const [missed, setMissed] = useState<MissedEntry[]>([]);
+  const [counts, setCounts] = useState<KazaCounts>({
+    sabah: 0, ogle: 0, ikindi: 0, aksam: 0, yatsi: 0, vitr: 0, oruc: 0,
+  });
 
   useEffect(() => {
-    loadKazaMap().then(setKazaMap);
+    loadKazaCounts().then(setCounts);
   }, []);
 
-  useEffect(() => {
-    const now = new Date();
-    const result: MissedEntry[] = [];
-
-    for (let i = 0; i < GOSTERILECEK_GUN_SAYISI; i++) {
-      const day = new Date(now);
-      day.setDate(day.getDate() - i);
-      const vakitler = calculateVakitler(location.latitude, location.longitude, day, location.countryCode, methodId);
-      const nextDayFirstVakit = calculateVakitler(
-        location.latitude, location.longitude,
-        new Date(day.getTime() + 86400000), location.countryCode, methodId
-      )[0];
-
-      TRACKED_VAKITLER.forEach((vk, idx) => {
-        const vakit = vakitler.find((v) => v.key === vk);
-        if (!vakit) return;
-        const nextVakit = vakitler[vakitler.findIndex((v) => v.key === vk) + 1] ?? nextDayFirstVakit;
-        const windowEnd = nextVakit.date;
-        if (windowEnd.getTime() > now.getTime()) return; // henüz vakit dolmamış
-
-        const key = makeKey(day, vk);
-        if (kazaMap[key] === 'prayed' || kazaMap[key] === 'compensated') return;
-
-        result.push({ key, date: day, vakitKey: vk, vakitLabel: vakit.label });
-      });
-    }
-
-    setMissed(result.sort((a, b) => b.date.getTime() - a.date.getTime()));
-  }, [kazaMap, location, methodId]);
-
-  const markCompensated = async (key: string) => {
-    const updated = await setKazaStatus(key, 'compensated');
-    setKazaMap({ ...updated });
+  const update = (cat: KazaCategory, delta: number) => {
+    setCounts((prev) => {
+      const next = { ...prev, [cat]: Math.max(0, prev[cat] + delta) };
+      saveKazaCounts(next);
+      return next;
+    });
   };
 
-  return <KazaContext.Provider value={{ missed, markCompensated }}>{children}</KazaContext.Provider>;
+  const increment = (cat: KazaCategory) => update(cat, 1);
+  const decrement = (cat: KazaCategory) => update(cat, -1);
+
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  return (
+    <KazaContext.Provider value={{ counts, totalCount, increment, decrement }}>
+      {children}
+    </KazaContext.Provider>
+  );
 }
 
 export function useKaza() {

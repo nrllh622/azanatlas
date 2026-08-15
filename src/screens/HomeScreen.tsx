@@ -7,8 +7,15 @@ import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useGeneralSettings } from '../context/GeneralSettingsContext';
+import { useVaktindeKil } from '../context/VaktindeKilContext';
 import { useKaza } from '../context/KazaContext';
-import { requestNotificationPermission, scheduleAllNotifications } from '../lib/notificationScheduler';
+import {
+  requestNotificationPermission,
+  scheduleAllNotifications,
+  configureAndroidChannel,
+} from '../lib/notificationScheduler';
+import { scheduleVaktindeKil } from '../lib/vaktindeKilScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
 import LocationPickerScreen from './LocationPickerScreen';
@@ -16,8 +23,9 @@ import SettingsScreen from './SettingsScreen';
 import QiblaScreen from './QiblaScreen';
 import ImsakiyeScreen from './ImsakiyeScreen';
 import KazaScreen from './KazaScreen';
+import VaktindeKilScreen from './VaktindeKilScreen';
 
-type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye' | 'kaza';
+type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye' | 'kaza' | 'vaktindekil';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -34,8 +42,10 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
   const { settings } = useNotificationSettings();
-  const { methodId, kerahatMinutes } = useCalculationSettings();
-  const { missed } = useKaza();
+  const { methodId, kerahatMinutes, madhab, highLatRule } = useCalculationSettings();
+  const { vibrationEnabled } = useGeneralSettings();
+  const vaktindeKil = useVaktindeKil();
+  const { totalCount: kazaTotal } = useKaza();
   const [now, setNow] = useState(new Date());
   const [screen, setScreen] = useState<Screen>('home');
 
@@ -45,17 +55,17 @@ export default function HomeScreen() {
   }, []);
 
   const vakitler: VakitEntry[] = useMemo(() => {
-    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode, methodId);
-  }, [location.latitude, location.longitude, location.countryCode, methodId, now.toDateString()]);
+    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode, methodId, madhab, highLatRule);
+  }, [location.latitude, location.longitude, location.countryCode, methodId, madhab, highLatRule, now.toDateString()]);
 
   const next = useMemo(() => {
     const upcoming = vakitler.find((v) => v.date.getTime() > now.getTime());
     if (upcoming) return upcoming;
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode, methodId);
+    const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode, methodId, madhab, highLatRule);
     return tomorrowVakitler[0];
-  }, [vakitler, now, location, methodId]);
+  }, [vakitler, now, location, methodId, madhab, highLatRule]);
 
   const current = useMemo(() => {
     const passed = [...vakitler].reverse().find((v) => v.date.getTime() <= now.getTime());
@@ -72,17 +82,21 @@ export default function HomeScreen() {
   useEffect(() => {
     (async () => {
       const granted = await requestNotificationPermission();
-      if (granted) {
-        await scheduleAllNotifications(vakitler, settings, kerahatMinutes);
+      if (!granted) return;
+      await configureAndroidChannel(vibrationEnabled);
+      await scheduleAllNotifications(vakitler, settings, kerahatMinutes);
+      if (vaktindeKil.enabled) {
+        await scheduleVaktindeKil(current, next, vaktindeKil.firstDelayMinutes, vaktindeKil.repeatIntervalMinutes);
       }
     })();
-  }, [location.latitude, location.longitude, methodId, settings, kerahatMinutes]);
+  }, [location.latitude, location.longitude, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil]);
 
   if (screen === 'location') return <LocationPickerScreen onDone={() => setScreen('home')} />;
-  if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} />;
+  if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} onOpenVaktindeKil={() => setScreen('vaktindekil')} />;
   if (screen === 'qibla') return <QiblaScreen onClose={() => setScreen('home')} />;
   if (screen === 'imsakiye') return <ImsakiyeScreen onClose={() => setScreen('home')} />;
   if (screen === 'kaza') return <KazaScreen onClose={() => setScreen('home')} />;
+  if (screen === 'vaktindekil') return <VaktindeKilScreen onClose={() => setScreen('home')} />;
 
   return (
     <View style={styles.safeArea}>
@@ -97,9 +111,9 @@ export default function HomeScreen() {
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('kaza')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.headerIcon}>🕌</Text>
-              {missed.length > 0 && (
+              {kazaTotal > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{missed.length}</Text>
+                  <Text style={styles.badgeText}>{kazaTotal}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -170,8 +184,16 @@ const styles = StyleSheet.create({
   iconButton: { padding: spacing.sm, position: 'relative' },
   headerIcon: { color: colors.gold, fontSize: 22 },
   badge: {
-    position: 'absolute', top: 2, right: 2, backgroundColor: colors.danger,
-    borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
   },
   badgeText: { color: colors.white, fontSize: 10, fontFamily: typography.bodyBold },
   kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm },

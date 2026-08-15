@@ -1,5 +1,5 @@
 // src/lib/prayerCalculator.ts
-import { CalculationMethod, Coordinates, PrayerTimes } from 'adhan';
+import { CalculationMethod, Coordinates, PrayerTimes, Madhab, HighLatitudeRule } from 'adhan';
 
 export type VakitKey = 'imsak' | 'sabah' | 'gunes' | 'ogle' | 'ikindi' | 'aksam' | 'yatsi';
 
@@ -51,13 +51,22 @@ export function calculateVakitler(
   longitude: number,
   date: Date,
   countryCode: string = 'TR',
-  methodOverride?: string
+  methodOverride?: string,
+  madhabId: 'Shafi' | 'Hanafi' = 'Shafi',
+  highLatRuleId: 'AngleBased' | 'MiddleOfTheNight' | 'SeventhOfTheNight' | 'None' = 'AngleBased'
 ): VakitEntry[] {
   const coordinates = new Coordinates(latitude, longitude);
   const overrideParams = methodOverride && methodOverride !== 'auto' ? getMethodById(methodOverride) : null;
   const params = overrideParams || getMethodForCountry(countryCode);
-  const prayerTimes = new PrayerTimes(coordinates, date, params);
 
+  params.madhab = madhabId === 'Hanafi' ? Madhab.Hanafi : Madhab.Shafi;
+
+  if (highLatRuleId === 'AngleBased') params.highLatitudeRule = HighLatitudeRule.TwilightAngle();
+  else if (highLatRuleId === 'MiddleOfTheNight') params.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight();
+  else if (highLatRuleId === 'SeventhOfTheNight') params.highLatitudeRule = HighLatitudeRule.SeventhOfTheNight();
+  // 'None' seçiliyse kütüphanenin varsayılan davranışına dokunmuyoruz
+
+  const prayerTimes = new PrayerTimes(coordinates, date, params);
   const imsak = new Date(prayerTimes.fajr.getTime() - 10 * 60 * 1000);
 
   return [
