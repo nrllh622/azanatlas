@@ -23,9 +23,8 @@ export async function scheduleAllNotifications(vakitler: VakitEntry[], settings:
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   for (const vakit of vakitler) {
-    // Vakit zamanında uyarı
     const onTime = (settings.onTimeAlerts as any)[vakit.key];
-    if (onTime && onTime.soundId !== 'none' && vakit.date.getTime() > Date.now()) {
+    if (onTime && onTime.enabled && onTime.soundId !== 'none' && vakit.date.getTime() > Date.now()) {
       const sound = getSoundById(onTime.soundId);
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -37,7 +36,6 @@ export async function scheduleAllNotifications(vakitler: VakitEntry[], settings:
       });
     }
 
-    // Vakitten önce uyarı
     const preAlert = (settings.preAlerts as any)[vakit.key];
     if (preAlert && preAlert.enabled && preAlert.soundId !== 'none') {
       const alertDate = new Date(vakit.date.getTime() - preAlert.minutesBefore * 60 * 1000);
