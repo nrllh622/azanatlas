@@ -34,7 +34,7 @@ interface Props {
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
 export default function SettingsScreen({ onClose }: Props) {
-  const { settings, setPreAlert, setOnTimeSound } = useNotificationSettings();
+  const { settings, setPreAlert, setOnTime } = useNotificationSettings();
   const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
 
   let currentSelectedId = 'none';
@@ -85,7 +85,14 @@ export default function SettingsScreen({ onClose }: Props) {
           const s = settings.onTimeAlerts[key];
           return (
             <View key={key} style={styles.card}>
-              <Text style={styles.cardLabel}>{label}</Text>
+              <View style={styles.cardTopRow}>
+                <Switch
+                  value={s.enabled}
+                  onValueChange={(val) => setOnTime(key, { enabled: val })}
+                  trackColor={{ true: colors.gold, false: undefined }}
+                />
+                <Text style={styles.cardLabel}>{label}</Text>
+              </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
                 <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
               </TouchableOpacity>
@@ -100,7 +107,7 @@ export default function SettingsScreen({ onClose }: Props) {
         selectedId={currentSelectedId}
         onSelect={(id) => {
           if (pickerFor && pickerFor.type === 'pre') setPreAlert(pickerFor.key, { soundId: id });
-          if (pickerFor && pickerFor.type === 'onTime') setOnTimeSound(pickerFor.key, id);
+          if (pickerFor && pickerFor.type === 'onTime') setOnTime(pickerFor.key, { soundId: id });
         }}
         onClose={() => setPickerFor(null)}
       />
