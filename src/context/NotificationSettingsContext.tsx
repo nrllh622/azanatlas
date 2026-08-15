@@ -11,6 +11,7 @@ export interface PreAlertSetting {
 }
 
 export interface OnTimeSetting {
+  enabled: boolean;
   soundId: string;
 }
 
@@ -29,18 +30,18 @@ const DEFAULT_SETTINGS: NotificationSettings = {
     yatsi: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
   },
   onTimeAlerts: {
-    sabah: { soundId: 'essalatu_hayrun' },
-    ogle: { soundId: 'uyandirma3' },
-    ikindi: { soundId: 'uyandirma3' },
-    aksam: { soundId: 'uyandirma3' },
-    yatsi: { soundId: 'uyandirma3' },
+    sabah: { enabled: true, soundId: 'essalatu_hayrun' },
+    ogle: { enabled: true, soundId: 'uyandirma3' },
+    ikindi: { enabled: true, soundId: 'uyandirma3' },
+    aksam: { enabled: true, soundId: 'uyandirma3' },
+    yatsi: { enabled: true, soundId: 'uyandirma3' },
   },
 };
 
 interface Ctx {
   settings: NotificationSettings;
   setPreAlert: (key: PreAlertVakitKey, patch: Partial<PreAlertSetting>) => void;
-  setOnTimeSound: (key: OnTimeVakitKey, soundId: string) => void;
+  setOnTime: (key: OnTimeVakitKey, patch: Partial<OnTimeSetting>) => void;
 }
 
 const NotificationSettingsContext = createContext<Ctx | undefined>(undefined);
@@ -55,15 +56,15 @@ export function NotificationSettingsProvider({ children }: { children: ReactNode
     }));
   };
 
-  const setOnTimeSound = (key: OnTimeVakitKey, soundId: string) => {
+  const setOnTime = (key: OnTimeVakitKey, patch: Partial<OnTimeSetting>) => {
     setSettings((prev) => ({
       ...prev,
-      onTimeAlerts: { ...prev.onTimeAlerts, [key]: { soundId } },
+      onTimeAlerts: { ...prev.onTimeAlerts, [key]: { ...prev.onTimeAlerts[key], ...patch } },
     }));
   };
 
   return (
-    <NotificationSettingsContext.Provider value={{ settings, setPreAlert, setOnTimeSound }}>
+    <NotificationSettingsContext.Provider value={{ settings, setPreAlert, setOnTime }}>
       {children}
     </NotificationSettingsContext.Provider>
   );
