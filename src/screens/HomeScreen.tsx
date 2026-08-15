@@ -50,6 +50,12 @@ export default function HomeScreen() {
     return tomorrowVakitler[0];
   }, [vakitler, now, location]);
 
+  // ŞU ANDA İÇİNDE BULUNDUĞUMUZ vakit — son geçmiş vakit (next ile karıştırma)
+  const current = useMemo(() => {
+    const passed = [...vakitler].reverse().find((v) => v.date.getTime() <= now.getTime());
+    return passed ?? vakitler[vakitler.length - 1];
+  }, [vakitler, now]);
+
   const remainingMs = next.date.getTime() - now.getTime();
 
   useEffect(() => {
@@ -93,7 +99,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Referans uygulamadaki gibi: saat/geri sayım doğrudan zemin üzerinde, kart YOK */}
         <View style={styles.timeBlock}>
           <Text style={styles.nextLabel}>Sonraki Vakit · {next.label}</Text>
           <Text style={styles.bigClock}>
@@ -108,12 +113,13 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Referans uygulamadaki gibi: 7 vakit TEK kart içinde, tek satır, aktif olan renkli metin */}
         <View style={styles.timesCard}>
           {vakitler.map((v) => (
             <View key={v.key} style={styles.timeCol}>
-              <Text style={[styles.timeLabel, v.key === next.key && styles.timeLabelActive]}>{v.label}</Text>
-              <Text style={[styles.timeValue, v.key === next.key && styles.timeValueActive]}>
+              <Text style={[styles.timeLabel, v.key === current.key && styles.timeLabelActive]} numberOfLines={1} adjustsFontSizeToFit>
+                {v.label}
+              </Text>
+              <Text style={[styles.timeValue, v.key === current.key && styles.timeValueActive]} numberOfLines={1} adjustsFontSizeToFit>
                 {v.date.getHours().toString().padStart(2, '0')}:
                 {v.date.getMinutes().toString().padStart(2, '0')}
               </Text>
@@ -127,8 +133,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg, minHeight: 44 },
+  scrollContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg, minHeight: 44, paddingHorizontal: spacing.xs },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
   locationChevron: { color: colors.gold, fontSize: 16 },
@@ -147,11 +153,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
-  timeCol: { alignItems: 'center', flex: 1 },
-  timeLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 11 },
-  timeLabelActive: { color: colors.gold },
-  timeValue: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 13, marginTop: 2 },
+  timeCol: { alignItems: 'center', flex: 1, paddingHorizontal: 2 },
+  timeLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 12 },
+  timeLabelActive: { color: colors.gold, fontFamily: typography.bodyBold },
+  timeValue: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 15, marginTop: 3 },
   timeValueActive: { color: colors.gold },
 });
