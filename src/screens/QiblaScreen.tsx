@@ -1,9 +1,9 @@
 // src/screens/QiblaScreen.tsx
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DeviceMotion } from 'expo-sensors';
-import Svg, { Circle, G, Line, Text as SvgText, Polygon, Path } from 'react-native-svg';
+import Svg, { Circle, G, Line, Text as SvgText, Polygon } from 'react-native-svg';
 import { colors, spacing, typography } from '../theme';
 import { calculateQiblaBearing, calculateDistanceKm, calculateQiblaTime } from '../lib/qibla';
 import { useLocationContext } from '../context/LocationContext';
@@ -16,20 +16,29 @@ const SIZE = 280;
 const CENTER = SIZE / 2;
 const RADIUS = SIZE / 2 - 24;
 
-function RotateIcon({ direction }: { direction: 'left' | 'right' }) {
+function AnimatedArrow({ direction }: { direction: 'left' | 'right' }) {
+  const shift = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shift, { toValue: 1, duration: 550, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(shift, { toValue: 0, duration: 550, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shift]);
+
+  const translateX = shift.interpolate({
+    inputRange: [0, 1],
+    outputRange: direction === 'right' ? [0, 10] : [0, -10],
+  });
+
   return (
-    <Svg width={34} height={34} viewBox="0 0 32 32">
-      <G transform={direction === 'left' ? 'scale(-1,1) translate(-32,0)' : undefined}>
-        <Path
-          d="M 26 16 A 10 10 0 1 0 17 26"
-          stroke={colors.gold}
-          strokeWidth={3}
-          fill="none"
-          strokeLinecap="round"
-        />
-        <Polygon points="17,26 24,25 20,32" fill={colors.gold} />
-      </G>
-    </Svg>
+    <Animated.Text style={[styles.animArrow, { transform: [{ translateX }] }]}>
+      {direction === 'right' ? '›' : '‹'}
+    </Animated.Text>
   );
 }
 
@@ -38,18 +47,9 @@ export default function QiblaScreen({ onClose }: Props) {
   const { location } = useLocationContext();
   const [heading, setHeading] = useState(0);
 
-  const qiblaBearing = useMemo(
-    () => calculateQiblaBearing(location.latitude, location.longitude),
-    [location]
-  );
-  const distanceKm = useMemo(
-    () => calculateDistanceKm(location.latitude, location.longitude),
-    [location]
-  );
-  const qiblaTime = useMemo(
-    () => calculateQiblaTime(location.latitude, location.longitude, new Date()),
-    [location]
-  );
+  const qiblaBearing = useMemo(() => calculateQiblaBearing(location.latitude, location.longitude), [location]);
+  const distanceKm = useMemo(() => calculateDistanceKm(location.latitude, location.longitude), [location]);
+  const qiblaTime = useMemo(() => calculateQiblaTime(location.latitude, location.longitude, new Date()), [location]);
 
   useEffect(() => {
     DeviceMotion.setUpdateInterval(150);
@@ -69,20 +69,18 @@ export default function QiblaScreen({ onClose }: Props) {
   const turnHint = aligned ? 'Kıble yönündesiniz' : diff > 0 ? 'Sağa dönün' : 'Sola dönün';
 
   const cardinals = [
-    { label: 'K', angle: 0 },
-    { label: 'D', angle: 90 },
-    { label: 'G', angle: 180 },
-    { label: 'B', angle: 270 },
+    { label: 'N', angle: 0, color: '#D64545' },
+    { label: 'E', angle: 90, color: colors.sand },
+    { label: 'S', angle: 180, color: colors.sand },
+    { label: 'W', angle: 270, color: colors.sand },
   ];
 
   const kaabaRad = ((qiblaBearing - 90) * Math.PI) / 180;
   const kaabaX = CENTER + (RADIUS - 48) * Math.cos(kaabaRad);
   const kaabaY = CENTER + (RADIUS - 48) * Math.sin(kaabaRad);
 
-  // Kırmızı ok, Kaabe işaretinin biraz dışında, merkeze doğru (içe) bakacak şekilde
-  const arrowRad = ((qiblaBearing - 90) * Math.PI) / 180;
-  const arrowX = CENTER + (RADIUS - 20) * Math.cos(arrowRad);
-  const arrowY = CENTER + (RADIUS - 20) * Math.sin(arrowRad);
+  const arrowX = CENTER + (RADIUS - 20) * Math.cos(kaabaRad);
+  const arrowY = CENTER + (RADIUS - 20) * Math.sin(kaabaRad);
   const arrowRotateDeg = (qiblaBearing + 180) % 360;
 
   const tickMarks = Array.from({ length: 72 }, (_, i) => i * 5);
@@ -98,71 +96,56 @@ export default function QiblaScreen({ onClose }: Props) {
 
       <View style={styles.body}>
         <View style={styles.hintRow}>
-          {!aligned && <RotateIcon direction={diff > 0 ? 'right' : 'left'} />}
+          {!aligned && <AnimatedArrow direction={diff > 0 ? 'right' : 'left'} />}
           {aligned && <Text style={styles.hintIcon}>✓</Text>}
           <Text style={styles.hintText}>{turnHint}</Text>
+          {!aligned && <AnimatedArrow direction={diff > 0 ? 'right' : 'left'} />}
         </View>
 
         <View style={{ width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' }}>
           <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-            <Line x1={CENTER} y1={4} x2={CENTER} y2={22} stroke={colors.gold} strokeWidth={4} />
+            {/* Dış çerçeve - metalik pusula gövdesi hissi */}
+            <Circle cx={CENTER} cy={CENTER} r={RADIUS + 14} stroke={colors.gold} strokeWidth={3} fill={colors.primaryDark} />
+            <Circle cx={CENTER} cy={CENTER} r={RADIUS + 8} stroke={colors.sand} strokeWidth={1} fill="none" opacity={0.4} />
+
+            <Line x1={CENTER} y1={2} x2={CENTER} y2={18} stroke={colors.gold} strokeWidth={4} />
 
             <G transform={`rotate(${-heading} ${CENTER} ${CENTER})`}>
-              <Circle cx={CENTER} cy={CENTER} r={RADIUS} stroke={colors.sand} strokeWidth={2} fill="none" />
+              <Circle cx={CENTER} cy={CENTER} r={RADIUS} stroke={colors.sand} strokeWidth={1.5} fill={colors.primary} />
 
-              {/* Gerçek pusula hissi için ince açı çizgileri */}
               {tickMarks.map((deg) => {
                 const isMajor = deg % 90 === 0;
                 const isMid = deg % 30 === 0;
-                const len = isMajor ? 14 : isMid ? 9 : 5;
+                const len = isMajor ? 16 : isMid ? 10 : 5;
                 const rad = ((deg - 90) * Math.PI) / 180;
                 const x1 = CENTER + (RADIUS - 1) * Math.cos(rad);
                 const y1 = CENTER + (RADIUS - 1) * Math.sin(rad);
                 const x2 = CENTER + (RADIUS - 1 - len) * Math.cos(rad);
                 const y2 = CENTER + (RADIUS - 1 - len) * Math.sin(rad);
                 return (
-                  <Line
-                    key={deg}
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke={colors.sand}
-                    strokeWidth={isMajor ? 2 : 1}
-                    opacity={isMajor ? 0.9 : 0.4}
-                  />
+                  <Line key={deg} x1={x1} y1={y1} x2={x2} y2={y2} stroke={colors.sand} strokeWidth={isMajor ? 2.5 : 1} opacity={isMajor ? 1 : 0.45} />
                 );
               })}
 
               {cardinals.map((c) => {
                 const rad = ((c.angle - 90) * Math.PI) / 180;
-                const x = CENTER + (RADIUS - 26) * Math.cos(rad);
-                const y = CENTER + (RADIUS - 26) * Math.sin(rad);
+                const x = CENTER + (RADIUS - 30) * Math.cos(rad);
+                const y = CENTER + (RADIUS - 30) * Math.sin(rad);
                 return (
-                  <SvgText
-                    key={c.label}
-                    x={x}
-                    y={y + 6}
-                    fontSize={17}
-                    fontWeight="bold"
-                    fill={colors.sand}
-                    textAnchor="middle"
-                  >
+                  <SvgText key={c.label} x={x} y={y + 7} fontSize={19} fontWeight="bold" fill={c.color} textAnchor="middle">
                     {c.label}
                   </SvgText>
                 );
               })}
 
+              <Circle cx={CENTER} cy={CENTER} r={4} fill={colors.gold} />
+
               <SvgText x={kaabaX} y={kaabaY + 10} fontSize={30} textAnchor="middle">
                 🕋
               </SvgText>
 
-              {/* Kırmızı yön oku: içe (merkeze) doğru bakar */}
               <G transform={`rotate(${arrowRotateDeg} ${arrowX} ${arrowY})`}>
-                <Polygon
-                  points={`${arrowX},${arrowY - 9} ${arrowX - 6},${arrowY + 6} ${arrowX + 6},${arrowY + 6}`}
-                  fill="#D64545"
-                />
+                <Polygon points={`${arrowX},${arrowY - 9} ${arrowX - 6},${arrowY + 6} ${arrowX + 6},${arrowY + 6}`} fill="#D64545" />
               </G>
             </G>
           </Svg>
@@ -173,8 +156,7 @@ export default function QiblaScreen({ onClose }: Props) {
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>Kıble Açısı: {qiblaBearing.toFixed(1)}°</Text>
           <Text style={styles.infoText}>
-            Kıble Saati: {qiblaTime.getHours().toString().padStart(2, '0')}:
-            {qiblaTime.getMinutes().toString().padStart(2, '0')}
+            Kıble Saati: {qiblaTime.getHours().toString().padStart(2, '0')}:{qiblaTime.getMinutes().toString().padStart(2, '0')}
           </Text>
           <Text style={styles.infoText}>{distanceKm} km</Text>
         </View>
@@ -192,6 +174,7 @@ const styles = StyleSheet.create({
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   hintIcon: { color: colors.gold, fontSize: 26 },
   hintText: { fontFamily: typography.bodyBold, color: colors.textOnDark, fontSize: 18 },
+  animArrow: { color: colors.gold, fontSize: 30, fontWeight: 'bold' },
   degreeText: { fontFamily: typography.displayFamily, color: colors.textOnDark, fontSize: 40 },
   infoBox: { alignItems: 'center', gap: 2, marginTop: spacing.sm },
   infoText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14 },
