@@ -11,6 +11,8 @@ import { LocationProvider } from './src/context/LocationContext';
 import { NotificationSettingsProvider } from './src/context/NotificationSettingsContext';
 import { CalculationSettingsProvider } from './src/context/CalculationSettingsContext';
 import { KazaProvider } from './src/context/KazaContext';
+import { GeneralSettingsProvider } from './src/context/GeneralSettingsContext';
+import { VaktindeKilProvider } from './src/context/VaktindeKilContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -33,12 +35,16 @@ export default function App() {
     <SafeAreaProvider>
       <LocationProvider>
         <CalculationSettingsProvider>
-          <KazaProvider>
-            <NotificationSettingsProvider>
-              <StatusBar style="light" />
-              <HomeScreen />
-            </NotificationSettingsProvider>
-          </KazaProvider>
+          <GeneralSettingsProvider>
+            <VaktindeKilProvider>
+              <KazaProvider>
+                <NotificationSettingsProvider>
+                  <StatusBar style="light" />
+                  <HomeScreen />
+                </NotificationSettingsProvider>
+              </KazaProvider>
+            </VaktindeKilProvider>
+          </GeneralSettingsProvider>
         </CalculationSettingsProvider>
       </LocationProvider>
     </SafeAreaProvider>
