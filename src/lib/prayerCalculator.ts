@@ -61,9 +61,10 @@ export function calculateVakitler(
 
   params.madhab = madhabId === 'Hanafi' ? Madhab.Hanafi : Madhab.Shafi;
 
-  if (highLatRuleId === 'AngleBased') params.highLatitudeRule = HighLatitudeRule.TwilightAngle();
-  else if (highLatRuleId === 'MiddleOfTheNight') params.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight();
-  else if (highLatRuleId === 'SeventhOfTheNight') params.highLatitudeRule = HighLatitudeRule.SeventhOfTheNight();
+  // ÖNEMLİ: HighLatitudeRule bir fonksiyon değil, sabit string değerleri olan bir nesne — parantezsiz kullanılıyor
+  if (highLatRuleId === 'AngleBased') params.highLatitudeRule = HighLatitudeRule.TwilightAngle;
+  else if (highLatRuleId === 'MiddleOfTheNight') params.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight;
+  else if (highLatRuleId === 'SeventhOfTheNight') params.highLatitudeRule = HighLatitudeRule.SeventhOfTheNight;
   // 'None' seçiliyse kütüphanenin varsayılan davranışına dokunmuyoruz
 
   const prayerTimes = new PrayerTimes(coordinates, date, params);
