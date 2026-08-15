@@ -1,4 +1,5 @@
 // src/screens/SettingsScreen.tsx
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { colors, spacing, typography } from '../theme';
@@ -34,6 +35,7 @@ interface Props {
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
 export default function SettingsScreen({ onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const { settings, setPreAlert, setOnTime } = useNotificationSettings();
   const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
 
@@ -51,7 +53,7 @@ export default function SettingsScreen({ onClose }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+  <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Ayarlar</Text>
         <TouchableOpacity onPress={onClose}>
@@ -111,7 +113,7 @@ export default function SettingsScreen({ onClose }: Props) {
         }}
         onClose={() => setPickerFor(null)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
