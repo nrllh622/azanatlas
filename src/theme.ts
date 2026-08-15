@@ -1,10 +1,11 @@
 // src/theme.ts
 export const colors = {
-  primary: '#0F5257',      // derin çini yeşili/turkuaz - ana zemin
-  primaryDark: '#0A3A3D',  // kart gölgeleri, derin vurgular
-  cream: '#FAF6EC',        // fildişi - kartlar
-  gold: '#C9A227',         // kaligrafi altını - vurgu
-  sand: '#E8DCC8',         // nötr, ayraç/border
+  primary: '#0F5257',
+  primaryDark: '#0A3A3D',
+  cream: '#FAF6EC',
+  white: '#FFFFFF',
+  gold: '#C9A227',
+  sand: '#E8DCC8',
   textOnDark: '#F5EFDF',
   textOnLight: '#1B2A2F',
   success: '#4E9F6E',
