@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography } from '../theme';
-import GeometricDivider from '../components/GeometricDivider';
 import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
@@ -11,8 +10,9 @@ import { requestNotificationPermission, scheduleAllNotifications } from '../lib/
 import LocationPickerScreen from './LocationPickerScreen';
 import SettingsScreen from './SettingsScreen';
 import QiblaScreen from './QiblaScreen';
+import ImsakiyeScreen from './ImsakiyeScreen';
 
-type Screen = 'home' | 'location' | 'settings' | 'qibla';
+type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -22,6 +22,8 @@ function formatCountdown(ms: number): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
 }
+
+const AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -59,15 +61,10 @@ export default function HomeScreen() {
     })();
   }, [location.latitude, location.longitude, settings]);
 
-  if (screen === 'location') {
-    return <LocationPickerScreen onDone={() => setScreen('home')} />;
-  }
-  if (screen === 'settings') {
-    return <SettingsScreen onClose={() => setScreen('home')} />;
-  }
-  if (screen === 'qibla') {
-    return <QiblaScreen onClose={() => setScreen('home')} />;
-  }
+  if (screen === 'location') return <LocationPickerScreen onDone={() => setScreen('home')} />;
+  if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} />;
+  if (screen === 'qibla') return <QiblaScreen onClose={() => setScreen('home')} />;
+  if (screen === 'imsakiye') return <ImsakiyeScreen onClose={() => setScreen('home')} />;
 
   return (
     <View style={styles.safeArea}>
@@ -84,39 +81,37 @@ export default function HomeScreen() {
             <Text style={styles.locationChevron}>▾</Text>
           </TouchableOpacity>
           <View style={styles.headerIcons}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setScreen('qibla')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
+            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('imsakiye')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.headerIcon}>🗓</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('qibla')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.headerIcon}>🧭</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setScreen('settings')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
+            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('settings')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.headerIcon}>⚙</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.mainCard}>
+        {/* Referans uygulamadaki gibi: saat/geri sayım doğrudan zemin üzerinde, kart YOK */}
+        <View style={styles.timeBlock}>
           <Text style={styles.nextLabel}>Sonraki Vakit · {next.label}</Text>
           <Text style={styles.bigClock}>
             {next.date.getHours().toString().padStart(2, '0')}:
             {next.date.getMinutes().toString().padStart(2, '0')}
           </Text>
-          <View style={styles.countdownPill}>
-            <Text style={styles.countdownText}>{formatCountdown(remainingMs)}</Text>
+          <Text style={styles.countdownText}>{formatCountdown(remainingMs)}</Text>
+          <View style={styles.datePill}>
+            <Text style={styles.datePillText}>
+              {now.getDate()} {AY_ADLARI[now.getMonth()]} {now.getFullYear()}
+            </Text>
           </View>
         </View>
 
-        <GeometricDivider />
-
-        <View style={styles.timesRow}>
+        {/* Referans uygulamadaki gibi: 7 vakit TEK kart içinde, tek satır, aktif olan renkli metin */}
+        <View style={styles.timesCard}>
           {vakitler.map((v) => (
-            <View key={v.key} style={[styles.timeItem, v.key === next.key && styles.timeItemActive]}>
+            <View key={v.key} style={styles.timeCol}>
               <Text style={[styles.timeLabel, v.key === next.key && styles.timeLabelActive]}>{v.label}</Text>
               <Text style={[styles.timeValue, v.key === next.key && styles.timeValueActive]}>
                 {v.date.getHours().toString().padStart(2, '0')}:
@@ -137,37 +132,26 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
   locationChevron: { color: colors.gold, fontSize: 16 },
-  headerIcons: { flexDirection: 'row', gap: spacing.sm },
+  headerIcons: { flexDirection: 'row', gap: spacing.xs },
   iconButton: { padding: spacing.sm },
-  headerIcon: { color: colors.gold, fontSize: 24 },
-  mainCard: {
+  headerIcon: { color: colors.gold, fontSize: 22 },
+  timeBlock: { alignItems: 'center', marginBottom: spacing.lg },
+  nextLabel: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
+  bigClock: { fontFamily: typography.displayFamily, color: colors.textOnDark, fontSize: 64, marginTop: spacing.xs },
+  countdownText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 18, marginTop: spacing.xs },
+  datePill: { marginTop: spacing.sm, borderWidth: 1, borderColor: colors.gold, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill },
+  datePillText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 13 },
+  timesCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: colors.cream,
     borderRadius: radius.lg,
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-    shadowColor: colors.primaryDark,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
-  nextLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' },
-  bigClock: { fontFamily: typography.displayFamily, color: colors.textOnLight, fontSize: 56, marginTop: spacing.xs },
-  countdownPill: { marginTop: spacing.sm, backgroundColor: colors.sand, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill },
-  countdownText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 16, letterSpacing: 0.5 },
-  timesRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm },
-  timeItem: {
-    minWidth: 90,
-    backgroundColor: 'rgba(250,246,236,0.08)',
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(201,162,39,0.25)',
-  },
-  timeItemActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-  timeLabel: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 13 },
-  timeLabelActive: { color: colors.primaryDark },
-  timeValue: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 17, marginTop: 2 },
-  timeValueActive: { color: colors.primaryDark },
+  timeCol: { alignItems: 'center', flex: 1 },
+  timeLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 11 },
+  timeLabelActive: { color: colors.gold },
+  timeValue: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 13, marginTop: 2 },
+  timeValueActive: { color: colors.gold },
 });
