@@ -19,21 +19,39 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
-export async function scheduleAllNotifications(vakitler: VakitEntry[], settings: NotificationSettings) {
+const EZAN_DUASI =
+  "Allahümme Rabbe hazihi'd-da'veti't-tâmmeh, ve's-salâti'l-kâimeh, âti Muhammedeni'l-vasîlete ve'l-fadîleh, veb'ashü makâmen mahmûdenillezî vaadteh.";
+
+export async function scheduleAllNotifications(
+  vakitler: VakitEntry[],
+  settings: NotificationSettings,
+  kerahatMinutes: number
+) {
   await Notifications.cancelAllScheduledNotificationsAsync();
+
+  const imsak = vakitler.find((v) => v.key === 'imsak');
+  const gunes = vakitler.find((v) => v.key === 'gunes');
+  const ogle = vakitler.find((v) => v.key === 'ogle');
+  const aksam = vakitler.find((v) => v.key === 'aksam');
 
   for (const vakit of vakitler) {
     const onTime = (settings.onTimeAlerts as any)[vakit.key];
-    if (onTime && onTime.enabled && onTime.soundId !== 'none' && vakit.date.getTime() > Date.now()) {
-      const sound = getSoundById(onTime.soundId);
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${vakit.label} Vakti`,
-          body: `${vakit.label} vakti girdi.`,
-          sound: sound.id !== 'none' ? 'default' : undefined,
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: vakit.date },
-      });
+    if (onTime && onTime.enabled && onTime.soundId !== 'none') {
+      let triggerDate = vakit.date;
+      if (vakit.key === 'sabah' && settings.sabahAtImsakVaktinde && imsak) {
+        triggerDate = imsak.date;
+      }
+      if (triggerDate.getTime() > Date.now()) {
+        const sound = getSoundById(onTime.soundId);
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `${vakit.label} Vakti`,
+            body: settings.ezanDuasiEnabled ? EZAN_DUASI : `${vakit.label} vakti girdi.`,
+            sound: sound.id !== 'none' ? 'default' : undefined,
+          },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
+        });
+      }
     }
 
     const preAlert = (settings.preAlerts as any)[vakit.key];
@@ -47,6 +65,33 @@ export async function scheduleAllNotifications(vakitler: VakitEntry[], settings:
             sound: 'default',
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alertDate },
+        });
+      }
+    }
+  }
+
+  if (settings.kerahatNotifyEnabled) {
+    if (gunes && gunes.date.getTime() > Date.now()) {
+      await Notifications.scheduleNotificationAsync({
+        content: { title: 'Kerahat Vakti', body: 'Güneş doğarken namaz kılınması mekruhtur.', sound: 'default' },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: gunes.date },
+      });
+    }
+    if (aksam) {
+      const d = new Date(aksam.date.getTime() - kerahatMinutes * 60 * 1000);
+      if (d.getTime() > Date.now()) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: 'Kerahat Vakti', body: 'Güneş batarken namaz kılınması mekruhtur.', sound: 'default' },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
+        });
+      }
+    }
+    if (ogle) {
+      const d = new Date(ogle.date.getTime() - 10 * 60 * 1000);
+      if (d.getTime() > Date.now()) {
+        await Notifications.scheduleNotificationAsync({
+          content: { title: 'Kerahat Vakti', body: 'Zeval vakti — namaz kılınması mekruhtur.', sound: 'default' },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
         });
       }
     }
