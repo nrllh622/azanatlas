@@ -9,6 +9,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import { colors } from './src/theme';
 import { LocationProvider } from './src/context/LocationContext';
 import { NotificationSettingsProvider } from './src/context/NotificationSettingsContext';
+import { CalculationSettingsProvider } from './src/context/CalculationSettingsContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -30,10 +31,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <LocationProvider>
-        <NotificationSettingsProvider>
-          <StatusBar style="light" />
-          <HomeScreen />
-        </NotificationSettingsProvider>
+        <CalculationSettingsProvider>
+          <NotificationSettingsProvider>
+            <StatusBar style="light" />
+            <HomeScreen />
+          </NotificationSettingsProvider>
+        </CalculationSettingsProvider>
       </LocationProvider>
     </SafeAreaProvider>
   );
