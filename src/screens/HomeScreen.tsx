@@ -7,6 +7,8 @@ import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
 import { requestNotificationPermission, scheduleAllNotifications } from '../lib/notificationScheduler';
+import { toHijri } from '../lib/hijri';
+import { getKerahatInfo } from '../lib/kerahat';
 import LocationPickerScreen from './LocationPickerScreen';
 import SettingsScreen from './SettingsScreen';
 import QiblaScreen from './QiblaScreen';
@@ -50,11 +52,13 @@ export default function HomeScreen() {
     return tomorrowVakitler[0];
   }, [vakitler, now, location]);
 
-  // ŞU ANDA İÇİNDE BULUNDUĞUMUZ vakit — son geçmiş vakit (next ile karıştırma)
   const current = useMemo(() => {
     const passed = [...vakitler].reverse().find((v) => v.date.getTime() <= now.getTime());
     return passed ?? vakitler[vakitler.length - 1];
   }, [vakitler, now]);
+
+  const kerahat = useMemo(() => getKerahatInfo(vakitler, now), [vakitler, now]);
+  const hijri = useMemo(() => toHijri(now), [now.toDateString()]);
 
   const remainingMs = next.date.getTime() - now.getTime();
 
@@ -76,11 +80,7 @@ export default function HomeScreen() {
     <View style={styles.safeArea}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.topRow}>
-          <TouchableOpacity
-            style={styles.locationRow}
-            onPress={() => setScreen('location')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
+          <TouchableOpacity style={styles.locationRow} onPress={() => setScreen('location')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Text style={styles.locationText}>
               {location.il} · {location.ilce}
             </Text>
@@ -99,16 +99,21 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {kerahat.active && (
+          <View style={styles.kerahatBanner}>
+            <Text style={styles.kerahatText}>⚠ Mekruh vakti — {kerahat.reason}</Text>
+          </View>
+        )}
+
         <View style={styles.timeBlock}>
           <Text style={styles.nextLabel}>Sonraki Vakit · {next.label}</Text>
           <Text style={styles.bigClock}>
-            {next.date.getHours().toString().padStart(2, '0')}:
-            {next.date.getMinutes().toString().padStart(2, '0')}
+            {next.date.getHours().toString().padStart(2, '0')}:{next.date.getMinutes().toString().padStart(2, '0')}
           </Text>
           <Text style={styles.countdownText}>{formatCountdown(remainingMs)}</Text>
           <View style={styles.datePill}>
             <Text style={styles.datePillText}>
-              {now.getDate()} {AY_ADLARI[now.getMonth()]} {now.getFullYear()}
+              {now.getDate()} {AY_ADLARI[now.getMonth()]} {now.getFullYear()} · {hijri.day} {hijri.month} {hijri.year}
             </Text>
           </View>
         </View>
@@ -120,8 +125,7 @@ export default function HomeScreen() {
                 {v.label}
               </Text>
               <Text style={[styles.timeValue, v.key === current.key && styles.timeValueActive]} numberOfLines={1} adjustsFontSizeToFit>
-                {v.date.getHours().toString().padStart(2, '0')}:
-                {v.date.getMinutes().toString().padStart(2, '0')}
+                {v.date.getHours().toString().padStart(2, '0')}:{v.date.getMinutes().toString().padStart(2, '0')}
               </Text>
             </View>
           ))}
@@ -134,27 +138,22 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   scrollContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg, minHeight: 44, paddingHorizontal: spacing.xs },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md, minHeight: 44, paddingHorizontal: spacing.xs },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
   locationChevron: { color: colors.gold, fontSize: 16 },
   headerIcons: { flexDirection: 'row', gap: spacing.xs },
   iconButton: { padding: spacing.sm },
   headerIcon: { color: colors.gold, fontSize: 22 },
+  kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md },
+  kerahatText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 13, textAlign: 'center' },
   timeBlock: { alignItems: 'center', marginBottom: spacing.lg },
   nextLabel: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
   bigClock: { fontFamily: typography.displayFamily, color: colors.textOnDark, fontSize: 64, marginTop: spacing.xs },
   countdownText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 18, marginTop: spacing.xs },
   datePill: { marginTop: spacing.sm, borderWidth: 1, borderColor: colors.gold, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.pill },
-  datePillText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 13 },
-  timesCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cream,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
-  },
+  datePillText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 12 },
+  timesCard: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radius.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.xs },
   timeCol: { alignItems: 'center', flex: 1, paddingHorizontal: 2 },
   timeLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 12 },
   timeLabelActive: { color: colors.gold, fontFamily: typography.bodyBold },
