@@ -2,40 +2,49 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, typography } from '../theme';
 import { useKaza } from '../context/KazaContext';
+import { KazaCategory } from '../lib/kazaStorage';
 
 interface Props {
   onClose: () => void;
 }
 
-const AY_ADLARI = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const CATEGORIES: { key: KazaCategory; label: string }[] = [
+  { key: 'sabah', label: 'Sabah' },
+  { key: 'ogle', label: 'Öğle' },
+  { key: 'ikindi', label: 'İkindi' },
+  { key: 'aksam', label: 'Akşam' },
+  { key: 'yatsi', label: 'Yatsı' },
+  { key: 'vitr', label: 'Vitr' },
+  { key: 'oruc', label: 'Oruç Tutma' },
+];
 
 export default function KazaScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { missed, markCompensated } = useKaza();
+  const { counts, totalCount, increment, decrement } = useKaza();
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Kazalar ({missed.length})</Text>
+        <Text style={styles.header}>Kazalar ({totalCount})</Text>
         <TouchableOpacity onPress={onClose}>
           <Text style={styles.closeText}>Kapat</Text>
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {missed.length === 0 && <Text style={styles.emptyText}>Son 14 günde kaza namazın görünmüyor 🎉</Text>}
-        {missed.map((m) => (
-          <View key={m.key} style={styles.card}>
-            <View>
-              <Text style={styles.cardTitle}>{m.vakitLabel}</Text>
-              <Text style={styles.cardDate}>
-                {m.date.getDate()} {AY_ADLARI[m.date.getMonth()]} {m.date.getFullYear()}
-              </Text>
+        {CATEGORIES.map((c) => (
+          <View key={c.key} style={styles.card}>
+            <Text style={styles.cardLabel}>{c.label}</Text>
+            <View style={styles.counterRow}>
+              <TouchableOpacity style={styles.counterBtn} onPress={() => decrement(c.key)}>
+                <Text style={styles.counterBtnText}>−</Text>
+              </TouchableOpacity>
+              <Text style={styles.countText}>{counts[c.key]}</Text>
+              <TouchableOpacity style={styles.counterBtn} onPress={() => increment(c.key)}>
+                <Text style={styles.counterBtnText}>+</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.button} onPress={() => markCompensated(m.key)}>
-              <Text style={styles.buttonText}>Kaza Kıldım</Text>
-            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
@@ -49,13 +58,25 @@ const styles = StyleSheet.create({
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
-  emptyText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 15, textAlign: 'center', marginTop: spacing.xl },
   card: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
-  cardTitle: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 16 },
-  cardDate: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13, marginTop: 2 },
-  button: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  buttonText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 13 },
+  cardLabel: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 17 },
+  counterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  counterBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterBtnText: { color: colors.white, fontSize: 18, fontFamily: typography.bodyBold },
+  countText: { fontFamily: typography.displaySemibold, color: colors.primaryDark, fontSize: 20, minWidth: 24, textAlign: 'center' },
 });
