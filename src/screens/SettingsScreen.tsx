@@ -8,8 +8,10 @@ import {
   PreAlertVakitKey,
   OnTimeVakitKey,
 } from '../context/NotificationSettingsContext';
+import { useCalculationSettings, CALC_METHODS, KERAHAT_OPTIONS } from '../context/CalculationSettingsContext';
 import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
+import SimplePickerModal from '../components/SimplePickerModal';
 
 const PRE_ALERT_LABELS: { key: PreAlertVakitKey; label: string }[] = [
   { key: 'imsak', label: 'İmsaktan' },
@@ -36,8 +38,11 @@ type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; k
 
 export default function SettingsScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { settings, setPreAlert, setOnTime } = useNotificationSettings();
+  const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
+  const { methodId, kerahatMinutes, setMethodId, setKerahatMinutes } = useCalculationSettings();
   const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
+  const [methodPickerVisible, setMethodPickerVisible] = useState(false);
+  const [kerahatPickerVisible, setKerahatPickerVisible] = useState(false);
 
   let currentSelectedId = 'none';
   let pickerTitle = '';
@@ -52,6 +57,8 @@ export default function SettingsScreen({ onClose }: Props) {
     pickerTitle = (found ? found.label : '') + ' Uyarı Sesi';
   }
 
+  const methodLabel = CALC_METHODS.find((m) => m.id === methodId)?.label ?? 'Otomatik';
+
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
@@ -61,6 +68,36 @@ export default function SettingsScreen({ onClose }: Props) {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.sectionTitle}>Hesaplama</Text>
+        <TouchableOpacity style={styles.card} onPress={() => setMethodPickerVisible(true)}>
+          <Text style={styles.cardLabel}>Hesaplama Yöntemi</Text>
+          <Text style={styles.cardSubtext}>{methodLabel}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={() => setKerahatPickerVisible(true)}>
+          <Text style={styles.cardLabel}>Kerahat Vakti Süresi</Text>
+          <Text style={styles.cardSubtext}>{kerahatMinutes} dk</Text>
+        </TouchableOpacity>
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch value={settings.kerahatNotifyEnabled} onValueChange={(v) => setFlag('kerahatNotifyEnabled', v)} trackColor={{ true: colors.gold, false: undefined }} />
+            <Text style={styles.cardLabelInline}>Kerahat Vaktinde Uyar</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Genel</Text>
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch value={settings.ezanDuasiEnabled} onValueChange={(v) => setFlag('ezanDuasiEnabled', v)} trackColor={{ true: colors.gold, false: undefined }} />
+            <Text style={styles.cardLabelInline}>Ezan Duası</Text>
+          </View>
+        </View>
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch value={settings.sabahAtImsakVaktinde} onValueChange={(v) => setFlag('sabahAtImsakVaktinde', v)} trackColor={{ true: colors.gold, false: undefined }} />
+            <Text style={styles.cardLabelInline}>Sabah Ezanı İmsak Vaktinde Oku</Text>
+          </View>
+        </View>
+
         <Text style={styles.sectionTitle}>Vakitlerden Önce Uyarılar</Text>
         {PRE_ALERT_LABELS.map(({ key, label }) => {
           const s = settings.preAlerts[key];
@@ -68,7 +105,7 @@ export default function SettingsScreen({ onClose }: Props) {
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
                 <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
-                <Text style={styles.cardLabel}>{label}</Text>
+                <Text style={styles.cardLabelInline}>{label}</Text>
                 <Text style={styles.cardOffset}>{s.minutesBefore}dk. önce</Text>
               </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
@@ -85,7 +122,7 @@ export default function SettingsScreen({ onClose }: Props) {
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
                 <Switch value={s.enabled} onValueChange={(val) => setOnTime(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
-                <Text style={styles.cardLabel}>{label}</Text>
+                <Text style={styles.cardLabelInline}>{label}</Text>
               </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
                 <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
@@ -105,6 +142,24 @@ export default function SettingsScreen({ onClose }: Props) {
         }}
         onClose={() => setPickerFor(null)}
       />
+
+      <SimplePickerModal
+        visible={methodPickerVisible}
+        title="Hesaplama Yöntemi"
+        options={CALC_METHODS}
+        selectedId={methodId}
+        onSelect={(id) => setMethodId(id as any)}
+        onClose={() => setMethodPickerVisible(false)}
+      />
+
+      <SimplePickerModal
+        visible={kerahatPickerVisible}
+        title="Kerahat Vakti (dakika)"
+        options={KERAHAT_OPTIONS.map((m) => ({ id: String(m), label: `${m} dakika` }))}
+        selectedId={String(kerahatMinutes)}
+        onSelect={(id) => setKerahatMinutes(Number(id))}
+        onClose={() => setKerahatPickerVisible(false)}
+      />
     </View>
   );
 }
@@ -118,7 +173,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.sm },
   card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16, flex: 1 },
+  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16 },
+  cardLabelInline: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16, flex: 1 },
+  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: 2 },
   cardOffset: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13 },
   soundLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
 });
