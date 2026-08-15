@@ -1,4 +1,7 @@
 // src/lib/qibla.ts
+// @ts-ignore
+import SunCalc from 'suncalc';
+
 const KAABA_LAT = 21.4225;
 const KAABA_LNG = 39.8262;
 
@@ -31,4 +34,28 @@ export function calculateDistanceKm(lat: number, lng: number): number {
   const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(R * c);
+}
+
+// Güneşin gökyüzündeki azimutunun kıble açısına en yakın olduğu anı bulur
+// (o an, dikey bir cismin gölgesi kıble yönünün tam tersini gösterir)
+export function calculateQiblaTime(lat: number, lng: number, date: Date): Date {
+  const qibla = calculateQiblaBearing(lat, lng);
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+
+  let bestDiff = 361;
+  let bestTime = dayStart;
+
+  for (let minutes = 0; minutes < 24 * 60; minutes += 2) {
+    const t = new Date(dayStart.getTime() + minutes * 60 * 1000);
+    const pos = SunCalc.getPosition(t, lat, lng);
+    // suncalc azimutu güneyden batıya doğru ölçer; kuzeyden saat yönüne çeviriyoruz
+    const azimuthFromNorth = (toDeg(pos.azimuth) + 180 + 360) % 360;
+    const diff = Math.abs(((azimuthFromNorth - qibla + 540) % 360) - 180);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestTime = t;
+    }
+  }
+  return bestTime;
 }
