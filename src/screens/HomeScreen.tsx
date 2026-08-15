@@ -6,6 +6,7 @@ import { colors, spacing, radius, typography } from '../theme';
 import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
+import { useCalculationSettings } from '../context/CalculationSettingsContext';
 import { requestNotificationPermission, scheduleAllNotifications } from '../lib/notificationScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
@@ -31,6 +32,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
   const { settings } = useNotificationSettings();
+  const { methodId, kerahatMinutes } = useCalculationSettings();
   const [now, setNow] = useState(new Date());
   const [screen, setScreen] = useState<Screen>('home');
 
@@ -40,25 +42,27 @@ export default function HomeScreen() {
   }, []);
 
   const vakitler: VakitEntry[] = useMemo(() => {
-    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode);
-  }, [location.latitude, location.longitude, location.countryCode, now.toDateString()]);
+    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode, methodId);
+  }, [location.latitude, location.longitude, location.countryCode, methodId, now.toDateString()]);
 
   const next = useMemo(() => {
     const upcoming = vakitler.find((v) => v.date.getTime() > now.getTime());
     if (upcoming) return upcoming;
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode);
+    const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode, methodId);
     return tomorrowVakitler[0];
-  }, [vakitler, now, location]);
+  }, [vakitler, now, location, methodId]);
 
   const current = useMemo(() => {
     const passed = [...vakitler].reverse().find((v) => v.date.getTime() <= now.getTime());
     return passed ?? vakitler[vakitler.length - 1];
   }, [vakitler, now]);
 
-  const kerahat = useMemo(() => getKerahatInfo(vakitler, now), [vakitler, now]);
+  const kerahat = useMemo(() => getKerahatInfo(vakitler, now, kerahatMinutes), [vakitler, now, kerahatMinutes]);
   const hijri = useMemo(() => toHijri(now), [now.toDateString()]);
+  const isRamazan = hijri.month === 'Ramazan';
+  const aksam = vakitler.find((v) => v.key === 'aksam');
 
   const remainingMs = next.date.getTime() - now.getTime();
 
@@ -66,10 +70,10 @@ export default function HomeScreen() {
     (async () => {
       const granted = await requestNotificationPermission();
       if (granted) {
-        await scheduleAllNotifications(vakitler, settings);
+        await scheduleAllNotifications(vakitler, settings, kerahatMinutes);
       }
     })();
-  }, [location.latitude, location.longitude, settings]);
+  }, [location.latitude, location.longitude, methodId, settings, kerahatMinutes]);
 
   if (screen === 'location') return <LocationPickerScreen onDone={() => setScreen('home')} />;
   if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} />;
@@ -102,6 +106,14 @@ export default function HomeScreen() {
         {kerahat.active && (
           <View style={styles.kerahatBanner}>
             <Text style={styles.kerahatText}>⚠ Mekruh vakti — {kerahat.reason}</Text>
+          </View>
+        )}
+
+        {isRamazan && aksam && (
+          <View style={styles.iftarBanner}>
+            <Text style={styles.iftarText}>
+              🌙 İftara kalan süre: {formatCountdown(Math.max(0, aksam.date.getTime() - now.getTime()))}
+            </Text>
           </View>
         )}
 
@@ -145,8 +157,10 @@ const styles = StyleSheet.create({
   headerIcons: { flexDirection: 'row', gap: spacing.xs },
   iconButton: { padding: spacing.sm },
   headerIcon: { color: colors.gold, fontSize: 22 },
-  kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md },
+  kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
   kerahatText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 13, textAlign: 'center' },
+  iftarBanner: { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md },
+  iftarText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 13, textAlign: 'center' },
   timeBlock: { alignItems: 'center', marginBottom: spacing.lg },
   nextLabel: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' },
   bigClock: { fontFamily: typography.displayFamily, color: colors.textOnDark, fontSize: 64, marginTop: spacing.xs },
