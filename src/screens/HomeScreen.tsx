@@ -40,9 +40,9 @@ const AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temm
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { location } = useLocationContext();
+  const { location, locations, activeId, setActiveId } = useLocationContext();
   const { settings } = useNotificationSettings();
-  const { methodId, kerahatMinutes, madhab, highLatRule } = useCalculationSettings();
+  const { methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib } = useCalculationSettings();
   const { vibrationEnabled } = useGeneralSettings();
   const vaktindeKil = useVaktindeKil();
   const { totalCount: kazaTotal } = useKaza();
@@ -73,7 +73,18 @@ export default function HomeScreen() {
   }, [vakitler, now]);
 
   const kerahat = useMemo(() => getKerahatInfo(vakitler, now, kerahatMinutes), [vakitler, now, kerahatMinutes]);
-  const hijri = useMemo(() => toHijri(now), [now.toDateString()]);
+
+  const hijriBaseDate = useMemo(() => {
+    const aksamVakit = vakitler.find((v) => v.key === 'aksam');
+    if (hijriSwitchAtMaghrib && aksamVakit && now.getTime() >= aksamVakit.date.getTime()) {
+      const next = new Date(now);
+      next.setDate(next.getDate() + 1);
+      return next;
+    }
+    return now;
+  }, [now, vakitler, hijriSwitchAtMaghrib]);
+
+  const hijri = useMemo(() => toHijri(hijriBaseDate, hijriAdjustmentDays), [hijriBaseDate, hijriAdjustmentDays]);
   const isRamazan = hijri.month === 'Ramazan';
   const aksam = vakitler.find((v) => v.key === 'aksam');
 
@@ -91,6 +102,13 @@ export default function HomeScreen() {
     })();
   }, [location.latitude, location.longitude, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil]);
 
+  const cycleLocation = (dir: 1 | -1) => {
+    if (locations.length < 2) return;
+    const idx = locations.findIndex((l) => l.id === activeId);
+    const nextIdx = (idx + dir + locations.length) % locations.length;
+    setActiveId(locations[nextIdx].id);
+  };
+
   if (screen === 'location') return <LocationPickerScreen onDone={() => setScreen('home')} />;
   if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} onOpenVaktindeKil={() => setScreen('vaktindekil')} />;
   if (screen === 'qibla') return <QiblaScreen onClose={() => setScreen('home')} />;
@@ -102,12 +120,24 @@ export default function HomeScreen() {
     <View style={styles.safeArea}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.topRow}>
-          <TouchableOpacity style={styles.locationRow} onPress={() => setScreen('location')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.locationText}>
-              {location.il} · {location.ilce}
-            </Text>
-            <Text style={styles.locationChevron}>▾</Text>
-          </TouchableOpacity>
+          <View style={styles.locationSwitcher}>
+            {locations.length > 1 && (
+              <TouchableOpacity onPress={() => cycleLocation(-1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.chevronBtn}>‹</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.locationRow} onPress={() => setScreen('location')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.locationText}>
+                {location.il} · {location.ilce}
+              </Text>
+              <Text style={styles.locationChevron}>▾</Text>
+            </TouchableOpacity>
+            {locations.length > 1 && (
+              <TouchableOpacity onPress={() => cycleLocation(1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.chevronBtn}>›</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('kaza')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={styles.headerIcon}>🕌</Text>
@@ -177,6 +207,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   scrollContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md, minHeight: 44, paddingHorizontal: spacing.xs },
+  locationSwitcher: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  chevronBtn: { color: colors.gold, fontSize: 24, paddingHorizontal: spacing.xs },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
   locationChevron: { color: colors.gold, fontSize: 16 },
