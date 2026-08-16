@@ -3,10 +3,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DeviceMotion } from 'expo-sensors';
-import Svg, { Circle, G, Line, Text as SvgText, Polygon } from 'react-native-svg';
+import Svg, { Circle, G, Line, Text as SvgText, Polygon, Path } from 'react-native-svg';
 import { colors, spacing, typography } from '../theme';
 import { calculateQiblaBearing, calculateDistanceKm, calculateQiblaTime } from '../lib/qibla';
 import { useLocationContext } from '../context/LocationContext';
+import { useCalculationSettings } from '../context/CalculationSettingsContext';
 
 interface Props {
   onClose: () => void;
@@ -42,14 +43,42 @@ function AnimatedArrow({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
+function CalibrationOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <View style={styles.calibOverlay}>
+      <TouchableOpacity style={styles.calibCloseBtn} onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <Text style={styles.calibCloseText}>Kapat</Text>
+      </TouchableOpacity>
+      <Svg width={180} height={120} viewBox="0 0 180 120">
+        {/* Sekiz (sonsuzluk) şekli — kalibrasyon hareketini temsil ediyor */}
+        <Path
+          d="M 20 60 C 20 30, 70 30, 90 60 C 110 90, 160 90, 160 60 C 160 30, 110 30, 90 60 C 70 90, 20 90, 20 60 Z"
+          stroke={colors.gold}
+          strokeWidth={6}
+          fill="none"
+          strokeLinecap="round"
+        />
+      </Svg>
+      <Text style={styles.calibText}>
+        Pusula doğruluğu için cihazını sekiz çizer gibi havada hareket ettir, sonra tekrar dene.
+      </Text>
+    </View>
+  );
+}
+
 export default function QiblaScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
+  const { distanceUnit } = useCalculationSettings();
   const [heading, setHeading] = useState(0);
+  const [calibrationVisible, setCalibrationVisible] = useState(false);
 
   const qiblaBearing = useMemo(() => calculateQiblaBearing(location.latitude, location.longitude), [location]);
   const distanceKm = useMemo(() => calculateDistanceKm(location.latitude, location.longitude), [location]);
   const qiblaTime = useMemo(() => calculateQiblaTime(location.latitude, location.longitude, new Date()), [location]);
+
+  const distanceDisplay =
+    distanceUnit === 'mi' ? `${Math.round(distanceKm * 0.621371)} mi` : `${distanceKm} km`;
 
   useEffect(() => {
     DeviceMotion.setUpdateInterval(150);
@@ -85,13 +114,22 @@ export default function QiblaScreen({ onClose }: Props) {
 
   const tickMarks = Array.from({ length: 72 }, (_, i) => i * 5);
 
+  if (calibrationVisible) {
+    return <CalibrationOverlay onClose={() => setCalibrationVisible(false)} />;
+  }
+
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Kıble</Text>
-        <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.closeText}>Kapat</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <TouchableOpacity onPress={() => setCalibrationVisible(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.calibrateLink}>Kalibre Et</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.closeText}>Kapat</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.body}>
@@ -104,7 +142,6 @@ export default function QiblaScreen({ onClose }: Props) {
 
         <View style={{ width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' }}>
           <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-            {/* Dış çerçeve - metalik pusula gövdesi hissi */}
             <Circle cx={CENTER} cy={CENTER} r={RADIUS + 14} stroke={colors.gold} strokeWidth={3} fill={colors.primaryDark} />
             <Circle cx={CENTER} cy={CENTER} r={RADIUS + 8} stroke={colors.sand} strokeWidth={1} fill="none" opacity={0.4} />
 
@@ -158,7 +195,7 @@ export default function QiblaScreen({ onClose }: Props) {
           <Text style={styles.infoText}>
             Kıble Saati: {qiblaTime.getHours().toString().padStart(2, '0')}:{qiblaTime.getMinutes().toString().padStart(2, '0')}
           </Text>
-          <Text style={styles.infoText}>{distanceKm} km</Text>
+          <Text style={styles.infoText}>{distanceDisplay}</Text>
         </View>
       </View>
     </View>
@@ -170,6 +207,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
+  calibrateLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 14, textDecorationLine: 'underline' },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   hintIcon: { color: colors.gold, fontSize: 26 },
@@ -178,4 +216,8 @@ const styles = StyleSheet.create({
   degreeText: { fontFamily: typography.displayFamily, color: colors.textOnDark, fontSize: 40 },
   infoBox: { alignItems: 'center', gap: 2, marginTop: spacing.sm },
   infoText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14 },
+  calibOverlay: { flex: 1, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  calibCloseBtn: { position: 'absolute', top: 50, right: 20 },
+  calibCloseText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 16 },
+  calibText: { fontFamily: typography.bodyMedium, color: colors.white, fontSize: 16, textAlign: 'center', marginTop: spacing.lg },
 });
