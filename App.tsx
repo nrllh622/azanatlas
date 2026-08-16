@@ -13,6 +13,7 @@ import { CalculationSettingsProvider } from './src/context/CalculationSettingsCo
 import { KazaProvider } from './src/context/KazaContext';
 import { GeneralSettingsProvider } from './src/context/GeneralSettingsContext';
 import { VaktindeKilProvider } from './src/context/VaktindeKilContext';
+import { RemindersProvider } from './src/context/RemindersContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -37,12 +38,14 @@ export default function App() {
         <CalculationSettingsProvider>
           <GeneralSettingsProvider>
             <VaktindeKilProvider>
-              <KazaProvider>
-                <NotificationSettingsProvider>
-                  <StatusBar style="light" />
-                  <HomeScreen />
-                </NotificationSettingsProvider>
-              </KazaProvider>
+              <RemindersProvider>
+                <KazaProvider>
+                  <NotificationSettingsProvider>
+                    <StatusBar style="light" />
+                    <HomeScreen />
+                  </NotificationSettingsProvider>
+                </KazaProvider>
+              </RemindersProvider>
             </VaktindeKilProvider>
           </GeneralSettingsProvider>
         </CalculationSettingsProvider>
