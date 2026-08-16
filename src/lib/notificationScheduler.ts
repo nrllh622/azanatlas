@@ -19,17 +19,26 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
-// Titreşim ayarı gerçekten uygulanıyor (Android bildirim kanalı üzerinden).
-// "Cihazı yüzüstü çevirdiğinde sesi kapat" ve "Bildirim Çubuğu Widgeti" şu an
-// sadece ayar olarak saklanıyor — tam otomasyonları native modül gerektiriyor,
-// ayrı bir pakette ele alınacak.
-export async function configureAndroidChannel(vibrationEnabled: boolean) {
-  await Notifications.setNotificationChannelAsync('default', {
-    name: 'AzanAtlas Bildirimleri',
+// ÖNEMLİ: Android'de bir kanal bir kez oluşturulduktan sonra titreşim/ses ayarı
+// değiştirilemiyor (platform kısıtı). Bu yüzden İKİ SABİT kanalı en başta
+// oluşturuyoruz, ayar değiştiğinde doğru kanalı seçiyoruz.
+export async function configureAndroidChannels() {
+  await Notifications.setNotificationChannelAsync('vibrate-on', {
+    name: 'AzanAtlas Bildirimleri (Titreşimli)',
     importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : [0],
+    vibrationPattern: [0, 250, 250, 250],
     sound: 'default',
   });
+  await Notifications.setNotificationChannelAsync('vibrate-off', {
+    name: 'AzanAtlas Bildirimleri (Titreşimsiz)',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0],
+    sound: 'default',
+  });
+}
+
+function getChannelId(vibrationEnabled: boolean) {
+  return vibrationEnabled ? 'vibrate-on' : 'vibrate-off';
 }
 
 const EZAN_DUASI =
@@ -38,9 +47,11 @@ const EZAN_DUASI =
 export async function scheduleAllNotifications(
   vakitler: VakitEntry[],
   settings: NotificationSettings,
-  kerahatMinutes: number
+  kerahatMinutes: number,
+  vibrationEnabled: boolean
 ) {
   await Notifications.cancelAllScheduledNotificationsAsync();
+  const channelId = getChannelId(vibrationEnabled);
 
   const imsak = vakitler.find((v) => v.key === 'imsak');
   const gunes = vakitler.find((v) => v.key === 'gunes');
@@ -62,7 +73,7 @@ export async function scheduleAllNotifications(
             body: settings.ezanDuasiEnabled ? EZAN_DUASI : `${vakit.label} vakti girdi.`,
             sound: sound.id !== 'none' ? 'default' : undefined,
           },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId },
         });
       }
     }
@@ -77,7 +88,7 @@ export async function scheduleAllNotifications(
             body: `${vakit.label} vaktine az kaldı.`,
             sound: 'default',
           },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alertDate },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alertDate, channelId },
         });
       }
     }
@@ -87,7 +98,7 @@ export async function scheduleAllNotifications(
     if (gunes && gunes.date.getTime() > Date.now()) {
       await Notifications.scheduleNotificationAsync({
         content: { title: 'Kerahat Vakti', body: 'Güneş doğarken namaz kılınması mekruhtur.', sound: 'default' },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: gunes.date },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: gunes.date, channelId },
       });
     }
     if (aksam) {
@@ -95,7 +106,7 @@ export async function scheduleAllNotifications(
       if (d.getTime() > Date.now()) {
         await Notifications.scheduleNotificationAsync({
           content: { title: 'Kerahat Vakti', body: 'Güneş batarken namaz kılınması mekruhtur.', sound: 'default' },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId },
         });
       }
     }
@@ -104,7 +115,7 @@ export async function scheduleAllNotifications(
       if (d.getTime() > Date.now()) {
         await Notifications.scheduleNotificationAsync({
           content: { title: 'Kerahat Vakti', body: 'Zeval vakti — namaz kılınması mekruhtur.', sound: 'default' },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId },
         });
       }
     }
