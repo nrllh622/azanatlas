@@ -56,16 +56,21 @@ export function calculateVakitler(
   highLatRuleId: 'AngleBased' | 'MiddleOfTheNight' | 'SeventhOfTheNight' | 'None' = 'AngleBased'
 ): VakitEntry[] {
   const coordinates = new Coordinates(latitude, longitude);
-  const overrideParams = methodOverride && methodOverride !== 'auto' ? getMethodById(methodOverride) : null;
+  const isAuto = !methodOverride || methodOverride === 'auto';
+  const overrideParams = !isAuto ? getMethodById(methodOverride as string) : null;
   const params = overrideParams || getMethodForCountry(countryCode);
 
-  params.madhab = madhabId === 'Hanafi' ? Madhab.Hanafi : Madhab.Shafi;
+  // Otomatik moddayken madhab/yüksek açı kuralını EZMİYORUZ — ülkenin varsayılan
+  // yöntemi (örn. Turkey()) kendi doğru ayarlarıyla çalışsın. Bunlar sadece
+  // manuel modda (kullanıcı belirli bir yöntem seçtiğinde) devreye giriyor.
+  if (!isAuto) {
+    params.madhab = madhabId === 'Hanafi' ? Madhab.Hanafi : Madhab.Shafi;
 
-  // ÖNEMLİ: HighLatitudeRule bir fonksiyon değil, sabit string değerleri olan bir nesne — parantezsiz kullanılıyor
-  if (highLatRuleId === 'AngleBased') params.highLatitudeRule = HighLatitudeRule.TwilightAngle;
-  else if (highLatRuleId === 'MiddleOfTheNight') params.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight;
-  else if (highLatRuleId === 'SeventhOfTheNight') params.highLatitudeRule = HighLatitudeRule.SeventhOfTheNight;
-  // 'None' seçiliyse kütüphanenin varsayılan davranışına dokunmuyoruz
+    if (highLatRuleId === 'AngleBased') params.highLatitudeRule = HighLatitudeRule.TwilightAngle;
+    else if (highLatRuleId === 'MiddleOfTheNight') params.highLatitudeRule = HighLatitudeRule.MiddleOfTheNight;
+    else if (highLatRuleId === 'SeventhOfTheNight') params.highLatitudeRule = HighLatitudeRule.SeventhOfTheNight;
+    // 'None' seçiliyse kütüphanenin varsayılan davranışına dokunmuyoruz
+  }
 
   const prayerTimes = new PrayerTimes(coordinates, date, params);
   const imsak = new Date(prayerTimes.fajr.getTime() - 10 * 60 * 1000);
