@@ -68,6 +68,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   const [highLatPickerVisible, setHighLatPickerVisible] = useState(false);
   const [distanceUnitPickerVisible, setDistanceUnitPickerVisible] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState<string | null>(null);
 
   let currentSelectedId = 'none';
   let pickerTitle = '';
@@ -89,9 +90,11 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
   const fetchGpsForAuto = async () => {
     setGpsLoading(true);
+    setGpsStatus(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        setGpsStatus('Konum izni verilmedi. Telefon Ayarları > Uygulamalar > AzanAtlas > İzinler üzerinden konum iznini elle açabilirsin.');
         setGpsLoading(false);
         return;
       }
@@ -108,8 +111,9 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         countryCode: place?.isoCountryCode || 'TR',
         isGps: true,
       });
+      setGpsStatus('Konum başarıyla alındı ve eklendi.');
     } catch (e) {
-      // sessizce yut
+      setGpsStatus('Konum alınamadı. GPS açık mı ve konum servisleri etkin mi kontrol et.');
     } finally {
       setGpsLoading(false);
     }
@@ -118,7 +122,12 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Ayarlar</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.backArrow}>‹ Geri</Text>
+          </TouchableOpacity>
+          <Text style={styles.header}>Ayarlar</Text>
+        </View>
         <TouchableOpacity onPress={onClose}>
           <Text style={styles.closeText}>Kapat</Text>
         </TouchableOpacity>
@@ -141,6 +150,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
               onValueChange={(v) => {
                 setAutoMethod(v);
                 if (v) fetchGpsForAuto();
+                else setGpsStatus(null);
               }}
               trackColor={{ true: colors.gold, false: undefined }}
             />
@@ -148,6 +158,12 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           </View>
         </View>
         {autoMethod && gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
+        {autoMethod && !gpsLoading && gpsStatus && <Text style={styles.gpsStatusText}>{gpsStatus}</Text>}
+        {autoMethod && !gpsLoading && (
+          <TouchableOpacity onPress={fetchGpsForAuto}>
+            <Text style={styles.retryLink}>Konumu tekrar dene</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={[styles.card, autoMethod && styles.cardDisabled]}
@@ -337,6 +353,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
@@ -352,6 +370,8 @@ const styles = StyleSheet.create({
   offsetLine: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
   soundLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
   gpsHint: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 12, marginBottom: spacing.sm },
+  gpsStatusText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 12, marginBottom: spacing.xs, lineHeight: 17 },
+  retryLink: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 12, marginBottom: spacing.sm, textDecorationLine: 'underline' },
   stepperCard: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   stepperBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
