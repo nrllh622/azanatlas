@@ -5,17 +5,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { colors, spacing, radius, typography } from '../theme';
 import { TURKEY_PROVINCES, Province } from '../data/turkeyLocations';
+import { DISTRICT_COORDS } from '../data/districtCoords';
 import { useLocationContext } from '../context/LocationContext';
 
 interface Props {
   onDone: () => void;
 }
 
-const PROVINCE_COORDS: Record<string, { lat: number; lng: number }> = {
+// Gerçek ilçe koordinatı yoksa (henüz DISTRICT_COORDS'a eklenmemiş il), ilin
+// yaklaşık merkezine düşer — bu 10 ilin il-geneli ortalama noktaları
+const PROVINCE_FALLBACK: Record<string, { lat: number; lng: number }> = {
   'İstanbul': { lat: 41.0082, lng: 28.9784 },
   'Ankara': { lat: 39.9334, lng: 32.8597 },
   'İzmir': { lat: 38.4237, lng: 27.1428 },
+  'Bursa': { lat: 40.1826, lng: 29.0669 },
+  'Antalya': { lat: 36.8841, lng: 30.7056 },
+  'Adana': { lat: 37.0, lng: 35.3213 },
+  'Konya': { lat: 37.8667, lng: 32.4833 },
+  'Gaziantep': { lat: 37.0662, lng: 37.3833 },
+  'Kayseri': { lat: 38.7333, lng: 35.4833 },
+  'Mersin': { lat: 36.8, lng: 34.6333 },
 };
+const DEFAULT_FALLBACK = { lat: 39.9208, lng: 32.8541 };
+
+function getCoordsFor(il: string, ilce: string) {
+  const exact = DISTRICT_COORDS[`${il}|${ilce}`];
+  if (exact) return exact;
+  return PROVINCE_FALLBACK[il] || DEFAULT_FALLBACK;
+}
 
 type Mode = 'list' | 'province' | 'district';
 
@@ -49,7 +66,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
       });
       onDone();
     } catch (e) {
-      // sessizce yut — kullanıcı tekrar deneyebilir
+      // sessizce yut
     } finally {
       setGpsLoading(false);
     }
@@ -58,6 +75,11 @@ export default function LocationPickerScreen({ onDone }: Props) {
   if (mode === 'list') {
     return (
       <View style={[styles.safeArea, { paddingTop: insets.top + spacing.md }]}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={onDone} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.backArrow}>‹ Geri</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.header}>Şehri Değiştir</Text>
         <FlatList
           style={styles.list}
@@ -139,7 +161,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
           <TouchableOpacity
             style={styles.row}
             onPress={() => {
-              const coords = PROVINCE_COORDS[selectedProvince!.name] || { lat: 39.9208, lng: 32.8541 };
+              const coords = getCoordsFor(selectedProvince!.name, item.name);
               addLocation({
                 latitude: coords.lat,
                 longitude: coords.lng,
@@ -160,6 +182,8 @@ export default function LocationPickerScreen({ onDone }: Props) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary, paddingHorizontal: spacing.lg },
+  headerRow: { marginBottom: spacing.xs },
+  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22, marginBottom: spacing.md },
   backText: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 15, marginBottom: spacing.sm },
   list: { flex: 1 },
