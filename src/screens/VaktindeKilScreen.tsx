@@ -27,16 +27,32 @@ export default function VaktindeKilScreen({ onClose }: Props) {
   } = useVaktindeKil();
   const [delayPickerVisible, setDelayPickerVisible] = useState(false);
   const [intervalPickerVisible, setIntervalPickerVisible] = useState(false);
+  const [infoVisible, setInfoVisible] = useState(false);
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>Vaktinde Kıl</Text>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.closeText}>Kapat</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <TouchableOpacity onPress={() => setInfoVisible(!infoVisible)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.infoLink}>Nedir?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={styles.closeText}>Kapat</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {infoVisible && (
+          <View style={styles.infoCard}>
+            <Text style={styles.infoText}>
+              Vaktinde Kıl açıkken, bir namaz vakti girdikten belirlediğin gecikme süresi kadar sonra, eğer o vakti
+              henüz kılmadıysan sana hatırlatma bildirimi gönderir. Bir sonraki vakit girene kadar, belirlediğin
+              sıklıkla bu hatırlatma tekrarlanır — böylece namazını vaktin içinde geciktirmeden kılmayı unutmazsın.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.quoteCard}>
           <Text style={styles.quoteText}>
             "Allah katında en hayırlı amel, vaktinde kılınan namazdır. Sonra anne babaya iyilik, sonra da Allah
@@ -104,7 +120,10 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
+  infoLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 14, textDecorationLine: 'underline' },
   scrollContent: { padding: spacing.lg },
+  infoCard: { backgroundColor: 'rgba(250,246,236,0.12)', borderRadius: 14, padding: spacing.md, marginBottom: spacing.md },
+  infoText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 13, lineHeight: 19 },
   quoteCard: { backgroundColor: colors.white, borderRadius: 14, padding: spacing.md, marginBottom: spacing.md },
   quoteText: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
   quoteSource: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, textAlign: 'right', marginTop: spacing.sm },
