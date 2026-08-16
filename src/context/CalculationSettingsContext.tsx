@@ -35,8 +35,6 @@ export const HIGH_LAT_OPTIONS: { id: HighLatRuleId; label: string }[] = [
   { id: 'None', label: 'Yok' },
 ];
 
-export const HIJRI_ADJUSTMENT_OPTIONS = [-2, -1, 0, 1, 2];
-
 export type DistanceUnit = 'km' | 'mi';
 export const DISTANCE_UNIT_OPTIONS: { id: DistanceUnit; label: string }[] = [
   { id: 'km', label: 'Kilometre' },
@@ -48,7 +46,7 @@ interface Ctx {
   kerahatMinutes: number;
   madhab: MadhabId;
   highLatRule: HighLatRuleId;
-  hijriAdjustmentDays: number;
+  hijriAdjustmentDays: number; // sabit +1 temel düzeltmenin ÜZERİNE eklenen ekstra gün, varsayılan 0
   hijriSwitchAtMaghrib: boolean;
   distanceUnit: DistanceUnit;
   setMethodId: (id: CalcMethodId) => void;
@@ -67,7 +65,7 @@ export function CalculationSettingsProvider({ children }: { children: ReactNode 
   const [kerahatMinutes, setKerahatMinutes] = useState(45);
   const [madhab, setMadhab] = useState<MadhabId>('Shafi');
   const [highLatRule, setHighLatRule] = useState<HighLatRuleId>('AngleBased');
-  const [hijriAdjustmentDays, setHijriAdjustmentDays] = useState(1);
+  const [hijriAdjustmentDays, setHijriAdjustmentDays] = useState(0);
   const [hijriSwitchAtMaghrib, setHijriSwitchAtMaghrib] = useState(false);
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('km');
 
