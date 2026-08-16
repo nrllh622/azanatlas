@@ -126,7 +126,12 @@ export default function QiblaScreen({ onClose }: Props) {
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Kıble</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.backArrow}>‹ Geri</Text>
+          </TouchableOpacity>
+          <Text style={styles.header}>Kıble</Text>
+        </View>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <TouchableOpacity onPress={() => setGuideVisible(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.calibrateLink}>Doğruluk Rehberi</Text>
@@ -150,7 +155,6 @@ export default function QiblaScreen({ onClose }: Props) {
             <Circle cx={CENTER} cy={CENTER} r={RADIUS + 14} stroke={colors.gold} strokeWidth={3} fill={colors.primaryDark} />
             <Circle cx={CENTER} cy={CENTER} r={RADIUS + 8} stroke={colors.sand} strokeWidth={1} fill="none" opacity={0.4} />
 
-            {/* Sabit üst gösterge — kalın ve kırmızı */}
             <Line x1={CENTER} y1={0} x2={CENTER} y2={26} stroke={TOP_LINE_COLOR} strokeWidth={7} strokeLinecap="round" />
 
             <G transform={`rotate(${-heading} ${CENTER} ${CENTER})`}>
@@ -183,7 +187,6 @@ export default function QiblaScreen({ onClose }: Props) {
 
               <Circle cx={CENTER} cy={CENTER} r={4} fill={colors.gold} />
 
-              {/* Kabe simgesi — dış grup döndükçe TERSİNE döndürülerek her zaman dik kalıyor */}
               <G transform={`rotate(${heading} ${kaabaX} ${kaabaY})`}>
                 <SvgText x={kaabaX} y={kaabaY + 10} fontSize={30} textAnchor="middle">
                   🕋
@@ -214,6 +217,8 @@ export default function QiblaScreen({ onClose }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   calibrateLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 13, textDecorationLine: 'underline' },
