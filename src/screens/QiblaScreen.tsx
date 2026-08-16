@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DeviceMotion } from 'expo-sensors';
-import Svg, { Circle, G, Line, Text as SvgText, Polygon, Path } from 'react-native-svg';
+import Svg, { Circle, G, Line, Text as SvgText, Polygon } from 'react-native-svg';
 import { colors, spacing, typography } from '../theme';
 import { calculateQiblaBearing, calculateDistanceKm, calculateQiblaTime } from '../lib/qibla';
 import { useLocationContext } from '../context/LocationContext';
@@ -43,25 +43,29 @@ function AnimatedArrow({ direction }: { direction: 'left' | 'right' }) {
   );
 }
 
-function CalibrationOverlay({ onClose }: { onClose: () => void }) {
+function AccuracyGuide({ onClose }: { onClose: () => void }) {
   return (
     <View style={styles.calibOverlay}>
       <TouchableOpacity style={styles.calibCloseBtn} onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
         <Text style={styles.calibCloseText}>Kapat</Text>
       </TouchableOpacity>
-      <Svg width={180} height={120} viewBox="0 0 180 120">
-        {/* Sekiz (sonsuzluk) şekli — kalibrasyon hareketini temsil ediyor */}
-        <Path
-          d="M 20 60 C 20 30, 70 30, 90 60 C 110 90, 160 90, 160 60 C 160 30, 110 30, 90 60 C 70 90, 20 90, 20 60 Z"
-          stroke={colors.gold}
-          strokeWidth={6}
-          fill="none"
-          strokeLinecap="round"
-        />
-      </Svg>
-      <Text style={styles.calibText}>
-        Pusula doğruluğu için cihazını sekiz çizer gibi havada hareket ettir, sonra tekrar dene.
+      <Text style={styles.calibTitle}>Pusula Doğruluğunu Artır</Text>
+      <Text style={styles.calibNote}>
+        Kalibrasyonu senin adına biz tamamlayamıyoruz — bu tamamen telefonunun donanım sensörüyle ilgili.
+        Aşağıdaki adımlar, çoğu telefonda pusula doğruluğunu gerçekten iyileştirir:
       </Text>
+      <View style={styles.calibStep}>
+        <Text style={styles.calibStepNum}>1</Text>
+        <Text style={styles.calibStepText}>Telefonu mıknatıs, hoparlör veya metal yüzeylerden (masa, kılıf mıknatısı) uzaklaştır.</Text>
+      </View>
+      <View style={styles.calibStep}>
+        <Text style={styles.calibStepNum}>2</Text>
+        <Text style={styles.calibStepText}>Telefonu düz tutarak yavaşça 180° sağa, sonra 180° sola çevir.</Text>
+      </View>
+      <View style={styles.calibStep}>
+        <Text style={styles.calibStepNum}>3</Text>
+        <Text style={styles.calibStepText}>Açık, kapalı olmayan bir alanda test et — bina içi, asansör yakını doğruluğu bozar.</Text>
+      </View>
     </View>
   );
 }
@@ -71,14 +75,14 @@ export default function QiblaScreen({ onClose }: Props) {
   const { location } = useLocationContext();
   const { distanceUnit } = useCalculationSettings();
   const [heading, setHeading] = useState(0);
-  const [calibrationVisible, setCalibrationVisible] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
 
   const qiblaBearing = useMemo(() => calculateQiblaBearing(location.latitude, location.longitude), [location]);
   const distanceKm = useMemo(() => calculateDistanceKm(location.latitude, location.longitude), [location]);
   const qiblaTime = useMemo(() => calculateQiblaTime(location.latitude, location.longitude, new Date()), [location]);
 
   const distanceDisplay =
-    distanceUnit === 'mi' ? `${Math.round(distanceKm * 0.621371)} mi` : `${distanceKm} km`;
+    distanceUnit === 'mi' ? `${Math.round(distanceKm * 0.621371)} Mil` : `${distanceKm} km`;
 
   useEffect(() => {
     DeviceMotion.setUpdateInterval(150);
@@ -114,8 +118,8 @@ export default function QiblaScreen({ onClose }: Props) {
 
   const tickMarks = Array.from({ length: 72 }, (_, i) => i * 5);
 
-  if (calibrationVisible) {
-    return <CalibrationOverlay onClose={() => setCalibrationVisible(false)} />;
+  if (guideVisible) {
+    return <AccuracyGuide onClose={() => setGuideVisible(false)} />;
   }
 
   return (
@@ -123,8 +127,8 @@ export default function QiblaScreen({ onClose }: Props) {
       <View style={styles.headerRow}>
         <Text style={styles.header}>Kıble</Text>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <TouchableOpacity onPress={() => setCalibrationVisible(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.calibrateLink}>Kalibre Et</Text>
+          <TouchableOpacity onPress={() => setGuideVisible(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.calibrateLink}>Doğruluk Rehberi</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.closeText}>Kapat</Text>
@@ -207,7 +211,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
-  calibrateLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 14, textDecorationLine: 'underline' },
+  calibrateLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 13, textDecorationLine: 'underline' },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   hintIcon: { color: colors.gold, fontSize: 26 },
@@ -216,8 +220,15 @@ const styles = StyleSheet.create({
   degreeText: { fontFamily: typography.displayFamily, color: colors.textOnDark, fontSize: 40 },
   infoBox: { alignItems: 'center', gap: 2, marginTop: spacing.sm },
   infoText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14 },
-  calibOverlay: { flex: 1, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  calibOverlay: { flex: 1, backgroundColor: colors.primaryDark, padding: spacing.xl, paddingTop: spacing.xl * 2 },
   calibCloseBtn: { position: 'absolute', top: 50, right: 20 },
-  calibCloseText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 16 },
-  calibText: { fontFamily: typography.bodyMedium, color: colors.white, fontSize: 16, textAlign: 'center', marginTop: spacing.lg },
+  calibCloseText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
+  calibTitle: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22, marginBottom: spacing.md },
+  calibNote: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14, lineHeight: 20, marginBottom: spacing.lg },
+  calibStep: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg, alignItems: 'flex-start' },
+  calibStepNum: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: colors.gold, color: colors.primaryDark,
+    textAlign: 'center', textAlignVertical: 'center', fontFamily: typography.bodyBold, fontSize: 15, overflow: 'hidden',
+  },
+  calibStepText: { flex: 1, fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 15, lineHeight: 21 },
 });
