@@ -1,40 +1,68 @@
 // src/screens/RemindersScreen.tsx
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, radius, typography } from '../theme';
-import { useReminders } from '../context/RemindersContext';
+import { colors, spacing, typography } from '../theme';
+import { useReminders, ReminderTypeSetting } from '../context/RemindersContext';
+import { getSoundById } from '../data/soundCatalog';
+import SoundPickerModal from '../components/SoundPickerModal';
+import SimplePickerModal from '../components/SimplePickerModal';
 
 interface Props {
   onClose: () => void;
 }
 
-const QUICK_OPTIONS: { label: string; getDate: () => Date }[] = [
-  { label: '30 dakika sonra', getDate: () => new Date(Date.now() + 30 * 60 * 1000) },
-  { label: '1 saat sonra', getDate: () => new Date(Date.now() + 60 * 60 * 1000) },
-  {
-    label: 'Yarın sabah 08:00',
-    getDate: () => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      d.setHours(8, 0, 0, 0);
-      return d;
-    },
-  },
-  { label: '3 gün sonra', getDate: () => new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
-];
+const MINUTE_OPTIONS = [15, 30, 45, 60, 90, 120, 150];
+
+type ReminderKey = 'sahur' | 'teheccut' | 'pazartesiPersembeOrucu' | 'cumaNamazi';
 
 export default function RemindersScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { reminders, addReminder, removeReminder } = useReminders();
-  const [title, setTitle] = useState('');
-  const [selectedOption, setSelectedOption] = useState(0);
+  const { settings, setSahur, setTeheccut, setOruc, setCuma } = useReminders();
+  const [minutePickerFor, setMinutePickerFor] = useState<ReminderKey | null>(null);
+  const [soundPickerFor, setSoundPickerFor] = useState<ReminderKey | null>(null);
 
-  const handleAdd = async () => {
-    if (!title.trim()) return;
-    await addReminder(title.trim(), QUICK_OPTIONS[selectedOption].getDate());
-    setTitle('');
+  const setters: Record<ReminderKey, (patch: Partial<ReminderTypeSetting>) => void> = {
+    sahur: setSahur,
+    teheccut: setTeheccut,
+    pazartesiPersembeOrucu: setOruc,
+    cumaNamazi: setCuma,
   };
+
+  const renderRow = (key: ReminderKey, title: string, baseLabel: string) => {
+    const s = settings[key];
+    return (
+      <View key={key} style={styles.section}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch value={s.enabled} onValueChange={(v) => setters[key]({ enabled: v })} trackColor={{ true: colors.gold, false: undefined }} />
+            <Text style={styles.baseLabel}>{baseLabel}</Text>
+            <TouchableOpacity onPress={() => setMinutePickerFor(key)}>
+              <Text style={styles.minutesLink}>{s.minutesBefore} dk. önce</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSoundPickerFor(key)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.soundIcon}>🔊</Text>
+            </TouchableOpacity>
+          </View>
+          {key === 'pazartesiPersembeOrucu' && (
+            <TouchableOpacity
+              style={styles.checkboxRow}
+              onPress={() => setOruc({ remindDayBefore: !settings.pazartesiPersembeOrucu.remindDayBefore })}
+            >
+              <View style={[styles.checkbox, settings.pazartesiPersembeOrucu.remindDayBefore && styles.checkboxActive]}>
+                {settings.pazartesiPersembeOrucu.remindDayBefore && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Bir gün önce hatırlat</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const activeMinutePicker = minutePickerFor ? settings[minutePickerFor] : null;
+  const activeSoundPicker = soundPickerFor ? settings[soundPickerFor] : null;
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
@@ -45,55 +73,32 @@ export default function RemindersScreen({ onClose }: Props) {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.addCard}>
-          <TextInput
-            style={styles.input}
-            placeholder="Hatırlatıcı başlığı"
-            placeholderTextColor={colors.primary}
-            value={title}
-            onChangeText={setTitle}
-          />
-          <View style={styles.optionsRow}>
-            {QUICK_OPTIONS.map((opt, idx) => (
-              <TouchableOpacity
-                key={opt.label}
-                style={[styles.optionChip, selectedOption === idx && styles.optionChipActive]}
-                onPress={() => setSelectedOption(idx)}
-              >
-                <Text style={[styles.optionChipText, selectedOption === idx && styles.optionChipTextActive]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-            <Text style={styles.addBtnText}>+ Hatırlatıcı Ekle</Text>
-          </TouchableOpacity>
-        </View>
-
-        {reminders.length === 0 && <Text style={styles.emptyText}>Henüz hatırlatıcı eklemedin.</Text>}
-
-        {reminders
-          .slice()
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-          .map((r) => {
-            const d = new Date(r.date);
-            return (
-              <View key={r.id} style={styles.reminderCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.reminderTitle}>{r.title}</Text>
-                  <Text style={styles.reminderDate}>
-                    {d.getDate().toString().padStart(2, '0')}.{(d.getMonth() + 1).toString().padStart(2, '0')}.{d.getFullYear()} ·{' '}
-                    {d.getHours().toString().padStart(2, '0')}:{d.getMinutes().toString().padStart(2, '0')}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => removeReminder(r.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Text style={styles.deleteText}>Sil</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
+        {renderRow('sahur', 'Sahur Uyarısı', 'İmsaktan')}
+        {renderRow('teheccut', 'Teheccüt Uyandırma', 'İmsaktan')}
+        {renderRow('pazartesiPersembeOrucu', 'Pazartesi/Perşembe Orucu', 'İmsaktan')}
+        {renderRow('cumaNamazi', 'Cuma Namazı Hatırlatma', 'Öğleden')}
       </ScrollView>
+
+      <SimplePickerModal
+        visible={minutePickerFor !== null}
+        title="Kaç Dakika Önce"
+        options={MINUTE_OPTIONS.map((m) => ({ id: String(m), label: `${m} dakika` }))}
+        selectedId={activeMinutePicker ? String(activeMinutePicker.minutesBefore) : ''}
+        onSelect={(id) => {
+          if (minutePickerFor) setters[minutePickerFor]({ minutesBefore: Number(id) });
+        }}
+        onClose={() => setMinutePickerFor(null)}
+      />
+
+      <SoundPickerModal
+        visible={soundPickerFor !== null}
+        title="Uyarı Sesi"
+        selectedId={activeSoundPicker ? activeSoundPicker.soundId : 'none'}
+        onSelect={(id) => {
+          if (soundPickerFor) setters[soundPickerFor]({ soundId: id });
+        }}
+        onClose={() => setSoundPickerFor(null)}
+      />
     </View>
   );
 }
@@ -104,24 +109,16 @@ const styles = StyleSheet.create({
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
-  addCard: { backgroundColor: colors.white, borderRadius: 14, padding: spacing.md, marginBottom: spacing.lg },
-  input: {
-    backgroundColor: colors.sand, borderRadius: 10, paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 15, marginBottom: spacing.sm,
-  },
-  optionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
-  optionChip: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.primary },
-  optionChipActive: { backgroundColor: colors.primary },
-  optionChipText: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 12 },
-  optionChipTextActive: { color: colors.white },
-  addBtn: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingVertical: spacing.sm, alignItems: 'center' },
-  addBtnText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 14 },
-  emptyText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 14, textAlign: 'center', marginTop: spacing.lg },
-  reminderCard: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 12,
-    padding: spacing.md, marginBottom: spacing.sm,
-  },
-  reminderTitle: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 15 },
-  reminderDate: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 12, marginTop: 2 },
-  deleteText: { fontFamily: typography.bodyMedium, color: colors.danger, fontSize: 13 },
+  section: { marginBottom: spacing.md },
+  sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, marginBottom: spacing.xs },
+  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  baseLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 15, flex: 1 },
+  minutesLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 14, textDecorationLine: 'underline' },
+  soundIcon: { fontSize: 20 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  checkbox: { width: 20, height: 20, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  checkboxActive: { backgroundColor: colors.primary },
+  checkmark: { color: colors.white, fontSize: 12 },
+  checkboxLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 14 },
 });
