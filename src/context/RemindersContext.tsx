@@ -1,61 +1,54 @@
 // src/context/RemindersContext.tsx
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-const STORAGE_KEY = 'azanatlas_reminders_v1';
-
-export interface Reminder {
-  id: string;
-  title: string;
-  date: string; // ISO string
-  notificationId?: string;
+export interface ReminderTypeSetting {
+  enabled: boolean;
+  minutesBefore: number;
+  soundId: string;
 }
 
+export interface OrucReminderSetting extends ReminderTypeSetting {
+  remindDayBefore: boolean;
+}
+
+export interface RemindersSettings {
+  sahur: ReminderTypeSetting;
+  teheccut: ReminderTypeSetting;
+  pazartesiPersembeOrucu: OrucReminderSetting;
+  cumaNamazi: ReminderTypeSetting;
+}
+
+const DEFAULT_SETTINGS: RemindersSettings = {
+  sahur: { enabled: false, minutesBefore: 90, soundId: 'melodi1' },
+  teheccut: { enabled: false, minutesBefore: 120, soundId: 'melodi1' },
+  pazartesiPersembeOrucu: { enabled: false, minutesBefore: 60, soundId: 'melodi1', remindDayBefore: false },
+  cumaNamazi: { enabled: false, minutesBefore: 60, soundId: 'melodi1' },
+};
+
 interface Ctx {
-  reminders: Reminder[];
-  addReminder: (title: string, date: Date) => Promise<void>;
-  removeReminder: (id: string) => Promise<void>;
+  settings: RemindersSettings;
+  setSahur: (patch: Partial<ReminderTypeSetting>) => void;
+  setTeheccut: (patch: Partial<ReminderTypeSetting>) => void;
+  setOruc: (patch: Partial<OrucReminderSetting>) => void;
+  setCuma: (patch: Partial<ReminderTypeSetting>) => void;
 }
 
 const RemindersContext = createContext<Ctx | undefined>(undefined);
 
 export function RemindersProvider({ children }: { children: ReactNode }) {
-  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [settings, setSettings] = useState<RemindersSettings>(DEFAULT_SETTINGS);
 
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) setReminders(JSON.parse(raw));
-    });
-  }, []);
-
-  const persist = async (next: Reminder[]) => {
-    setReminders(next);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
-
-  const addReminder = async (title: string, date: Date) => {
-    let notificationId: string | undefined;
-    if (date.getTime() > Date.now()) {
-      notificationId = await Notifications.scheduleNotificationAsync({
-        content: { title: 'Hatırlatıcı', body: title, sound: 'default' },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
-      });
-    }
-    const newReminder: Reminder = { id: `rem-${Date.now()}`, title, date: date.toISOString(), notificationId };
-    await persist([...reminders, newReminder]);
-  };
-
-  const removeReminder = async (id: string) => {
-    const target = reminders.find((r) => r.id === id);
-    if (target?.notificationId) {
-      await Notifications.cancelScheduledNotificationAsync(target.notificationId);
-    }
-    await persist(reminders.filter((r) => r.id !== id));
-  };
+  const setSahur = (patch: Partial<ReminderTypeSetting>) =>
+    setSettings((prev) => ({ ...prev, sahur: { ...prev.sahur, ...patch } }));
+  const setTeheccut = (patch: Partial<ReminderTypeSetting>) =>
+    setSettings((prev) => ({ ...prev, teheccut: { ...prev.teheccut, ...patch } }));
+  const setOruc = (patch: Partial<OrucReminderSetting>) =>
+    setSettings((prev) => ({ ...prev, pazartesiPersembeOrucu: { ...prev.pazartesiPersembeOrucu, ...patch } }));
+  const setCuma = (patch: Partial<ReminderTypeSetting>) =>
+    setSettings((prev) => ({ ...prev, cumaNamazi: { ...prev.cumaNamazi, ...patch } }));
 
   return (
-    <RemindersContext.Provider value={{ reminders, addReminder, removeReminder }}>
+    <RemindersContext.Provider value={{ settings, setSahur, setTeheccut, setOruc, setCuma }}>
       {children}
     </RemindersContext.Provider>
   );
