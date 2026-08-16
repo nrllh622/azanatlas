@@ -42,13 +42,27 @@ function getMethodById(id: string) {
     case 'Kuwait': return CalculationMethod.Kuwait();
     case 'Qatar': return CalculationMethod.Qatar();
     case 'Singapore': return CalculationMethod.Singapore();
+    case 'Dubai': return CalculationMethod.Dubai();
+    case 'MoonsightingCommittee': return CalculationMethod.MoonsightingCommittee();
+    case 'Jakim': {
+      // JAKIM (Malezya) — doğrulanmış açılar: Fajr 20°, Isha 18°
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 20;
+      p.ishaAngle = 18;
+      return p;
+    }
+    case 'Uoif': {
+      // UOIF (Fransa) — doğrulanmış açılar: Fajr 12°, Isha 12°
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 12;
+      p.ishaAngle = 12;
+      return p;
+    }
     default: return null;
   }
 }
 
-// Diyanet ve diğer resmi kaynaklar dakikaya YUVARLAR (kırpmaz). adhan kütüphanesi
-// saniye hassasiyetinde bir Date döndürüyor — bunu kırpmak yerine en yakın
-// dakikaya yuvarlamak, resmi kaynaklarla 1 dakikalık sistematik farkı ortadan kaldırıyor.
+// Diyanet ve diğer resmi kaynaklar dakikaya YUVARLAR (kırpmaz).
 function roundToMinute(d: Date): Date {
   return new Date(Math.round(d.getTime() / 60000) * 60000);
 }
@@ -66,8 +80,6 @@ export function calculateVakitler(
   const coordinates = new Coordinates(latitude, longitude);
   const params = autoMethod ? getMethodForCountry(countryCode) : (getMethodById(methodId) || getMethodForCountry(countryCode));
 
-  // Otomatik moddayken madhab/yüksek açı kuralını EZMİYORUZ — ülkenin varsayılan
-  // yöntemi kendi doğru ayarlarıyla çalışsın. Manuel modda kullanıcı seçimi geçerli.
   if (!autoMethod) {
     params.madhab = madhabId === 'Hanafi' ? Madhab.Hanafi : Madhab.Shafi;
     if (highLatRuleId === 'AngleBased') params.highLatitudeRule = HighLatitudeRule.TwilightAngle;
