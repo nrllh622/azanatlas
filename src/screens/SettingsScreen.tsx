@@ -14,6 +14,8 @@ import {
   KERAHAT_OPTIONS,
   MADHAB_OPTIONS,
   HIGH_LAT_OPTIONS,
+  HIJRI_ADJUSTMENT_OPTIONS,
+  DISTANCE_UNIT_OPTIONS,
 } from '../context/CalculationSettingsContext';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { getSoundById } from '../data/soundCatalog';
@@ -48,22 +50,12 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
   const insets = useSafeAreaInsets();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
-    methodId,
-    kerahatMinutes,
-    madhab,
-    highLatRule,
-    setMethodId,
-    setKerahatMinutes,
-    setMadhab,
-    setHighLatRule,
+    methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
+    setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
   } = useCalculationSettings();
   const {
-    vibrationEnabled,
-    faceDownSilenceEnabled,
-    notificationBarWidgetEnabled,
-    setVibrationEnabled,
-    setFaceDownSilenceEnabled,
-    setNotificationBarWidgetEnabled,
+    vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled,
+    setVibrationEnabled, setFaceDownSilenceEnabled, setNotificationBarWidgetEnabled,
   } = useGeneralSettings();
 
   const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
@@ -71,6 +63,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
   const [kerahatPickerVisible, setKerahatPickerVisible] = useState(false);
   const [madhabPickerVisible, setMadhabPickerVisible] = useState(false);
   const [highLatPickerVisible, setHighLatPickerVisible] = useState(false);
+  const [hijriPickerVisible, setHijriPickerVisible] = useState(false);
+  const [distanceUnitPickerVisible, setDistanceUnitPickerVisible] = useState(false);
 
   let currentSelectedId = 'none';
   let pickerTitle = '';
@@ -88,6 +82,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
   const methodLabel = CALC_METHODS.find((m) => m.id === methodId)?.label ?? 'Otomatik';
   const madhabLabel = MADHAB_OPTIONS.find((m) => m.id === madhab)?.label ?? '';
   const highLatLabel = HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label ?? '';
+  const distanceUnitLabel = DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label ?? '';
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
@@ -126,6 +121,22 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
             <Text style={styles.cardLabelInline}>Kerahat Vaktinde Uyar</Text>
           </View>
         </View>
+
+        <Text style={styles.sectionTitle}>Kişiselleştirme</Text>
+        <TouchableOpacity style={styles.card} onPress={() => setHijriPickerVisible(true)}>
+          <Text style={styles.cardLabel}>Hicri Gün Düzeltme</Text>
+          <Text style={styles.cardSubtext}>{hijriAdjustmentDays > 0 ? `+${hijriAdjustmentDays}` : hijriAdjustmentDays} gün</Text>
+        </TouchableOpacity>
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch value={hijriSwitchAtMaghrib} onValueChange={setHijriSwitchAtMaghrib} trackColor={{ true: colors.gold, false: undefined }} />
+            <Text style={styles.cardLabelInline}>Hicri Gün Değişimini Akşam Vaktinde Yap</Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.card} onPress={() => setDistanceUnitPickerVisible(true)}>
+          <Text style={styles.cardLabel}>Ölçü Birimleri</Text>
+          <Text style={styles.cardSubtext}>{distanceUnitLabel}</Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Genel</Text>
         <View style={styles.card}>
@@ -238,6 +249,24 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
         selectedId={String(kerahatMinutes)}
         onSelect={(id) => setKerahatMinutes(Number(id))}
         onClose={() => setKerahatPickerVisible(false)}
+      />
+
+      <SimplePickerModal
+        visible={hijriPickerVisible}
+        title="Hicri Gün Düzeltme"
+        options={HIJRI_ADJUSTMENT_OPTIONS.map((m) => ({ id: String(m), label: `${m > 0 ? '+' + m : m} gün` }))}
+        selectedId={String(hijriAdjustmentDays)}
+        onSelect={(id) => setHijriAdjustmentDays(Number(id))}
+        onClose={() => setHijriPickerVisible(false)}
+      />
+
+      <SimplePickerModal
+        visible={distanceUnitPickerVisible}
+        title="Ölçü Birimleri"
+        options={DISTANCE_UNIT_OPTIONS}
+        selectedId={distanceUnit}
+        onSelect={(id) => setDistanceUnit(id as any)}
+        onClose={() => setDistanceUnitPickerVisible(false)}
       />
     </View>
   );
