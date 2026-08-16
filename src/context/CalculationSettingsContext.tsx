@@ -1,10 +1,10 @@
 // src/context/CalculationSettingsContext.tsx
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-// ÖNEMLİ: 'auto' artık bu listede yok — Otomatik ayrı bir switch (aşağıda autoMethod)
 export type CalcMethodId =
   | 'Turkey' | 'NorthAmerica' | 'MuslimWorldLeague' | 'Egyptian'
-  | 'Karachi' | 'UmmAlQura' | 'Tehran' | 'Kuwait' | 'Qatar' | 'Singapore';
+  | 'Karachi' | 'UmmAlQura' | 'Tehran' | 'Kuwait' | 'Qatar' | 'Singapore'
+  | 'Dubai' | 'MoonsightingCommittee' | 'Jakim' | 'Uoif';
 
 export const CALC_METHODS: { id: CalcMethodId; label: string }[] = [
   { id: 'Turkey', label: 'Diyanet Takvimi (Türkiye)' },
@@ -16,7 +16,11 @@ export const CALC_METHODS: { id: CalcMethodId; label: string }[] = [
   { id: 'Tehran', label: 'Tahran Üniversitesi' },
   { id: 'Kuwait', label: 'Kuveyt' },
   { id: 'Qatar', label: 'Katar' },
-  { id: 'Singapore', label: 'Singapur' },
+  { id: 'Singapore', label: 'Singapur (MUIS)' },
+  { id: 'Dubai', label: 'Dubai' },
+  { id: 'MoonsightingCommittee', label: 'Ay Gözlem Komitesi' },
+  { id: 'Jakim', label: 'JAKIM (Malezya)' },
+  { id: 'Uoif', label: 'UOIF (Fransa)' },
 ];
 
 export const KERAHAT_OPTIONS = [15, 30, 45, 60];
