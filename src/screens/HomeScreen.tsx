@@ -1,6 +1,6 @@
 // src/screens/HomeScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography } from '../theme';
 import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
@@ -10,12 +10,14 @@ import { useCalculationSettings } from '../context/CalculationSettingsContext';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { useVaktindeKil } from '../context/VaktindeKilContext';
 import { useKaza } from '../context/KazaContext';
+import { useReminders } from '../context/RemindersContext';
 import {
   requestNotificationPermission,
   scheduleAllNotifications,
   configureAndroidChannels,
 } from '../lib/notificationScheduler';
 import { scheduleVaktindeKil } from '../lib/vaktindeKilScheduler';
+import { scheduleReminders } from '../lib/remindersScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
 import LocationPickerScreen from './LocationPickerScreen';
@@ -43,10 +45,11 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { location, locations, activeId, setActiveId } = useLocationContext();
   const { settings } = useNotificationSettings();
-  const { methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib } = useCalculationSettings();
+  const { autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib } = useCalculationSettings();
   const { vibrationEnabled } = useGeneralSettings();
   const vaktindeKil = useVaktindeKil();
   const { totalCount: kazaTotal } = useKaza();
+  const { settings: reminderSettings } = useReminders();
   const [now, setNow] = useState(new Date());
   const [screen, setScreen] = useState<Screen>('home');
 
@@ -55,18 +58,31 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  // Android donanım/gesture geri tuşu: alt ekranlardan her zaman ana ekrana döner,
+  // sadece ana ekrandayken varsayılan davranışa (uygulamadan çıkma) izin verir.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (screen !== 'home') {
+        setScreen('home');
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [screen]);
+
   const vakitler: VakitEntry[] = useMemo(() => {
-    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode, methodId, madhab, highLatRule);
-  }, [location.latitude, location.longitude, location.countryCode, methodId, madhab, highLatRule, now.toDateString()]);
+    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode, autoMethod, methodId, madhab, highLatRule);
+  }, [location.latitude, location.longitude, location.countryCode, autoMethod, methodId, madhab, highLatRule, now.toDateString()]);
 
   const next = useMemo(() => {
     const upcoming = vakitler.find((v) => v.date.getTime() > now.getTime());
     if (upcoming) return upcoming;
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode, methodId, madhab, highLatRule);
+    const tomorrowVakitler = calculateVakitler(location.latitude, location.longitude, tomorrow, location.countryCode, autoMethod, methodId, madhab, highLatRule);
     return tomorrowVakitler[0];
-  }, [vakitler, now, location, methodId, madhab, highLatRule]);
+  }, [vakitler, now, location, autoMethod, methodId, madhab, highLatRule]);
 
   const current = useMemo(() => {
     const passed = [...vakitler].reverse().find((v) => v.date.getTime() <= now.getTime());
@@ -107,8 +123,18 @@ export default function HomeScreen() {
           vibrationEnabled
         );
       }
+      await scheduleReminders(
+        location.latitude,
+        location.longitude,
+        location.countryCode,
+        autoMethod,
+        methodId,
+        madhab,
+        highLatRule,
+        reminderSettings
+      );
     })();
-  }, [location.latitude, location.longitude, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil]);
+  }, [location.latitude, location.longitude, autoMethod, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil, reminderSettings]);
 
   const cycleLocation = (dir: 1 | -1) => {
     if (locations.length < 2) return;
@@ -135,44 +161,23 @@ export default function HomeScreen() {
   return (
     <View style={styles.safeArea}>
       <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.md }]}>
-        <View style={styles.topRow}>
-          <View style={styles.locationSwitcher}>
-            {locations.length > 1 && (
-              <TouchableOpacity onPress={() => cycleLocation(-1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.chevronBtn}>‹</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.locationRow} onPress={() => setScreen('location')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.locationText}>
-                {location.il} · {location.ilce}
-              </Text>
-              <Text style={styles.locationChevron}>▾</Text>
+        <View style={styles.locationSwitcher}>
+          {locations.length > 1 && (
+            <TouchableOpacity onPress={() => cycleLocation(-1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.chevronBtn}>‹</Text>
             </TouchableOpacity>
-            {locations.length > 1 && (
-              <TouchableOpacity onPress={() => cycleLocation(1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.chevronBtn}>›</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('kaza')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.headerIcon}>🕌</Text>
-              {kazaTotal > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{kazaTotal}</Text>
-                </View>
-              )}
+          )}
+          <TouchableOpacity style={styles.locationRow} onPress={() => setScreen('location')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.locationText} numberOfLines={1}>
+              {location.il} · {location.ilce}
+            </Text>
+            <Text style={styles.locationChevron}>▾</Text>
+          </TouchableOpacity>
+          {locations.length > 1 && (
+            <TouchableOpacity onPress={() => cycleLocation(1)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.chevronBtn}>›</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('imsakiye')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.headerIcon}>🗓</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('qibla')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.headerIcon}>🧭</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={() => setScreen('settings')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.headerIcon}>⚙</Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </View>
 
         {kerahat.active && (
@@ -215,6 +220,32 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + spacing.xs }]}>
+        <TouchableOpacity style={styles.navItem} onPress={() => setScreen('kaza')}>
+          <View>
+            <Text style={styles.navIcon}>🕌</Text>
+            {kazaTotal > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{kazaTotal}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.navLabel}>Kazalar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => setScreen('imsakiye')}>
+          <Text style={styles.navIcon}>🗓</Text>
+          <Text style={styles.navLabel}>İmsakiye</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => setScreen('qibla')}>
+          <Text style={styles.navIcon}>🧭</Text>
+          <Text style={styles.navLabel}>Kıble</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => setScreen('settings')}>
+          <Text style={styles.navIcon}>⚙</Text>
+          <Text style={styles.navLabel}>Ayarlar</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -222,28 +253,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   scrollContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md, minHeight: 44, paddingHorizontal: spacing.xs },
-  locationSwitcher: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  locationSwitcher: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, marginBottom: spacing.md },
   chevronBtn: { color: colors.gold, fontSize: 24, paddingHorizontal: spacing.xs },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm },
-  locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 17 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm, flexShrink: 1 },
+  locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 16, flexShrink: 1 },
   locationChevron: { color: colors.gold, fontSize: 16 },
-  headerIcons: { flexDirection: 'row', gap: spacing.xs },
-  iconButton: { padding: spacing.sm, position: 'relative' },
-  headerIcon: { color: colors.gold, fontSize: 22 },
-  badge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    backgroundColor: colors.danger,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  badgeText: { color: colors.white, fontSize: 10, fontFamily: typography.bodyBold },
   kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
   kerahatText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 13, textAlign: 'center' },
   iftarBanner: { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md },
@@ -260,4 +274,27 @@ const styles = StyleSheet.create({
   timeLabelActive: { color: colors.gold, fontFamily: typography.bodyBold },
   timeValue: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 15, marginTop: 3 },
   timeValueActive: { color: colors.gold },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: colors.primaryDark,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(250,246,236,0.15)',
+    paddingTop: spacing.sm,
+  },
+  navItem: { flex: 1, alignItems: 'center', gap: 2 },
+  navIcon: { fontSize: 22, color: colors.gold },
+  navLabel: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 10 },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: colors.danger,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  badgeText: { color: colors.white, fontSize: 10, fontFamily: typography.bodyBold },
 });
