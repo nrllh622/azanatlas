@@ -52,8 +52,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   const insets = useSafeAreaInsets();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
-    methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
-    setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
+    autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
+    setAutoMethod, setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
   } = useCalculationSettings();
   const {
     vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled,
@@ -69,8 +69,6 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   const [distanceUnitPickerVisible, setDistanceUnitPickerVisible] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  const isAuto = methodId === 'auto';
-
   let currentSelectedId = 'none';
   let pickerTitle = '';
 
@@ -84,7 +82,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
     pickerTitle = (found ? found.label : '') + ' Uyarı Sesi';
   }
 
-  const methodLabel = CALC_METHODS.find((m) => m.id === methodId)?.label ?? 'Otomatik';
+  const methodLabel = CALC_METHODS.find((m) => m.id === methodId)?.label ?? '';
   const madhabLabel = MADHAB_OPTIONS.find((m) => m.id === madhab)?.label ?? '';
   const highLatLabel = HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label ?? '';
   const distanceUnitLabel = DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label ?? '';
@@ -111,7 +109,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         isGps: true,
       });
     } catch (e) {
-      // sessizce yut — kullanıcı Şehri Değiştir'den tekrar deneyebilir
+      // sessizce yut
     } finally {
       setGpsLoading(false);
     }
@@ -136,34 +134,45 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Hesaplama Yöntemi</Text>
-        <TouchableOpacity style={styles.card} onPress={() => setMethodPickerVisible(true)}>
-          <Text style={styles.cardLabel}>Hesaplama Yöntemi</Text>
-          <Text style={styles.cardSubtext}>{methodLabel}</Text>
-        </TouchableOpacity>
-        {isAuto && gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch
+              value={autoMethod}
+              onValueChange={(v) => {
+                setAutoMethod(v);
+                if (v) fetchGpsForAuto();
+              }}
+              trackColor={{ true: colors.gold, false: undefined }}
+            />
+            <Text style={styles.cardLabelInline}>Otomatik</Text>
+          </View>
+        </View>
+        {autoMethod && gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
 
         <TouchableOpacity
-          style={[styles.card, isAuto && styles.cardDisabled]}
-          onPress={() => !isAuto && setMadhabPickerVisible(true)}
-          disabled={isAuto}
+          style={[styles.card, autoMethod && styles.cardDisabled]}
+          onPress={() => !autoMethod && setMethodPickerVisible(true)}
+          disabled={autoMethod}
         >
-          <Text style={[styles.cardLabel, isAuto && styles.textDisabled]}>İkindi Hesabı</Text>
-          <Text style={[styles.cardSubtext, isAuto && styles.textDisabled]}>{madhabLabel}</Text>
+          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>Hesaplama Yöntemi</Text>
+          <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{autoMethod ? 'Konuma göre' : methodLabel}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.card, isAuto && styles.cardDisabled]}
-          onPress={() => !isAuto && setHighLatPickerVisible(true)}
-          disabled={isAuto}
+          style={[styles.card, autoMethod && styles.cardDisabled]}
+          onPress={() => !autoMethod && setMadhabPickerVisible(true)}
+          disabled={autoMethod}
         >
-          <Text style={[styles.cardLabel, isAuto && styles.textDisabled]}>Yüksek Açı Hesabı</Text>
-          <Text style={[styles.cardSubtext, isAuto && styles.textDisabled]}>{highLatLabel}</Text>
+          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>İkindi Hesabı</Text>
+          <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{madhabLabel}</Text>
         </TouchableOpacity>
-        {isAuto && (
-          <Text style={styles.autoNote}>
-            "Otomatik" seçiliyken İkindi Hesabı ve Yüksek Açı Hesabı, konumuna göre otomatik belirlenir. Elle
-            değiştirmek için yukarıdan "Otomatik" dışında bir yöntem seç.
-          </Text>
-        )}
+        <TouchableOpacity
+          style={[styles.card, autoMethod && styles.cardDisabled]}
+          onPress={() => !autoMethod && setHighLatPickerVisible(true)}
+          disabled={autoMethod}
+        >
+          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>Yüksek Açı Hesabı</Text>
+          <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{highLatLabel}</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => setKerahatPickerVisible(true)}>
           <Text style={styles.cardLabel}>Kerahat Vakti Süresi</Text>
@@ -282,12 +291,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         title="Hesaplama Yöntemi"
         options={CALC_METHODS}
         selectedId={methodId}
-        onSelect={(id) => {
-          setMethodId(id as any);
-          if (id === 'auto') {
-            fetchGpsForAuto();
-          }
-        }}
+        onSelect={(id) => setMethodId(id as any)}
         onClose={() => setMethodPickerVisible(false)}
       />
 
@@ -348,7 +352,6 @@ const styles = StyleSheet.create({
   offsetLine: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
   soundLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
   gpsHint: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 12, marginBottom: spacing.sm },
-  autoNote: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 12, marginBottom: spacing.sm, lineHeight: 17 },
   stepperCard: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   stepperBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
