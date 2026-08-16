@@ -35,15 +35,29 @@ export const HIGH_LAT_OPTIONS: { id: HighLatRuleId; label: string }[] = [
   { id: 'None', label: 'Yok' },
 ];
 
+export const HIJRI_ADJUSTMENT_OPTIONS = [-2, -1, 0, 1, 2];
+
+export type DistanceUnit = 'km' | 'mi';
+export const DISTANCE_UNIT_OPTIONS: { id: DistanceUnit; label: string }[] = [
+  { id: 'km', label: 'Kilometre' },
+  { id: 'mi', label: 'Mil' },
+];
+
 interface Ctx {
   methodId: CalcMethodId;
   kerahatMinutes: number;
   madhab: MadhabId;
   highLatRule: HighLatRuleId;
+  hijriAdjustmentDays: number;
+  hijriSwitchAtMaghrib: boolean;
+  distanceUnit: DistanceUnit;
   setMethodId: (id: CalcMethodId) => void;
   setKerahatMinutes: (m: number) => void;
   setMadhab: (m: MadhabId) => void;
   setHighLatRule: (r: HighLatRuleId) => void;
+  setHijriAdjustmentDays: (d: number) => void;
+  setHijriSwitchAtMaghrib: (v: boolean) => void;
+  setDistanceUnit: (u: DistanceUnit) => void;
 }
 
 const CalculationSettingsContext = createContext<Ctx | undefined>(undefined);
@@ -53,10 +67,16 @@ export function CalculationSettingsProvider({ children }: { children: ReactNode 
   const [kerahatMinutes, setKerahatMinutes] = useState(45);
   const [madhab, setMadhab] = useState<MadhabId>('Shafi');
   const [highLatRule, setHighLatRule] = useState<HighLatRuleId>('AngleBased');
+  const [hijriAdjustmentDays, setHijriAdjustmentDays] = useState(1);
+  const [hijriSwitchAtMaghrib, setHijriSwitchAtMaghrib] = useState(false);
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('km');
 
   return (
     <CalculationSettingsContext.Provider
-      value={{ methodId, kerahatMinutes, madhab, highLatRule, setMethodId, setKerahatMinutes, setMadhab, setHighLatRule }}
+      value={{
+        methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
+        setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
+      }}
     >
       {children}
     </CalculationSettingsContext.Provider>
