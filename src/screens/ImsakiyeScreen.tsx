@@ -1,10 +1,11 @@
 // src/screens/ImsakiyeScreen.tsx
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '../theme';
 import { calculateVakitler } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
+import { useCalculationSettings } from '../context/CalculationSettingsContext';
 
 interface Props {
   onClose: () => void;
@@ -24,6 +25,7 @@ const AY_ADLARI = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Ey
 export default function ImsakiyeScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
+  const { autoMethod, methodId, madhab, highLatRule } = useCalculationSettings();
 
   const days = useMemo(() => {
     const result: { date: Date; week: number; vakitler: { label: string; time: string }[] }[] = [];
@@ -31,7 +33,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
     for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
-      const vakitler = calculateVakitler(location.latitude, location.longitude, d, location.countryCode)
+      const vakitler = calculateVakitler(location.latitude, location.longitude, d, location.countryCode, autoMethod, methodId, madhab, highLatRule)
         .filter((v) => v.key !== 'sabah')
         .map((v) => ({
           label: v.label,
@@ -40,12 +42,12 @@ export default function ImsakiyeScreen({ onClose }: Props) {
       result.push({ date: d, week: getWeekNumber(d), vakitler });
     }
     return result;
-  }, [location]);
+  }, [location, autoMethod, methodId, madhab, highLatRule]);
 
   let lastWeek: number | null = null;
 
   return (
-<View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
+    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
         <Text style={styles.header}>İmsakiye</Text>
         <TouchableOpacity onPress={onClose}>
@@ -82,7 +84,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
@@ -92,5 +94,5 @@ const styles = StyleSheet.create({
   timesRow: { flexDirection: 'row', justifyContent: 'space-between' },
   timeCol: { alignItems: 'center' },
   timeLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 11 },
-  timeValue: { fontFamily: typography.bodySemibold ?? typography.bodyBold, color: colors.textOnLight, fontSize: 13 },
+  timeValue: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 13 },
 });
