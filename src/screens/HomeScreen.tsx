@@ -13,7 +13,7 @@ import { useKaza } from '../context/KazaContext';
 import {
   requestNotificationPermission,
   scheduleAllNotifications,
-  configureAndroidChannel,
+  configureAndroidChannels,
 } from '../lib/notificationScheduler';
 import { scheduleVaktindeKil } from '../lib/vaktindeKilScheduler';
 import { toHijri } from '../lib/hijri';
@@ -24,8 +24,9 @@ import QiblaScreen from './QiblaScreen';
 import ImsakiyeScreen from './ImsakiyeScreen';
 import KazaScreen from './KazaScreen';
 import VaktindeKilScreen from './VaktindeKilScreen';
+import RemindersScreen from './RemindersScreen';
 
-type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye' | 'kaza' | 'vaktindekil';
+type Screen = 'home' | 'location' | 'settings' | 'qibla' | 'imsakiye' | 'kaza' | 'vaktindekil' | 'reminders';
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -77,9 +78,9 @@ export default function HomeScreen() {
   const hijriBaseDate = useMemo(() => {
     const aksamVakit = vakitler.find((v) => v.key === 'aksam');
     if (hijriSwitchAtMaghrib && aksamVakit && now.getTime() >= aksamVakit.date.getTime()) {
-      const next = new Date(now);
-      next.setDate(next.getDate() + 1);
-      return next;
+      const nextDay = new Date(now);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return nextDay;
     }
     return now;
   }, [now, vakitler, hijriSwitchAtMaghrib]);
@@ -94,10 +95,17 @@ export default function HomeScreen() {
     (async () => {
       const granted = await requestNotificationPermission();
       if (!granted) return;
-      await configureAndroidChannel(vibrationEnabled);
-      await scheduleAllNotifications(vakitler, settings, kerahatMinutes);
+      await configureAndroidChannels();
+      await scheduleAllNotifications(vakitler, settings, kerahatMinutes, vibrationEnabled);
       if (vaktindeKil.enabled) {
-        await scheduleVaktindeKil(current, next, vaktindeKil.firstDelayMinutes, vaktindeKil.repeatIntervalMinutes);
+        await scheduleVaktindeKil(
+          current,
+          next,
+          vaktindeKil.firstDelayMinutes,
+          vaktindeKil.repeatIntervalMinutes,
+          vaktindeKil.sound,
+          vibrationEnabled
+        );
       }
     })();
   }, [location.latitude, location.longitude, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil]);
@@ -110,11 +118,19 @@ export default function HomeScreen() {
   };
 
   if (screen === 'location') return <LocationPickerScreen onDone={() => setScreen('home')} />;
-  if (screen === 'settings') return <SettingsScreen onClose={() => setScreen('home')} onOpenVaktindeKil={() => setScreen('vaktindekil')} />;
+  if (screen === 'settings')
+    return (
+      <SettingsScreen
+        onClose={() => setScreen('home')}
+        onOpenVaktindeKil={() => setScreen('vaktindekil')}
+        onOpenReminders={() => setScreen('reminders')}
+      />
+    );
   if (screen === 'qibla') return <QiblaScreen onClose={() => setScreen('home')} />;
   if (screen === 'imsakiye') return <ImsakiyeScreen onClose={() => setScreen('home')} />;
   if (screen === 'kaza') return <KazaScreen onClose={() => setScreen('home')} />;
   if (screen === 'vaktindekil') return <VaktindeKilScreen onClose={() => setScreen('home')} />;
+  if (screen === 'reminders') return <RemindersScreen onClose={() => setScreen('home')} />;
 
   return (
     <View style={styles.safeArea}>
