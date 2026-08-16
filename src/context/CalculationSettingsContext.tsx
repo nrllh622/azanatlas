@@ -1,12 +1,12 @@
 // src/context/CalculationSettingsContext.tsx
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// ÖNEMLİ: 'auto' artık bu listede yok — Otomatik ayrı bir switch (aşağıda autoMethod)
 export type CalcMethodId =
-  | 'auto' | 'Turkey' | 'NorthAmerica' | 'MuslimWorldLeague' | 'Egyptian'
+  | 'Turkey' | 'NorthAmerica' | 'MuslimWorldLeague' | 'Egyptian'
   | 'Karachi' | 'UmmAlQura' | 'Tehran' | 'Kuwait' | 'Qatar' | 'Singapore';
 
 export const CALC_METHODS: { id: CalcMethodId; label: string }[] = [
-  { id: 'auto', label: 'Otomatik (Konuma Göre)' },
   { id: 'Turkey', label: 'Diyanet Takvimi (Türkiye)' },
   { id: 'NorthAmerica', label: 'Kuzey Amerika (ISNA)' },
   { id: 'MuslimWorldLeague', label: 'Müslim World Lig' },
@@ -42,13 +42,15 @@ export const DISTANCE_UNIT_OPTIONS: { id: DistanceUnit; label: string }[] = [
 ];
 
 interface Ctx {
+  autoMethod: boolean;
   methodId: CalcMethodId;
   kerahatMinutes: number;
   madhab: MadhabId;
   highLatRule: HighLatRuleId;
-  hijriAdjustmentDays: number; // sabit +1 temel düzeltmenin ÜZERİNE eklenen ekstra gün, varsayılan 0
+  hijriAdjustmentDays: number;
   hijriSwitchAtMaghrib: boolean;
   distanceUnit: DistanceUnit;
+  setAutoMethod: (v: boolean) => void;
   setMethodId: (id: CalcMethodId) => void;
   setKerahatMinutes: (m: number) => void;
   setMadhab: (m: MadhabId) => void;
@@ -61,7 +63,8 @@ interface Ctx {
 const CalculationSettingsContext = createContext<Ctx | undefined>(undefined);
 
 export function CalculationSettingsProvider({ children }: { children: ReactNode }) {
-  const [methodId, setMethodId] = useState<CalcMethodId>('auto');
+  const [autoMethod, setAutoMethod] = useState(true);
+  const [methodId, setMethodId] = useState<CalcMethodId>('Turkey');
   const [kerahatMinutes, setKerahatMinutes] = useState(45);
   const [madhab, setMadhab] = useState<MadhabId>('Shafi');
   const [highLatRule, setHighLatRule] = useState<HighLatRuleId>('AngleBased');
@@ -72,8 +75,8 @@ export function CalculationSettingsProvider({ children }: { children: ReactNode 
   return (
     <CalculationSettingsContext.Provider
       value={{
-        methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
-        setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
+        autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
+        setAutoMethod, setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
       }}
     >
       {children}
