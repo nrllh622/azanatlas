@@ -16,6 +16,7 @@ interface Props {
 const SIZE = 280;
 const CENTER = SIZE / 2;
 const RADIUS = SIZE / 2 - 24;
+const TOP_LINE_COLOR = '#D64545';
 
 function AnimatedArrow({ direction }: { direction: 'left' | 'right' }) {
   const shift = useRef(new Animated.Value(0)).current;
@@ -149,7 +150,8 @@ export default function QiblaScreen({ onClose }: Props) {
             <Circle cx={CENTER} cy={CENTER} r={RADIUS + 14} stroke={colors.gold} strokeWidth={3} fill={colors.primaryDark} />
             <Circle cx={CENTER} cy={CENTER} r={RADIUS + 8} stroke={colors.sand} strokeWidth={1} fill="none" opacity={0.4} />
 
-            <Line x1={CENTER} y1={2} x2={CENTER} y2={18} stroke={colors.gold} strokeWidth={4} />
+            {/* Sabit üst gösterge — kalın ve kırmızı */}
+            <Line x1={CENTER} y1={0} x2={CENTER} y2={26} stroke={TOP_LINE_COLOR} strokeWidth={7} strokeLinecap="round" />
 
             <G transform={`rotate(${-heading} ${CENTER} ${CENTER})`}>
               <Circle cx={CENTER} cy={CENTER} r={RADIUS} stroke={colors.sand} strokeWidth={1.5} fill={colors.primary} />
@@ -181,9 +183,12 @@ export default function QiblaScreen({ onClose }: Props) {
 
               <Circle cx={CENTER} cy={CENTER} r={4} fill={colors.gold} />
 
-              <SvgText x={kaabaX} y={kaabaY + 10} fontSize={30} textAnchor="middle">
-                🕋
-              </SvgText>
+              {/* Kabe simgesi — dış grup döndükçe TERSİNE döndürülerek her zaman dik kalıyor */}
+              <G transform={`rotate(${heading} ${kaabaX} ${kaabaY})`}>
+                <SvgText x={kaabaX} y={kaabaY + 10} fontSize={30} textAnchor="middle">
+                  🕋
+                </SvgText>
+              </G>
 
               <G transform={`rotate(${arrowRotateDeg} ${arrowX} ${arrowY})`}>
                 <Polygon points={`${arrowX},${arrowY - 9} ${arrowX - 6},${arrowY + 6} ${arrowX + 6},${arrowY + 6}`} fill="#D64545" />
