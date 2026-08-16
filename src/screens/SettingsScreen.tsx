@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 import { colors, spacing, typography } from '../theme';
 import {
   useNotificationSettings,
@@ -14,10 +15,10 @@ import {
   KERAHAT_OPTIONS,
   MADHAB_OPTIONS,
   HIGH_LAT_OPTIONS,
-  HIJRI_ADJUSTMENT_OPTIONS,
   DISTANCE_UNIT_OPTIONS,
 } from '../context/CalculationSettingsContext';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
+import { useLocationContext } from '../context/LocationContext';
 import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
 import SimplePickerModal from '../components/SimplePickerModal';
@@ -42,11 +43,12 @@ const ON_TIME_LABELS: { key: OnTimeVakitKey; label: string }[] = [
 interface Props {
   onClose: () => void;
   onOpenVaktindeKil: () => void;
+  onOpenReminders: () => void;
 }
 
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
-export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
+export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenReminders }: Props) {
   const insets = useSafeAreaInsets();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
@@ -57,14 +59,17 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
     vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled,
     setVibrationEnabled, setFaceDownSilenceEnabled, setNotificationBarWidgetEnabled,
   } = useGeneralSettings();
+  const { addLocation } = useLocationContext();
 
   const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
   const [methodPickerVisible, setMethodPickerVisible] = useState(false);
   const [kerahatPickerVisible, setKerahatPickerVisible] = useState(false);
   const [madhabPickerVisible, setMadhabPickerVisible] = useState(false);
   const [highLatPickerVisible, setHighLatPickerVisible] = useState(false);
-  const [hijriPickerVisible, setHijriPickerVisible] = useState(false);
   const [distanceUnitPickerVisible, setDistanceUnitPickerVisible] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const isAuto = methodId === 'auto';
 
   let currentSelectedId = 'none';
   let pickerTitle = '';
@@ -84,6 +89,34 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
   const highLatLabel = HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label ?? '';
   const distanceUnitLabel = DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label ?? '';
 
+  const fetchGpsForAuto = async () => {
+    setGpsLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setGpsLoading(false);
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({});
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+      addLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        il: place?.region || place?.city || 'GPS Konumu',
+        ilce: place?.subregion || place?.district || place?.city || '',
+        countryCode: place?.isoCountryCode || 'TR',
+        isGps: true,
+      });
+    } catch (e) {
+      // sessizce yut — kullanıcı Şehri Değiştir'den tekrar deneyebilir
+    } finally {
+      setGpsLoading(false);
+    }
+  };
+
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
@@ -97,20 +130,41 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
           <Text style={styles.cardLabel}>Vaktinde Kıl</Text>
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.card} onPress={onOpenReminders}>
+          <Text style={styles.cardLabel}>Hatırlatıcılar</Text>
+          <Text style={styles.chevron}>›</Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Hesaplama Yöntemi</Text>
         <TouchableOpacity style={styles.card} onPress={() => setMethodPickerVisible(true)}>
           <Text style={styles.cardLabel}>Hesaplama Yöntemi</Text>
           <Text style={styles.cardSubtext}>{methodLabel}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => setMadhabPickerVisible(true)}>
-          <Text style={styles.cardLabel}>İkindi Hesabı</Text>
-          <Text style={styles.cardSubtext}>{madhabLabel}</Text>
+        {isAuto && gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
+
+        <TouchableOpacity
+          style={[styles.card, isAuto && styles.cardDisabled]}
+          onPress={() => !isAuto && setMadhabPickerVisible(true)}
+          disabled={isAuto}
+        >
+          <Text style={[styles.cardLabel, isAuto && styles.textDisabled]}>İkindi Hesabı</Text>
+          <Text style={[styles.cardSubtext, isAuto && styles.textDisabled]}>{madhabLabel}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={() => setHighLatPickerVisible(true)}>
-          <Text style={styles.cardLabel}>Yüksek Açı Hesabı</Text>
-          <Text style={styles.cardSubtext}>{highLatLabel}</Text>
+        <TouchableOpacity
+          style={[styles.card, isAuto && styles.cardDisabled]}
+          onPress={() => !isAuto && setHighLatPickerVisible(true)}
+          disabled={isAuto}
+        >
+          <Text style={[styles.cardLabel, isAuto && styles.textDisabled]}>Yüksek Açı Hesabı</Text>
+          <Text style={[styles.cardSubtext, isAuto && styles.textDisabled]}>{highLatLabel}</Text>
         </TouchableOpacity>
+        {isAuto && (
+          <Text style={styles.autoNote}>
+            "Otomatik" seçiliyken İkindi Hesabı ve Yüksek Açı Hesabı, konumuna göre otomatik belirlenir. Elle
+            değiştirmek için yukarıdan "Otomatik" dışında bir yöntem seç.
+          </Text>
+        )}
+
         <TouchableOpacity style={styles.card} onPress={() => setKerahatPickerVisible(true)}>
           <Text style={styles.cardLabel}>Kerahat Vakti Süresi</Text>
           <Text style={styles.cardSubtext}>{kerahatMinutes} dk</Text>
@@ -123,10 +177,18 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
         </View>
 
         <Text style={styles.sectionTitle}>Kişiselleştirme</Text>
-        <TouchableOpacity style={styles.card} onPress={() => setHijriPickerVisible(true)}>
+        <View style={styles.stepperCard}>
           <Text style={styles.cardLabel}>Hicri Gün Düzeltme</Text>
-          <Text style={styles.cardSubtext}>{hijriAdjustmentDays > 0 ? `+${hijriAdjustmentDays}` : hijriAdjustmentDays} gün</Text>
-        </TouchableOpacity>
+          <View style={styles.stepperRow}>
+            <TouchableOpacity style={styles.stepperBtn} onPress={() => setHijriAdjustmentDays(hijriAdjustmentDays - 1)}>
+              <Text style={styles.stepperBtnText}>−</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{hijriAdjustmentDays > 0 ? `+${hijriAdjustmentDays}` : hijriAdjustmentDays}</Text>
+            <TouchableOpacity style={styles.stepperBtn} onPress={() => setHijriAdjustmentDays(hijriAdjustmentDays + 1)}>
+              <Text style={styles.stepperBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={hijriSwitchAtMaghrib} onValueChange={setHijriSwitchAtMaghrib} trackColor={{ true: colors.gold, false: undefined }} />
@@ -178,8 +240,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
               <View style={styles.cardTopRow}>
                 <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
                 <Text style={styles.cardLabelInline}>{label}</Text>
-                <Text style={styles.cardOffset}>{s.minutesBefore}dk. önce</Text>
               </View>
+              <Text style={styles.offsetLine}>{s.minutesBefore} dakika önce</Text>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
                 <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
               </TouchableOpacity>
@@ -220,7 +282,12 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
         title="Hesaplama Yöntemi"
         options={CALC_METHODS}
         selectedId={methodId}
-        onSelect={(id) => setMethodId(id as any)}
+        onSelect={(id) => {
+          setMethodId(id as any);
+          if (id === 'auto') {
+            fetchGpsForAuto();
+          }
+        }}
         onClose={() => setMethodPickerVisible(false)}
       />
 
@@ -252,15 +319,6 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil }: Props) {
       />
 
       <SimplePickerModal
-        visible={hijriPickerVisible}
-        title="Hicri Gün Düzeltme"
-        options={HIJRI_ADJUSTMENT_OPTIONS.map((m) => ({ id: String(m), label: `${m > 0 ? '+' + m : m} gün` }))}
-        selectedId={String(hijriAdjustmentDays)}
-        onSelect={(id) => setHijriAdjustmentDays(Number(id))}
-        onClose={() => setHijriPickerVisible(false)}
-      />
-
-      <SimplePickerModal
         visible={distanceUnitPickerVisible}
         title="Ölçü Birimleri"
         options={DISTANCE_UNIT_OPTIONS}
@@ -279,12 +337,21 @@ const styles = StyleSheet.create({
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   scrollContent: { padding: spacing.lg },
   sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.sm },
-  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
+  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, position: 'relative' },
+  cardDisabled: { opacity: 0.45 },
+  textDisabled: { color: colors.primary },
+  cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16 },
   cardLabelInline: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16, flex: 1 },
-  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13 },
-  cardOffset: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13 },
-  chevron: { color: colors.primary, fontSize: 20 },
+  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: 2 },
+  chevron: { color: colors.primary, fontSize: 20, position: 'absolute', right: spacing.md, top: spacing.md },
+  offsetLine: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
   soundLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
+  gpsHint: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 12, marginBottom: spacing.sm },
+  autoNote: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 12, marginBottom: spacing.sm, lineHeight: 17 },
+  stepperCard: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  stepperBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  stepperBtnText: { color: colors.white, fontSize: 18, fontFamily: typography.bodyBold },
+  stepperValue: { fontFamily: typography.displaySemibold, color: colors.primaryDark, fontSize: 18, minWidth: 30, textAlign: 'center' },
 });
