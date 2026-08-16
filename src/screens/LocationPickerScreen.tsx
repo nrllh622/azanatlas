@@ -60,6 +60,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
       <View style={[styles.safeArea, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.header}>Şehri Değiştir</Text>
         <FlatList
+          style={styles.list}
           data={locations}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -82,15 +83,17 @@ export default function LocationPickerScreen({ onDone }: Props) {
             </TouchableOpacity>
           )}
         />
-        <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading}>
-          <Text style={styles.actionBtnText}>{gpsLoading ? 'Konum alınıyor…' : '📍 GPS ile Ekle'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setMode('province')}>
-          <Text style={styles.actionBtnText}>+ İl/İlçe Seçerek Ekle</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onDone} style={{ marginTop: spacing.md, alignItems: 'center' }}>
-          <Text style={styles.closeText}>Kapat</Text>
-        </TouchableOpacity>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>
+          <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading}>
+            <Text style={styles.actionBtnText}>{gpsLoading ? 'Konum alınıyor…' : '📍 GPS ile Ekle'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => setMode('province')}>
+            <Text style={styles.actionBtnText}>+ İl/İlçe Seçerek Ekle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onDone} style={styles.closeBtn}>
+            <Text style={styles.closeText}>Kapat</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -103,6 +106,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
         </TouchableOpacity>
         <Text style={styles.header}>İl Seç</Text>
         <FlatList
+          style={styles.list}
           data={TURKEY_PROVINCES}
           keyExtractor={(item) => item.name}
           renderItem={({ item }) => (
@@ -128,6 +132,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
       </TouchableOpacity>
       <Text style={styles.header}>{selectedProvince?.name} · İlçe Seç</Text>
       <FlatList
+        style={styles.list}
         data={selectedProvince?.districts ?? []}
         keyExtractor={(item) => item.name}
         renderItem={({ item }) => (
@@ -157,6 +162,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary, paddingHorizontal: spacing.lg },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22, marginBottom: spacing.md },
   backText: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 15, marginBottom: spacing.sm },
+  list: { flex: 1 },
+  footer: { paddingTop: spacing.sm },
+  closeBtn: { alignItems: 'center', marginTop: spacing.sm, paddingVertical: spacing.sm },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
   row: {
     flexDirection: 'row',
