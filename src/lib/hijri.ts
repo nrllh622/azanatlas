@@ -4,9 +4,6 @@ const HIJRI_MONTHS = [
   'Recep', 'Şaban', 'Ramazan', 'Şevval', 'Zilkade', 'Zilhicce',
 ];
 
-// Diyanet/Ümmül Kurra gibi resmi takvimlerle hizalamak için gün düzeltmesi
-const HIJRI_ADJUSTMENT_DAYS = 1;
-
 function gregorianToJDN(year: number, month: number, day: number): number {
   const a = Math.floor((14 - month) / 12);
   const y = year + 4800 - a;
@@ -40,8 +37,9 @@ function jdnToHijri(jdn: number) {
   return { day, month, year };
 }
 
-export function toHijri(date: Date): { day: number; month: string; year: number } {
-  const jdn = gregorianToJDN(date.getFullYear(), date.getMonth() + 1, date.getDate()) + HIJRI_ADJUSTMENT_DAYS;
+// adjustmentDays: kullanıcının Ayarlar'dan değiştirebileceği düzeltme (varsayılan 1)
+export function toHijri(date: Date, adjustmentDays: number = 1): { day: number; month: string; year: number } {
+  const jdn = gregorianToJDN(date.getFullYear(), date.getMonth() + 1, date.getDate()) + adjustmentDays;
   const { day, month, year } = jdnToHijri(jdn);
   return { day, month: HIJRI_MONTHS[month - 1] ?? '', year };
 }
