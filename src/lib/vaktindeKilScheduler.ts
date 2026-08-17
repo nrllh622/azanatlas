@@ -2,6 +2,7 @@
 import * as Notifications from 'expo-notifications';
 import { VakitEntry } from './prayerCalculator';
 import { VaktindeKilSound } from '../context/VaktindeKilContext';
+import { VAKTINDE_KIL_CATEGORY } from './vaktindeKilActions';
 
 export async function scheduleVaktindeKil(
   current: VakitEntry,
@@ -16,9 +17,8 @@ export async function scheduleVaktindeKil(
   let t = start;
   let count = 0;
   const channelId = vibrationEnabled ? 'vibrate-on' : 'vibrate-off';
-  // Bildirim sesi olarak bundle edilen dosya adı — app.json'daki expo-notifications
-  // eklenti yapılandırmasında tanımlı olması gerekiyor (bip.wav / dong.wav)
   const soundFile = sound === 'dong' ? 'dong.wav' : 'bip.wav';
+  const vakitDateISO = current.date.toISOString();
 
   while (t.getTime() < end.getTime() && count < 20) {
     if (t.getTime() > Date.now()) {
@@ -27,6 +27,8 @@ export async function scheduleVaktindeKil(
           title: 'Vaktinde Kıl',
           body: `${current.label} namazını henüz kılmadıysan vaktinde kılmayı unutma.`,
           sound: soundFile,
+          categoryIdentifier: VAKTINDE_KIL_CATEGORY,
+          data: { type: 'vaktindekil', vakitKey: current.key, vakitDateISO },
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: t, channelId },
       });
