@@ -17,6 +17,7 @@ import {
   configureAndroidChannels,
 } from '../lib/notificationScheduler';
 import { scheduleVaktindeKil } from '../lib/vaktindeKilScheduler';
+import { setupVaktindeKilCategory, registerVaktindeKilResponseListener } from '../lib/vaktindeKilActions';
 import { scheduleReminders } from '../lib/remindersScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
@@ -58,8 +59,13 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // Android donanım/gesture geri tuşu: alt ekranlardan her zaman ana ekrana döner,
-  // sadece ana ekrandayken varsayılan davranışa (uygulamadan çıkma) izin verir.
+  // "Kıldım" bildirim aksiyonu bir kez kuruluyor (kategori + yanıt dinleyicisi)
+  useEffect(() => {
+    setupVaktindeKilCategory();
+    const sub = registerVaktindeKilResponseListener();
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (screen !== 'home') {
