@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
 import { colors, spacing, typography } from '../theme';
-import { useVaktindeKil } from '../context/VaktindeKilContext';
+import { useVaktindeKil, VaktindeKilSound } from '../context/VaktindeKilContext';
 import SimplePickerModal from '../components/SimplePickerModal';
 
 interface Props {
@@ -12,6 +13,25 @@ interface Props {
 
 const DELAY_OPTIONS = [10, 15, 20, 30, 45];
 const INTERVAL_OPTIONS = [5, 10, 15, 20, 30];
+
+const SOUND_FILES: Record<VaktindeKilSound, any> = {
+  bip: require('../../assets/sounds/bip.wav'),
+  dong: require('../../assets/sounds/dong.wav'),
+};
+
+async function playPreview(sound: VaktindeKilSound) {
+  try {
+    const { sound: player } = await Audio.Sound.createAsync(SOUND_FILES[sound]);
+    await player.playAsync();
+    player.setOnPlaybackStatusUpdate((status) => {
+      if (status.isLoaded && status.didJustFinish) {
+        player.unloadAsync();
+      }
+    });
+  } catch (e) {
+    console.warn('Ses önizlemesi çalınamadı:', e);
+  }
+}
 
 export default function VaktindeKilScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
@@ -32,7 +52,12 @@ export default function VaktindeKilScreen({ onClose }: Props) {
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.header}>Vaktinde Kıl</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.backArrow}>‹ Geri</Text>
+          </TouchableOpacity>
+          <Text style={styles.header}>Vaktinde Kıl</Text>
+        </View>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <TouchableOpacity onPress={() => setInfoVisible(!infoVisible)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={styles.infoLink}>Nedir?</Text>
@@ -48,7 +73,8 @@ export default function VaktindeKilScreen({ onClose }: Props) {
             <Text style={styles.infoText}>
               Vaktinde Kıl açıkken, bir namaz vakti girdikten belirlediğin gecikme süresi kadar sonra, eğer o vakti
               henüz kılmadıysan sana hatırlatma bildirimi gönderir. Bir sonraki vakit girene kadar, belirlediğin
-              sıklıkla bu hatırlatma tekrarlanır — böylece namazını vaktin içinde geciktirmeden kılmayı unutmazsın.
+              sıklıkla bu hatırlatma tekrarlanır. Bildirimdeki "Kıldım" butonuna dokunursan, o vakit için kalan
+              hatırlatmalar durur.
             </Text>
           </View>
         )}
@@ -80,13 +106,25 @@ export default function VaktindeKilScreen({ onClose }: Props) {
 
         <Text style={styles.sectionTitle}>Uyarı Sesi</Text>
         <View style={styles.soundRow}>
-          <TouchableOpacity style={styles.soundOption} onPress={() => setSound('bip')}>
+          <TouchableOpacity
+            style={styles.soundOption}
+            onPress={() => {
+              setSound('bip');
+              playPreview('bip');
+            }}
+          >
             <View style={[styles.checkbox, sound === 'bip' && styles.checkboxActive]}>
               {sound === 'bip' && <Text style={styles.checkmark}>✓</Text>}
             </View>
             <Text style={styles.soundLabel}>Bip</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.soundOption} onPress={() => setSound('dong')}>
+          <TouchableOpacity
+            style={styles.soundOption}
+            onPress={() => {
+              setSound('dong');
+              playPreview('dong');
+            }}
+          >
             <View style={[styles.checkbox, sound === 'dong' && styles.checkboxActive]}>
               {sound === 'dong' && <Text style={styles.checkmark}>✓</Text>}
             </View>
@@ -118,6 +156,8 @@ export default function VaktindeKilScreen({ onClose }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.primary },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
   header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
   closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
   infoLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 14, textDecorationLine: 'underline' },
