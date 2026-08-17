@@ -88,12 +88,16 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   const highLatLabel = HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label ?? '';
   const distanceUnitLabel = DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label ?? '';
 
-  const fetchGpsForAuto = async () => {
+  // ÖNEMLİ: "Otomatik" anahtarı GPS gerçekten başarılı olana kadar AÇIK duruma
+  // GEÇMİYOR — kullanıcının bildirdiği hata buydu (izin reddedilse bile
+  // anahtar açık kalıyordu). Şimdi anahtarın görsel durumu her zaman gerçeği yansıtıyor.
+  const attemptEnableAuto = async () => {
     setGpsLoading(true);
     setGpsStatus(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        setAutoMethod(false);
         setGpsStatus('Konum izni verilmedi. Telefon Ayarları > Uygulamalar > AzanAtlas > İzinler üzerinden konum iznini elle açabilirsin.');
         setGpsLoading(false);
         return;
@@ -111,8 +115,10 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         countryCode: place?.isoCountryCode || 'TR',
         isGps: true,
       });
-      setGpsStatus('Konum başarıyla alındı ve eklendi.');
+      setAutoMethod(true);
+      setGpsStatus('Konum başarıyla alındı — Otomatik mod aktif.');
     } catch (e) {
+      setAutoMethod(false);
       setGpsStatus('Konum alınamadı. GPS açık mı ve konum servisleri etkin mi kontrol et.');
     } finally {
       setGpsLoading(false);
@@ -147,20 +153,24 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           <View style={styles.cardTopRow}>
             <Switch
               value={autoMethod}
+              disabled={gpsLoading}
               onValueChange={(v) => {
-                setAutoMethod(v);
-                if (v) fetchGpsForAuto();
-                else setGpsStatus(null);
+                if (v) {
+                  attemptEnableAuto();
+                } else {
+                  setAutoMethod(false);
+                  setGpsStatus(null);
+                }
               }}
               trackColor={{ true: colors.gold, false: undefined }}
             />
             <Text style={styles.cardLabelInline}>Otomatik</Text>
           </View>
         </View>
-        {autoMethod && gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
-        {autoMethod && !gpsLoading && gpsStatus && <Text style={styles.gpsStatusText}>{gpsStatus}</Text>}
-        {autoMethod && !gpsLoading && (
-          <TouchableOpacity onPress={fetchGpsForAuto}>
+        {gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
+        {!gpsLoading && gpsStatus && <Text style={styles.gpsStatusText}>{gpsStatus}</Text>}
+        {!gpsLoading && !autoMethod && gpsStatus && (
+          <TouchableOpacity onPress={attemptEnableAuto}>
             <Text style={styles.retryLink}>Konumu tekrar dene</Text>
           </TouchableOpacity>
         )}
