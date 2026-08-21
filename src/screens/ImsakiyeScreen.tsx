@@ -1,14 +1,20 @@
 // src/screens/ImsakiyeScreen.tsx
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '../theme';
-import { calculateVakitler } from '../lib/prayerCalculator';
+import { calculateVakitler, getVakitlerWithDiyanetFallback } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
 
 interface Props {
   onClose: () => void;
+}
+
+interface GunSatiri {
+  date: Date;
+  week: number;
+  vakitler: { label: string; time: string }[];
 }
 
 function getWeekNumber(d: Date): number {
@@ -27,8 +33,10 @@ export default function ImsakiyeScreen({ onClose }: Props) {
   const { location } = useLocationContext();
   const { autoMethod, methodId, madhab, highLatRule } = useCalculationSettings();
 
-  const days = useMemo(() => {
-    const result: { date: Date; week: number; vakitler: { label: string; time: string }[] }[] = [];
+  // İlk anda (senkron) yerel hesapla dolduruluyor, ardından Türkiye içindeyse
+  // ve internet varsa Diyanet'in resmi 30 günlük verisiyle (varsa) güncelleniyor.
+  const yerelGunler = useMemo((): GunSatiri[] => {
+    const result: GunSatiri[] = [];
     const today = new Date();
     for (let i = 0; i < 30; i++) {
       const d = new Date(today);
@@ -43,6 +51,49 @@ export default function ImsakiyeScreen({ onClose }: Props) {
     }
     return result;
   }, [location, autoMethod, methodId, madhab, highLatRule]);
+
+  const [days, setDays] = useState<GunSatiri[]>(yerelGunler);
+
+  useEffect(() => {
+    setDays(yerelGunler);
+    let iptalEdildi = false;
+
+    (async () => {
+      const today = new Date();
+      const gunler = await Promise.all(
+        Array.from({ length: 30 }, (_, i) => {
+          const d = new Date(today);
+          d.setDate(d.getDate() + i);
+          return getVakitlerWithDiyanetFallback(
+            location.latitude,
+            location.longitude,
+            d,
+            location.countryCode,
+            location.il,
+            location.ilce,
+            autoMethod,
+            methodId,
+            madhab,
+            highLatRule
+          ).then((sonuc) => ({
+            date: d,
+            week: getWeekNumber(d),
+            vakitler: sonuc.vakitler
+              .filter((v) => v.key !== 'sabah')
+              .map((v) => ({
+                label: v.label,
+                time: `${v.date.getHours().toString().padStart(2, '0')}:${v.date.getMinutes().toString().padStart(2, '0')}`,
+              })),
+          }));
+        })
+      );
+      if (!iptalEdildi) setDays(gunler);
+    })();
+
+    return () => {
+      iptalEdildi = true;
+    };
+  }, [yerelGunler, location.latitude, location.longitude, location.countryCode, location.il, location.ilce, autoMethod, methodId, madhab, highLatRule]);
 
   let lastWeek: number | null = null;
 
