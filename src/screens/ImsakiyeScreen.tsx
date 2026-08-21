@@ -1,149 +1,242 @@
 // src/screens/ImsakiyeScreen.tsx
+//
+// İMSAKİYE — 30 günlük vakit cetveli
+//
+// Bugünden başlayarak 30 günün vakitlerini listeler. Veri iki aşamalı gelir:
+// önce cihazda hesaplanan yerel sonuç anında gösterilir, ardından Türkiye
+// içindeyse Diyanet'in resmi verisiyle güncellenir (ilk gün için yapılan
+// istek tüm ayı önbelleğe aldığı için kalan 29 gün ağ isteği üretmez).
+//
+// "Sabah" sütunu bilinçli olarak GİZLİ: Diyanet'in yayımladığı resmî
+// imsakiyelerde de ayrı bir Sabah sütunu yoktur; sabah namazının vakti
+// İmsak ile başlar. Ana Sayfa'da gösterilen ayrı "Sabah" satırı ise
+// referans uygulamaların ana ekran gösterim kuralına uyum içindir.
+
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
+import Icon from '../components/Icon';
+import { colors, spacing, radius, typography, elevation } from '../theme';
 import { calculateVakitler, getVakitlerWithDiyanetFallback } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
 
 interface Props {
-  onClose: () => void;
+  /** Tam ekran açıldığında geri dönüş. Sekme olarak kullanıldığında verilmez. */
+  onClose?: () => void;
 }
 
 interface GunSatiri {
   date: Date;
-  week: number;
-  vakitler: { label: string; time: string }[];
-}
-
-function getWeekNumber(d: Date): number {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  vakitler: { key: string; label: string; time: string }[];
 }
 
 const GUN_ADLARI = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-const AY_ADLARI = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+const AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const GUN_SAYISI = 30;
+
+function saatBicimle(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function ayniGunMu(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
 
 export default function ImsakiyeScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
   const { autoMethod, methodId, madhab, highLatRule } = useCalculationSettings();
+  const [bugun] = useState(() => new Date());
 
-  // İlk anda (senkron) yerel hesapla dolduruluyor, ardından Türkiye içindeyse
-  // ve internet varsa Diyanet'in resmi 30 günlük verisiyle (varsa) güncelleniyor.
   const yerelGunler = useMemo((): GunSatiri[] => {
-    const result: GunSatiri[] = [];
-    const today = new Date();
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(today);
+    const sonuc: GunSatiri[] = [];
+    for (let i = 0; i < GUN_SAYISI; i++) {
+      const d = new Date(bugun);
       d.setDate(d.getDate() + i);
-      const vakitler = calculateVakitler(location.latitude, location.longitude, d, location.countryCode, autoMethod, methodId, madhab, highLatRule)
+      const vakitler = calculateVakitler(
+        location.latitude, location.longitude, d, location.countryCode,
+        autoMethod, methodId, madhab, highLatRule
+      )
         .filter((v) => v.key !== 'sabah')
-        .map((v) => ({
-          label: v.label,
-          time: `${v.date.getHours().toString().padStart(2, '0')}:${v.date.getMinutes().toString().padStart(2, '0')}`,
-        }));
-      result.push({ date: d, week: getWeekNumber(d), vakitler });
+        .map((v) => ({ key: v.key, label: v.label, time: saatBicimle(v.date) }));
+      sonuc.push({ date: d, vakitler });
     }
-    return result;
-  }, [location, autoMethod, methodId, madhab, highLatRule]);
+    return sonuc;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, autoMethod, methodId, madhab, highLatRule, bugun]);
 
-  const [days, setDays] = useState<GunSatiri[]>(yerelGunler);
+  const [gunler, setGunler] = useState<GunSatiri[]>(yerelGunler);
+  const [kaynak, setKaynak] = useState<'diyanet' | 'yerel'>('yerel');
 
   useEffect(() => {
-    setDays(yerelGunler);
+    setGunler(yerelGunler);
     let iptalEdildi = false;
 
     (async () => {
-      const today = new Date();
-      const gunler = await Promise.all(
-        Array.from({ length: 30 }, (_, i) => {
-          const d = new Date(today);
+      const hepsi = await Promise.all(
+        Array.from({ length: GUN_SAYISI }, (_, i) => {
+          const d = new Date(bugun);
           d.setDate(d.getDate() + i);
           return getVakitlerWithDiyanetFallback(
-            location.latitude,
-            location.longitude,
-            d,
-            location.countryCode,
-            location.il,
-            location.ilce,
-            autoMethod,
-            methodId,
-            madhab,
-            highLatRule
-          ).then((sonuc) => ({
-            date: d,
-            week: getWeekNumber(d),
-            vakitler: sonuc.vakitler
-              .filter((v) => v.key !== 'sabah')
-              .map((v) => ({
-                label: v.label,
-                time: `${v.date.getHours().toString().padStart(2, '0')}:${v.date.getMinutes().toString().padStart(2, '0')}`,
-              })),
+            location.latitude, location.longitude, d, location.countryCode,
+            location.il, location.ilce, autoMethod, methodId, madhab, highLatRule
+          ).then((s) => ({
+            satir: {
+              date: d,
+              vakitler: s.vakitler
+                .filter((v) => v.key !== 'sabah')
+                .map((v) => ({ key: v.key, label: v.label, time: saatBicimle(v.date) })),
+            } as GunSatiri,
+            kaynak: s.kaynak,
           }));
         })
       );
-      if (!iptalEdildi) setDays(gunler);
+      if (iptalEdildi) return;
+      setGunler(hepsi.map((h) => h.satir));
+      // Cetvelin kaynağı, ilk günün kaynağıyla temsil ediliyor; tüm günler
+      // aynı çağrıdan (aynı aylık veriden) geldiği için bu yeterli.
+      setKaynak(hepsi[0]?.kaynak === 'diyanet' ? 'diyanet' : 'yerel');
     })();
 
     return () => {
       iptalEdildi = true;
     };
-  }, [yerelGunler, location.latitude, location.longitude, location.countryCode, location.il, location.ilce, autoMethod, methodId, madhab, highLatRule]);
-
-  let lastWeek: number | null = null;
+  }, [
+    yerelGunler, location.latitude, location.longitude, location.countryCode,
+    location.il, location.ilce, autoMethod, methodId, madhab, highLatRule, bugun,
+  ]);
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
-      <View style={styles.headerRow}>
-        <Text style={styles.header}>İmsakiye</Text>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.closeText}>Kapat</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {days.map((d) => {
-          const showWeek = d.week !== lastWeek;
-          lastWeek = d.week;
+    <View style={styles.wrap}>
+      <ScreenHeader
+        title="İmsakiye"
+        subtitle={`${location.il} · ${location.ilce}`}
+        icon="imsakiye"
+        onClose={onClose}
+      />
+
+      <FlatList
+        data={gunler}
+        keyExtractor={(g) => g.date.toDateString()}
+        contentContainerStyle={[styles.icerik, { paddingBottom: insets.bottom + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.kaynakCip}>
+            <Icon
+              name={kaynak === 'diyanet' ? 'onay' : 'bilgi'}
+              size={13}
+              color={kaynak === 'diyanet' ? colors.success : colors.textMuted}
+            />
+            <Text style={styles.kaynakCipYazi}>
+              {kaynak === 'diyanet'
+                ? 'Diyanet Takvimi verisi'
+                : 'Yerel hesaplama (Diyanet verisine ulaşılamadı)'}
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => {
+          const bugunMu = ayniGunMu(item.date, bugun);
           return (
-            <View key={d.date.toDateString()}>
-              {showWeek && <Text style={styles.weekLabel}>{d.week}. Hafta</Text>}
-              <View style={styles.dayCard}>
-                <Text style={styles.dayTitle}>
-                  {d.date.getDate()} {AY_ADLARI[d.date.getMonth()]} {GUN_ADLARI[d.date.getDay()]}
+            <View style={[styles.gunKart, bugunMu && styles.gunKartBugun]}>
+              <View style={styles.gunBaslikSatir}>
+                <Text style={[styles.gunBaslik, bugunMu && styles.gunBaslikBugun]}>
+                  {item.date.getDate()} {AY_ADLARI[item.date.getMonth()]}
                 </Text>
-                <View style={styles.timesRow}>
-                  {d.vakitler.map((v) => (
-                    <View key={v.label} style={styles.timeCol}>
-                      <Text style={styles.timeLabel}>{v.label}</Text>
-                      <Text style={styles.timeValue}>{v.time}</Text>
-                    </View>
-                  ))}
-                </View>
+                <Text style={[styles.gunAdi, bugunMu && styles.gunAdiBugun]}>
+                  {GUN_ADLARI[item.date.getDay()]}
+                </Text>
+                {bugunMu && (
+                  <View style={styles.bugunRozet}>
+                    <Text style={styles.bugunRozetYazi}>Bugün</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.vakitSatir}>
+                {item.vakitler.map((v) => (
+                  <View key={v.key} style={styles.vakitSutun}>
+                    <Text
+                      style={[styles.vakitEtiket, bugunMu && styles.vakitEtiketBugun]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {v.label}
+                    </Text>
+                    <Text
+                      style={[styles.vakitDeger, bugunMu && styles.vakitDegerBugun]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {v.time}
+                    </Text>
+                  </View>
+                ))}
               </View>
             </View>
           );
-        })}
-      </ScrollView>
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
-  header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
-  closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
-  scrollContent: { padding: spacing.lg },
-  weekLabel: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.md, marginBottom: spacing.xs },
-  dayCard: { backgroundColor: colors.cream, borderRadius: 14, padding: spacing.md, marginBottom: spacing.sm },
-  dayTitle: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 15, marginBottom: spacing.xs },
-  timesRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  timeCol: { alignItems: 'center' },
-  timeLabel: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 11 },
-  timeValue: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: 13 },
+  wrap: { flex: 1, backgroundColor: colors.cream },
+  icerik: { paddingHorizontal: spacing.md, paddingTop: spacing.md, gap: spacing.sm },
+
+  kaynakCip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.white,
+    borderRadius: radius.pill,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.sm + 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
+  },
+  kaynakCipYazi: { fontFamily: typography.bodyMedium, fontSize: 11, color: colors.textOnLight },
+
+  gunKart: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...elevation.card,
+  },
+  gunKartBugun: { backgroundColor: colors.primaryDark, borderColor: colors.primaryDark },
+
+  gunBaslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  gunBaslik: { fontFamily: typography.bodyBold, fontSize: 14, color: colors.primaryDark },
+  gunBaslikBugun: { color: colors.textOnDark },
+  gunAdi: { flex: 1, fontFamily: typography.bodyMedium, fontSize: 12, color: colors.textMuted },
+  gunAdiBugun: { color: colors.textOnDarkMuted },
+  bugunRozet: {
+    backgroundColor: colors.copperLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  bugunRozetYazi: { fontFamily: typography.bodyBold, fontSize: 9.5, color: colors.primaryDeep },
+
+  vakitSatir: { flexDirection: 'row', justifyContent: 'space-between' },
+  vakitSutun: { flex: 1, alignItems: 'center', paddingHorizontal: 1 },
+  vakitEtiket: { fontFamily: typography.bodyMedium, fontSize: 10.5, color: colors.textMuted },
+  vakitEtiketBugun: { color: colors.copperLight },
+  vakitDeger: { fontFamily: typography.bodyBold, fontSize: 13, color: colors.textOnLight, marginTop: 2 },
+  vakitDegerBugun: { color: colors.textOnDark },
 });

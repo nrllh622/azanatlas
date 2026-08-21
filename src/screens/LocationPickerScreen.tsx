@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { colors, spacing, radius, typography } from '../theme';
+import Icon from '../components/Icon';
 import { TURKEY_PROVINCES, Province } from '../data/turkeyLocations';
 import { DISTRICT_COORDS } from '../data/districtCoords';
 import { useLocationContext } from '../context/LocationContext';
@@ -93,10 +94,12 @@ export default function LocationPickerScreen({ onDone }: Props) {
                 onDone();
               }}
             >
-              <Text style={styles.rowText}>
-                {item.isGps ? '📍 ' : ''}
-                {item.il} · {item.ilce}
-              </Text>
+              <View style={styles.rowTextWrap}>
+                {item.isGps && <Icon name="konum" size={15} color={colors.copper} />}
+                <Text style={styles.rowText}>
+                  {item.il} · {item.ilce}
+                </Text>
+              </View>
               {locations.length > 1 && (
                 <TouchableOpacity onPress={() => removeLocation(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                   <Text style={styles.deleteText}>Sil</Text>
@@ -107,7 +110,10 @@ export default function LocationPickerScreen({ onDone }: Props) {
         />
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>
           <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading}>
-            <Text style={styles.actionBtnText}>{gpsLoading ? 'Konum alınıyor…' : '📍 GPS ile Ekle'}</Text>
+            <View style={styles.actionBtnInner}>
+              <Icon name="konum" size={16} color={colors.primaryDark} />
+              <Text style={styles.actionBtnText}>{gpsLoading ? 'Konum alınıyor…' : 'GPS ile Ekle'}</Text>
+            </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => setMode('province')}>
             <Text style={styles.actionBtnText}>+ İl/İlçe Seçerek Ekle</Text>
@@ -199,7 +205,9 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(250,246,236,0.12)',
   },
   rowActive: { backgroundColor: 'rgba(201,162,39,0.15)' },
-  rowText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 17 },
+  rowTextWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 1 },
+  rowText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 17, flexShrink: 1 },
+  actionBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   deleteText: { fontFamily: typography.bodyMedium, color: colors.danger, fontSize: 13 },
   actionBtn: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingVertical: spacing.sm, alignItems: 'center', marginTop: spacing.sm },
   actionBtnText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 14 },

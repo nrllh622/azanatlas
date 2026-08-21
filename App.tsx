@@ -14,6 +14,7 @@ import { KazaProvider } from './src/context/KazaContext';
 import { GeneralSettingsProvider } from './src/context/GeneralSettingsContext';
 import { VaktindeKilProvider } from './src/context/VaktindeKilContext';
 import { RemindersProvider } from './src/context/RemindersContext';
+import { IbadetTakibiProvider } from './src/context/IbadetTakibiContext';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -26,8 +27,15 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary }}>
-        <ActivityIndicator color={colors.gold} size="large" />
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.primary,
+        }}
+      >
+        <ActivityIndicator color={colors.copperLight} size="large" />
       </View>
     );
   }
@@ -40,10 +48,13 @@ export default function App() {
             <VaktindeKilProvider>
               <RemindersProvider>
                 <KazaProvider>
-                  <NotificationSettingsProvider>
-                    <StatusBar style="light" />
-                    <HomeScreen />
-                  </NotificationSettingsProvider>
+                  <IbadetTakibiProvider>
+                    <NotificationSettingsProvider>
+                      {/* Üst blok koyu turkuaz olduğu için durum çubuğu açık renkte */}
+                      <StatusBar style="light" />
+                      <HomeScreen />
+                    </NotificationSettingsProvider>
+                  </IbadetTakibiProvider>
                 </KazaProvider>
               </RemindersProvider>
             </VaktindeKilProvider>

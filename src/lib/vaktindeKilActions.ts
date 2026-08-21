@@ -1,5 +1,6 @@
 // src/lib/vaktindeKilActions.ts
 import * as Notifications from 'expo-notifications';
+import { vaktiKilindiIsaretle, takipEdilebilir } from './ibadetTakibi';
 
 export const VAKTINDE_KIL_CATEGORY = 'VAKTINDE_KIL';
 export const MARK_PRAYED_ACTION = 'MARK_PRAYED';
@@ -47,6 +48,24 @@ export async function handleMarkPrayedAction(data: any) {
   } catch {
     // getPresentedNotificationsAsync Android 6.0 altında desteklenmiyor;
     // sessizce yut — asıl iş (iptal) zaten yukarıda tamamlandı.
+  }
+
+  // GÜNLÜK İBADET TAKİBİ ile entegrasyon: kullanıcı bildirimden "Kıldım"
+  // dediğinde, o vakit Takip ekranında da kılınmış olarak görünmeli. Aksi
+  // halde kullanıcı aynı bilgiyi bir de uygulama içinde elle işaretlemek
+  // zorunda kalırdı.
+  //
+  // Tarih olarak "şu an" değil, bildirimin ait olduğu VAKTİN tarihi
+  // kullanılıyor: yatsı hatırlatması gece yarısını geçtikten sonra
+  // yanıtlanırsa, işaret dünkü güne değil doğru güne düşmeli.
+  try {
+    if (takipEdilebilir(data.vakitKey)) {
+      const vakitTarihi = data.vakitDateISO ? new Date(data.vakitDateISO) : new Date();
+      const gecerliTarih = isNaN(vakitTarihi.getTime()) ? new Date() : vakitTarihi;
+      await vaktiKilindiIsaretle(gecerliTarih, data.vakitKey);
+    }
+  } catch {
+    // Takip kaydı yazılamazsa bildirim iptali yine de geçerli kalmalı.
   }
 }
 

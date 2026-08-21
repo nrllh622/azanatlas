@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import { colors, spacing, typography } from '../theme';
+import Icon from '../components/Icon';
 import { useVaktindeKil, VaktindeKilSound } from '../context/VaktindeKilContext';
 import SimplePickerModal from '../components/SimplePickerModal';
 
@@ -114,7 +115,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
             }}
           >
             <View style={[styles.checkbox, sound === 'bip' && styles.checkboxActive]}>
-              {sound === 'bip' && <Text style={styles.checkmark}>✓</Text>}
+              {sound === 'bip' && <Icon name="onay" size={16} color={colors.white} />}
             </View>
             <Text style={styles.soundLabel}>Bip</Text>
           </TouchableOpacity>
@@ -126,7 +127,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
             }}
           >
             <View style={[styles.checkbox, sound === 'dong' && styles.checkboxActive]}>
-              {sound === 'dong' && <Text style={styles.checkmark}>✓</Text>}
+              {sound === 'dong' && <Icon name="onay" size={16} color={colors.white} />}
             </View>
             <Text style={styles.soundLabel}>Dong</Text>
           </TouchableOpacity>

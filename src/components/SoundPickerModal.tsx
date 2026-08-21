@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Audio } from 'expo-av';
 import { colors, spacing, typography, radius } from '../theme';
+import Icon from './Icon';
 import { SOUND_CATALOG, SoundOption } from '../data/soundCatalog';
 
 interface Props {
@@ -49,7 +50,7 @@ export default function SoundPickerModal({ visible, title, selectedId, onSelect,
                 }}
               >
                 <View style={[styles.checkbox, active && styles.checkboxActive]}>
-                  {active && <Text style={styles.checkmark}>✓</Text>}
+                  {active && <Icon name="onay" size={16} color={colors.white} />}
                 </View>
                 <Text style={styles.rowText}>{item.label}</Text>
               </TouchableOpacity>

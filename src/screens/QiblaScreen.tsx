@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DeviceMotion } from 'expo-sensors';
-import Svg, { Circle, G, Line, Text as SvgText, Polygon } from 'react-native-svg';
+import Svg, { Circle, G, Line, Text as SvgText, Polygon, Rect } from 'react-native-svg';
+import Icon from '../components/Icon';
 import { colors, spacing, typography } from '../theme';
 import { calculateQiblaBearing, calculateDistanceKm, calculateQiblaTime } from '../lib/qibla';
 import { useLocationContext } from '../context/LocationContext';
@@ -145,7 +146,7 @@ export default function QiblaScreen({ onClose }: Props) {
       <View style={styles.body}>
         <View style={styles.hintRow}>
           {!aligned && <AnimatedArrow direction={diff > 0 ? 'right' : 'left'} />}
-          {aligned && <Text style={styles.hintIcon}>✓</Text>}
+          {aligned && <Icon name="onay" size={20} color={colors.success} />}
           <Text style={styles.hintText}>{turnHint}</Text>
           {!aligned && <AnimatedArrow direction={diff > 0 ? 'right' : 'left'} />}
         </View>
@@ -188,9 +189,36 @@ export default function QiblaScreen({ onClose }: Props) {
               <Circle cx={CENTER} cy={CENTER} r={4} fill={colors.gold} />
 
               <G transform={`rotate(${heading} ${kaabaX} ${kaabaY})`}>
-                <SvgText x={kaabaX} y={kaabaY + 10} fontSize={30} textAnchor="middle">
-                  🕋
-                </SvgText>
+                {/* Kâbe: kiswe siyahı küp gövde + altın hizam kuşağı.
+                    Emoji yerine çizim kullanılıyor — emoji her cihazda
+                    farklı görünüyor ve pusulanın rengiyle uyuşmuyordu. */}
+                <Rect
+                  x={kaabaX - 13}
+                  y={kaabaY - 13}
+                  width={26}
+                  height={26}
+                  rx={3}
+                  fill="#141414"
+                  stroke={colors.copperLight}
+                  strokeWidth={1.5}
+                />
+                <Line
+                  x1={kaabaX - 13}
+                  y1={kaabaY - 3}
+                  x2={kaabaX + 13}
+                  y2={kaabaY - 3}
+                  stroke={colors.copperLight}
+                  strokeWidth={2.5}
+                />
+                <Line
+                  x1={kaabaX - 4}
+                  y1={kaabaY - 13}
+                  x2={kaabaX - 4}
+                  y2={kaabaY - 3}
+                  stroke={colors.copperLight}
+                  strokeWidth={1.2}
+                  opacity={0.8}
+                />
               </G>
 
               <G transform={`rotate(${arrowRotateDeg} ${arrowX} ${arrowY})`}>

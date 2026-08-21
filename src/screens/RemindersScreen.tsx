@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '../theme';
+import Icon from '../components/Icon';
 import { useReminders, ReminderTypeSetting } from '../context/RemindersContext';
 import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
@@ -42,7 +43,7 @@ export default function RemindersScreen({ onClose }: Props) {
               <Text style={styles.minutesLink}>{s.minutesBefore} dk. önce</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setSoundPickerFor(key)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.soundIcon}>🔊</Text>
+              <Icon name="bildirimAcik" size={17} color={colors.copper} />
             </TouchableOpacity>
           </View>
           {key === 'pazartesiPersembeOrucu' && (
@@ -51,7 +52,7 @@ export default function RemindersScreen({ onClose }: Props) {
               onPress={() => setOruc({ remindDayBefore: !settings.pazartesiPersembeOrucu.remindDayBefore })}
             >
               <View style={[styles.checkbox, settings.pazartesiPersembeOrucu.remindDayBefore && styles.checkboxActive]}>
-                {settings.pazartesiPersembeOrucu.remindDayBefore && <Text style={styles.checkmark}>✓</Text>}
+                {settings.pazartesiPersembeOrucu.remindDayBefore && <Icon name="onay" size={16} color={colors.white} />}
               </View>
               <Text style={styles.checkboxLabel}>Bir gün önce hatırlat</Text>
             </TouchableOpacity>
