@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography } from '../theme';
-import { calculateVakitler, VakitEntry } from '../lib/prayerCalculator';
+import { calculateVakitler, getVakitlerWithDiyanetFallback, VakitEntry, VakitKaynak } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings } from '../context/NotificationSettingsContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
@@ -53,6 +53,7 @@ export default function HomeScreen() {
   const { settings: reminderSettings } = useReminders();
   const [now, setNow] = useState(new Date());
   const [screen, setScreen] = useState<Screen>('home');
+  const [vakitKaynak, setVakitKaynak] = useState<VakitKaynak>('yerel');
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
@@ -77,9 +78,41 @@ export default function HomeScreen() {
     return () => sub.remove();
   }, [screen]);
 
-  const vakitler: VakitEntry[] = useMemo(() => {
-    return calculateVakitler(location.latitude, location.longitude, now, location.countryCode, autoMethod, methodId, madhab, highLatRule);
-  }, [location.latitude, location.longitude, location.countryCode, autoMethod, methodId, madhab, highLatRule, now.toDateString()]);
+  // Gün içinde İLK ANDA (senkron) yerel `adhan` hesabıyla dolduruluyor —
+  // kullanıcı asla boş/gecikmeli bir ekran görmüyor. Ardından, Türkiye
+  // içindeyse ve internet varsa, Diyanet'in resmi verisi asenkron olarak
+  // çekilip (varsa) üzerine yazılıyor — bkz. getVakitlerWithDiyanetFallback.
+  const [vakitler, setVakitler] = useState<VakitEntry[]>(() =>
+    calculateVakitler(location.latitude, location.longitude, now, location.countryCode, autoMethod, methodId, madhab, highLatRule)
+  );
+
+  useEffect(() => {
+    let iptalEdildi = false;
+    const yerel = calculateVakitler(location.latitude, location.longitude, now, location.countryCode, autoMethod, methodId, madhab, highLatRule);
+    setVakitler(yerel);
+    setVakitKaynak('yerel');
+
+    getVakitlerWithDiyanetFallback(
+      location.latitude,
+      location.longitude,
+      now,
+      location.countryCode,
+      location.il,
+      location.ilce,
+      autoMethod,
+      methodId,
+      madhab,
+      highLatRule
+    ).then((sonuc) => {
+      if (iptalEdildi) return;
+      setVakitler(sonuc.vakitler);
+      setVakitKaynak(sonuc.kaynak);
+    });
+
+    return () => {
+      iptalEdildi = true;
+    };
+  }, [location.latitude, location.longitude, location.countryCode, location.il, location.ilce, autoMethod, methodId, madhab, highLatRule, now.toDateString()]);
 
   const next = useMemo(() => {
     const upcoming = vakitler.find((v) => v.date.getTime() > now.getTime());
@@ -133,14 +166,19 @@ export default function HomeScreen() {
         location.latitude,
         location.longitude,
         location.countryCode,
+        location.il,
+        location.ilce,
         autoMethod,
         methodId,
         madhab,
         highLatRule,
-        reminderSettings
+        reminderSettings,
+        vibrationEnabled
       );
     })();
-  }, [location.latitude, location.longitude, autoMethod, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil, reminderSettings]);
+    // current.key/next.key: vakit değiştiğinde (ör. Öğle'den İkindi'ye geçilince)
+    // Vaktinde Kıl hatırlatmalarının yeni vakit için yeniden kurulmasını sağlar.
+  }, [location.latitude, location.longitude, autoMethod, methodId, madhab, highLatRule, settings, kerahatMinutes, vibrationEnabled, vaktindeKil, reminderSettings, current.key, next.key]);
 
   const cycleLocation = (dir: 1 | -1) => {
     if (locations.length < 2) return;
@@ -185,6 +223,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {location.countryCode === 'TR' && vakitKaynak === 'yerel' && (
+          <View style={styles.kaynakBanner}>
+            <Text style={styles.kaynakText}>
+              ⓘ Diyanet verisine ulaşılamadı, geçici olarak yerel hesaplama gösteriliyor
+            </Text>
+          </View>
+        )}
 
         {kerahat.active && (
           <View style={styles.kerahatBanner}>
@@ -264,6 +310,8 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm, flexShrink: 1 },
   locationText: { color: colors.textOnDark, fontFamily: typography.bodyMedium, fontSize: 16, flexShrink: 1 },
   locationChevron: { color: colors.gold, fontSize: 16 },
+  kaynakBanner: { backgroundColor: 'rgba(250,246,236,0.12)', borderRadius: radius.md, paddingVertical: spacing.xs, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
+  kaynakText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 11, textAlign: 'center' },
   kerahatBanner: { backgroundColor: colors.danger, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm },
   kerahatText: { fontFamily: typography.bodyBold, color: colors.white, fontSize: 13, textAlign: 'center' },
   iftarBanner: { backgroundColor: colors.gold, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md },
