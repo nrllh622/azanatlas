@@ -464,7 +464,7 @@ export default function HomeScreen() {
 
           {isRamazan && aksam && (
             <View style={styles.iftarSerit}>
-              <Icon name="hilal" size={15} color={colors.primaryDark} />
+              <Icon name="hilal" size={15} color={colors.primaryDeep} />
               <Text style={styles.iftarSeritYazi}>
                 İftara kalan süre: {geriSayimBicimle(Math.max(0, aksam.date.getTime() - now.getTime()))}
               </Text>
@@ -515,7 +515,7 @@ export default function HomeScreen() {
                     <Icon
                       name={vakitIcon(v.key)}
                       size={17}
-                      color={suAnki ? colors.white : colors.primary}
+                      color={suAnki ? colors.primaryDeep : colors.primary}
                     />
                   </View>
 
@@ -623,7 +623,7 @@ export default function HomeScreen() {
                 <Icon
                   name={s.ikon}
                   size={20}
-                  color={aktif ? colors.primaryDark : colors.textOnDarkMuted}
+                  color={aktif ? colors.primaryDeep : colors.textOnDarkMuted}
                 />
                 {s.id === 'takip' && kazaTotal > 0 && (
                   <View style={styles.navNokta} />
@@ -722,7 +722,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     overflow: 'hidden',
   },
-  ilerlemeDolu: { height: 4, borderRadius: 2, backgroundColor: colors.copperLight },
+  // Koyu hero üzerinde dolgu; metin taşımadığı için en canlı ton kullanılabilir.
+  // Hero zemini `primary`; dolgunun ondan net ayrışması için bir basamak
+  // daha parlak olan primaryGlow kullanılıyor (primaryBright 2.67'de kalıyordu).
+  ilerlemeDolu: { height: 4, borderRadius: 2, backgroundColor: colors.primaryGlow },
   ilerlemeAltSatir: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -797,7 +800,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
-  iftarSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: 12.5, color: colors.primaryDark },
+  iftarSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: 12.5, color: colors.primaryDeep },
 
   // ---------- VAKİT LİSTESİ ----------
   vakitListe: { gap: 6 },
@@ -825,11 +828,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  vakitIkonKapAktif: { backgroundColor: 'rgba(224,138,62,0.9)' },
+  vakitIkonKapAktif: { backgroundColor: colors.primaryBright },
   vakitAd: { flex: 1, fontFamily: typography.bodyBold, fontSize: 14.5, color: colors.textOnLight },
   vakitAdAktif: { color: colors.textOnDark },
   simdiRozet: {
-    backgroundColor: colors.copperLight,
+    backgroundColor: colors.copperBright,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
@@ -842,7 +845,7 @@ const styles = StyleSheet.create({
     minWidth: 48,
     textAlign: 'right',
   },
-  vakitSaatAktif: { color: colors.copperLight },
+  vakitSaatAktif: { color: colors.primaryGlow },
   zilBtn: { width: 24, alignItems: 'center' },
 
   // ---------- HIZLI ARAÇLAR ----------
@@ -923,7 +926,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navIkonKapAktif: { backgroundColor: colors.copperLight },
+  navIkonKapAktif: { backgroundColor: colors.primaryBright },
   navYazi: { fontFamily: typography.bodyMedium, fontSize: 9.5, color: colors.textOnDarkMuted },
   navYaziAktif: { fontFamily: typography.bodyBold, color: colors.copperLight },
   navNokta: {

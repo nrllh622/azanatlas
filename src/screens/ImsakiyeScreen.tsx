@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   gunAdi: { flex: 1, fontFamily: typography.bodyMedium, fontSize: 12, color: colors.textMuted },
   gunAdiBugun: { color: colors.textOnDarkMuted },
   bugunRozet: {
-    backgroundColor: colors.copperLight,
+    backgroundColor: colors.primaryBright,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
