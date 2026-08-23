@@ -116,6 +116,10 @@ const PALETLER = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const AKTIF_PALET: PaletAdi = 'sirliParlaklik';
 
+
+export const AKTIF_PALET: PaletAdi = 'sirliParlaklik';   // turkuaz
+export const AKTIF_PALET: PaletAdi = 'sedefLacivert';    // lacivert
+
 export const colors = {
   ...PALETLER[AKTIF_PALET],
   overlay: 'rgba(0, 0, 0, 0.55)',
