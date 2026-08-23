@@ -33,6 +33,10 @@
 // (cream / white) uçtan seçilir. 27 metin/zemin çiftinin tamamı WCAG AA
 // eşiğini geçecek şekilde ölçüldü.
 
+
+export const AKTIF_PALET: PaletAdi = 'sirliParlaklik';   // turkuaz
+export const AKTIF_PALET: PaletAdi = 'sedefLacivert';    // lacivert
+
 export const colors = {
   // ─── ANA RENKLER (turkuaz ailesi, ton 177° sabit) ───────────────────────
   primary: '#08706C',        // ana koyu dolgu — üzerine beyaz metin gelir
