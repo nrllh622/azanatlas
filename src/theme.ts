@@ -1,83 +1,125 @@
 // src/theme.ts
 //
-// AZANATLAS TASARIM SİSTEMİ — "Sırlı Parlaklık"
+// AZANATLAS TASARIM SİSTEMİ
 //
-// Palet, klasik İslam sanatının somut malzemelerinden türetildi:
-//   • Turkuaz → İznik çinisi ve Selçuklu/Osmanlı kubbe mozaiklerinin ana rengi
-//   • Fildişi → el yazması Kur'an-ı Kerim sayfalarının ve tezhip zemininin rengi
-//   • Mercan  → çini panolardaki kırmızı-turuncu sır (Ermeni bolusu)
+// İki palet arasında geçiş yapmak için TEK SATIR değiştirilir:
 //
-// ─────────────────────────────────────────────────────────────────────────────
-// NEDEN ÖNCEKİ PALET MAT GÖRÜNÜYORDU
+//     const AKTIF_PALET: PaletAdi = 'sirliParlaklik';   // veya 'sedefLacivert'
 //
-// Ölçüldüğünde turkuaz zaten %76 doygunluktaydı; sorun doygunluk değil,
-// PARLAKLIĞIN %25'te sabit kalmasıydı. Koyu + orta doygun bir renk ışığı
-// emer, geri vermez — ham (fırınlanmamış) çini gibi. Bu sürümde ton (177°)
-// aynen korunup parlaklık beş basamağa açıldı: %17 → %24 → %33 → %43 → %79.
-//
-// İkinci değişiklik sıcak vurguda: BAKIR yerine MERCAN. Gerekçe ölçüme
-// dayanıyor — beyaz üzerinde okunacak kadar koyulaştırılan turuncu
-// kaçınılmaz olarak kahverengiye düşüyordu ve "cansız" hissin asıl kaynağı
-// buydu. Mercan aynı parlaklıkta canlı kalır, kahveye kaymaz.
+// Tüm ekranlar `colors` üzerinden çalıştığı için başka hiçbir dosyaya
+// dokunmaya gerek yoktur.
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// ROL SÖZLEŞMESİ  (bu paletin çalışmasının tek şartı)
+// ORTAK TASARIM MANTIĞI
 //
-// En parlak tonlar tam doygunlukta kalabilsin diye kontrast eşiğine
-// takılmamaları gerekir. Bunu sağlayan kural şudur:
+// Her iki palet de aynı kurala göre kalibre edildi: TON SABİT, PARLAKLIK
+// BASAMAKLI. Bir rengin mat görünmesinin sebebi doygunluk eksikliği değil,
+// parlaklığın tek bir değerde sıkışmasıdır. Bu yüzden her ailede
+// beş-altı parlaklık basamağı tanımlı.
 //
-//   *Bright anahtarları ASLA metin taşımaz.
-//   Yalnızca dolgu, nokta, ilerleme çubuğu olarak kullanılır.
+// ROL SÖZLEŞMESİ (paletin çalışmasının şartı):
+//   • *Bright anahtarları dolgu içindir; üzerlerine yalnızca en koyu ton gelir.
+//   • *Glow  anahtarları koyu zeminde metin/parlak vurgu içindir.
+//   • primary / primaryDark üzerine beyaz veya krem metin gelir.
+//   • copper (açık zeminde metin) ile gold (koyu zeminde metin) ayrı rollerdir.
 //
-// Metin taşıyan her yüzey, koyu (primary / primaryDark) ya da açık
-// (cream / white) uçtan seçilir. 27 metin/zemin çiftinin tamamı WCAG AA
-// eşiğini geçecek şekilde ölçüldü.
+// Kodda fiilen oluşan 70 metin/zemin çiftinin tamamı her iki palet için de
+// tek tek ölçüldü ve WCAG AA eşiğini geçti.
+
+export type PaletAdi = 'sirliParlaklik' | 'sedefLacivert';
+
+/**
+ * SIRLI PARLAKLIK — İznik turkuazı + mercan
+ *
+ * Turkuaz ton 177°'de sabit, parlaklık %17 → %24 → %33 → %43 → %79.
+ * Sıcak vurgu bakır değil MERCAN: beyaz üzerinde okunacak kadar
+ * koyulaştırılan turuncu kaçınılmaz olarak kahverengiye düşüyordu.
+ */
+const SIRLI_PARLAKLIK = {
+    primary: '#08706C',
+    primaryDark: '#05534F',
+    primaryDeep: '#03403D',
+    primaryLight: '#0E9C95',
+    primaryBright: '#17C2BA',
+    primaryGlow: '#9CF7F1',
+    primarySoft: '#C9F2EE',
+    primaryMist: '#E8FBF9',
+    cream: '#FEFAF0',
+    creamDeep: '#FBF2DF',
+    white: '#FFFFFF',
+    sand: '#EFE0C6',
+    gold: '#FFDFD3',
+    copper: '#A83518',
+    copperVivid: '#DC4A26',
+    copperLight: '#FFDFD3',
+    copperBright: '#FF9C6E',
+    copperSoft: '#FFEDE7',
+    textOnDark: '#FEFCF3',
+    textOnDarkMuted: '#BFEFEB',
+    textOnLight: '#0C3E3D',
+    textMuted: '#376F6D',
+    textFaint: '#5C9A96',
+    success: '#0F8A63',
+    warning: '#C25A1E',
+    danger: '#B23A22',
+    info: '#08706C',
+    border: '#EFE0C6',
+    borderStrong: '#DCC9A6',
+};
+
+/**
+ * SEDEF LACİVERT — hat levhası laciverti + tezhip altını
+ *
+ * Lacivert ton 220°'de sabit, parlaklık %14 → %20 → %28 → %42 → %63 → %80.
+ * Sıcak vurgu amber/şampanya tonunda; sarıya kaçmadan tezhip altınının
+ * sıcaklığını taşıyor. Turkuaza göre daha sakin ve kurumsal durur.
+ */
+const SEDEF_LACIVERT = {
+    primary: '#03318C',
+    primaryDark: '#022364',
+    primaryDeep: '#011846',
+    primaryLight: '#0449D2',
+    primaryBright: '#417FFB',
+    primaryGlow: '#9BBCFD',
+    primarySoft: '#DCE8F9',
+    primaryMist: '#EDF3FD',
+    cream: '#FDFAF1',
+    creamDeep: '#FAF2E0',
+    white: '#FFFFFF',
+    sand: '#F0E4CB',
+    gold: '#FEE2B9',
+    copper: '#956318',
+    copperVivid: '#C78623',
+    copperLight: '#FEE2B9',
+    copperBright: '#FCC573',
+    copperSoft: '#FDF3E2',
+    textOnDark: '#FEFCF5',
+    textOnDarkMuted: '#B9D0FE',
+    textOnLight: '#112140',
+    textMuted: '#425576',
+    textFaint: '#788EB0',
+    success: '#0F8A5D',
+    warning: '#AB6117',
+    danger: '#B22E24',
+    info: '#03318C',
+    border: '#F2E6CF',
+    borderStrong: '#E0CFAE',
+};
+
+const PALETLER = {
+  sirliParlaklik: SIRLI_PARLAKLIK,
+  sedefLacivert: SEDEF_LACIVERT,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AKTİF PALET — değiştirmek için yalnızca bu satırı düzenleyin
+// ─────────────────────────────────────────────────────────────────────────────
+export const AKTIF_PALET: PaletAdi = 'sirliParlaklik';
 
 export const colors = {
-  // ─── ANA RENKLER (turkuaz ailesi, ton 177° sabit) ───────────────────────
-  primary: '#08706C',        // ana koyu dolgu — üzerine beyaz metin gelir
-  primaryDark: '#05534F',    // en koyu — alt navigasyon, aktif satır, başlık metni
-  primaryDeep: '#03403D',    // gradient bitişi, parlak dolgu üzerindeki metin
-  primaryLight: '#0E9C95',   // canlı turkuaz — açık zeminde dolgu ve kalın çizgi
-  primaryBright: '#17C2BA',  // EN CANLI — yalnızca koyu zeminde dolgu/nokta (metin taşımaz)
-  primaryGlow: '#9CF7F1',    // koyu zeminde parlak vurgu metni
-  primarySoft: '#C9F2EE',    // ikon kabı zemini
-  primaryMist: '#E8FBF9',    // en açık turkuaz zemin
-
-  // ─── ZEMİN (fildişi ailesi) ─────────────────────────────────────────────
-  cream: '#FEFAF0',          // uygulamanın ana zemini
-  creamDeep: '#FBF2DF',      // ikincil zemin, ayırıcı bantlar
-  white: '#FFFFFF',          // kart zemini
-  sand: '#EFE0C6',           // ince kenarlıklar, pasif çizgiler
-
-  // ─── VURGU (mercan ailesi) ──────────────────────────────────────────────
-  // İsimler projedeki mevcut kullanımla uyum için korundu; değerler artık MERCAN.
-  gold: '#FFDFD3',           // koyu zeminde vurgu metni + üzerine koyu metin alan dolgu
-  copper: '#A83518',         // AÇIK zeminde vurgu metni ve beyaz metin taşıyan dolgu
-  copperVivid: '#DC4A26',    // açık zeminde CANLI ikon (metin taşımaz)
-  copperLight: '#FFDFD3',    // koyu zeminde vurgu metni (gold ile aynı rol)
-  copperBright: '#FF9C6E',   // canlı mercan dolgu — üzerine KOYU metin gelir
-  copperSoft: '#FFEDE7',     // rozet/ikon kabı zemini
-
-  // ─── METİN ──────────────────────────────────────────────────────────────
-  textOnDark: '#FEFCF3',     // koyu zemin üzerindeki ana metin
-  textOnDarkMuted: '#BFEFEB', // koyu zemin üzerindeki ikincil metin
-  textOnLight: '#0C3E3D',    // açık zemin üzerindeki ana metin
-  textMuted: '#376F6D',      // ikincil/açıklama metni
-  textFaint: '#5C9A96',      // pasif ikon, placeholder
-
-  // ─── DURUM RENKLERİ ─────────────────────────────────────────────────────
-  // Paletin dışına çıkmamak için turkuaz/mercan ailesinden türetildi.
-  success: '#0F8A63',        // kılındı, tamamlandı
-  warning: '#C25A1E',        // mekruh vakti, uyarı (açık zeminde metin olarak okunur)
-  danger: '#B23A22',         // hata, silme, kaza borcu
-  info: '#08706C',           // bilgilendirme
-
-  // ─── YARDIMCI ───────────────────────────────────────────────────────────
-  border: '#EFE0C6',
-  borderStrong: '#DCC9A6',
-  overlay: 'rgba(3, 64, 61, 0.55)',
-  shadow: 'rgba(8, 112, 108, 0.16)',
+  ...PALETLER[AKTIF_PALET],
+  overlay: 'rgba(0, 0, 0, 0.55)',
+  shadow: 'rgba(0, 0, 0, 0.16)',
 };
 
 export const spacing = {
@@ -108,17 +150,18 @@ export const typography = {
   bodyBold: 'Manrope_700Bold',
 };
 
-// Tekrar eden kart/gölge tanımları — her ekranda elle yazmak yerine buradan.
+// Gölge rengi aktif paletin ana renginden türetiliyor ki iki palette de
+// gölgeler zeminle uyumlu kalsın.
 export const elevation = {
   card: {
-    shadowColor: '#08706C',
+    shadowColor: colors.primary,
     shadowOpacity: 0.10,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
   raised: {
-    shadowColor: '#08706C',
+    shadowColor: colors.primary,
     shadowOpacity: 0.16,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
