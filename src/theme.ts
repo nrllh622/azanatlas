@@ -114,10 +114,8 @@ const PALETLER = {
 // ─────────────────────────────────────────────────────────────────────────────
 // AKTİF PALET — değiştirmek için yalnızca bu satırı düzenleyin
 // ─────────────────────────────────────────────────────────────────────────────
-export const AKTIF_PALET: PaletAdi = 'sirliParlaklik';
-
-
-export const AKTIF_PALET: PaletAdi = 'sedefLacivert';
+//export const AKTIF_PALET: PaletAdi = 'sirliParlaklik';   // turkuaz
+export const AKTIF_PALET: PaletAdi = 'sedefLacivert';    // lacivert
 
 export const colors = {
   ...PALETLER[AKTIF_PALET],
