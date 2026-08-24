@@ -94,8 +94,29 @@ export default function TemaScreen({ onClose }: Props) {
 
   const degisiklikVar = secili !== calisan;
 
+  // Madde 4 (bu tur): kullanıcı onay pop-up'ı AÇIKKEN (henüz yeniden
+  // başlatmadan) fikrini değiştirip başka bir temaya (eski çalışan tema
+  // dahil) geçebilmeli. Önceki sürümde pop-up tüm ekranı kapladığı için
+  // kart listesine dokunmak fiilen imkânsızdı — "eski temayı seçmeme izin
+  // vermiyor" şikayeti buradan geliyordu. Çözüm: bir karta basıldığında,
+  // pop-up açıksa önce sessizce kapatılıyor, SONRA yeni seçim işleniyor —
+  // kullanıcı ayrıca "Vazgeç"e basmak zorunda kalmadan direkt istediği
+  // temaya geçebiliyor.
   const sec = async (ad: PaletAdi) => {
-    if (ad === calisan || yenidenBasliyor) return;
+    if (yenidenBasliyor) return;
+    if (onayAcik) setOnayAcik(false);
+    if (ad === calisan) {
+      // Kullanıcı doğrudan hâlâ çalışmakta olan (orijinal) temaya döndü —
+      // bu, Vazgeç ile aynı sonucu üretir: kayıt geri alınır, pop-up
+      // gösterilmez (zaten "değişiklik yok" durumuna dönülüyor).
+      setSecili(ad);
+      try {
+        await temayiKaydet(ad);
+      } catch {
+        // yoksay — ekran zaten doğru seçimi gösteriyor
+      }
+      return;
+    }
     setSecili(ad);
     try {
       await temayiKaydet(ad);

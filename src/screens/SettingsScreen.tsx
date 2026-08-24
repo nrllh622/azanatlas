@@ -33,6 +33,8 @@ import { useLocationContext } from '../context/LocationContext';
 import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
 import SimplePickerModal from '../components/SimplePickerModal';
+import { useCeviri } from '../i18n/DilContext';
+import { DilKodu, DIL_ADLARI } from '../i18n/ceviriler';
 
 const PRE_ALERT_LABELS: { key: PreAlertVakitKey; label: string }[] = [
   { key: 'imsak', label: 'İmsaktan' },
@@ -60,6 +62,13 @@ interface Props {
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
 export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenReminders }: Props) {
+  // i18n paketi: dil seçici, ekranın en üstünde ("Vaktinde Kıl" linkinden
+  // önce) — kullanıcının en çok arayacağı yer, uygulamayı ilk açtığında
+  // görmesi gereken bir tercih. Diğer tüm ayarlar bölümleri henüz i18n'e
+  // geçirilmedi (bu paketin kapsamı yalnızca Ana Sayfa + dil seçici),
+  // bu yüzden hâlâ Türkçe metin kullanıyor — yalnızca bu yeni bölüm
+  // çevrildi.
+  const { dil, diliDegistir } = useCeviri();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
     autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
@@ -140,6 +149,32 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <ScreenHeader title="Ayarlar" subtitle="Tüm tercihler tek yerde" icon="ayarlar" onClose={onClose} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* ── DİL / LANGUAGE ──
+            i18n paketi: uygulama artık Türkçe + İngilizce destekliyor.
+            Değişiklik ANINDA uygulanır (tema gibi yeniden başlatma
+            GEREKMİYOR) çünkü metinler StyleSheet'e değil, render'a
+            kilitli — bkz. DilContext.tsx'teki açıklama. */}
+        <Text style={styles.sectionTitle}>Dil / Language</Text>
+        <View style={styles.dilKart}>
+          {(Object.keys(DIL_ADLARI) as DilKodu[]).map((kod) => {
+            const aktif = kod === dil;
+            return (
+              <TouchableOpacity
+                key={kod}
+                style={[styles.dilSecenek, aktif && styles.dilSecenekAktif]}
+                onPress={() => diliDegistir(kod)}
+                activeOpacity={0.8}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: aktif }}
+              >
+                <Text style={[styles.dilSecenekYazi, aktif && styles.dilSecenekYaziAktif]}>
+                  {DIL_ADLARI[kod]}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <TouchableOpacity style={styles.linkCard} onPress={onOpenVaktindeKil} activeOpacity={0.85}>
           <Text style={styles.cardLabel}>Vaktinde Kıl</Text>
           <Text style={styles.chevron}>›</Text>
@@ -403,6 +438,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+
+  // ---------- DİL / LANGUAGE (i18n paketi) ----------
+  dilKart: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: 4,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 4,
+  },
+  dilSecenek: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+  },
+  dilSecenekAktif: { backgroundColor: colors.primary },
+  dilSecenekYazi: { fontFamily: typography.bodyBold, color: colors.textOnLight, fontSize: fontSize.body },
+  dilSecenekYaziAktif: { color: colors.textOnDark },
   cardDisabled: { opacity: 0.45 },
   textDisabled: { color: colors.primary },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

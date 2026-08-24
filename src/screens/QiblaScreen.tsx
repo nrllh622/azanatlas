@@ -151,13 +151,41 @@ export default function QiblaScreen({ onClose }: Props) {
   ];
 
   const kaabaRad = ((qiblaBearing - 90) * Math.PI) / 180;
-  const kaabaX = CENTER + (RADIUS - 46) * Math.cos(kaabaRad);
-  const kaabaY = CENTER + (RADIUS - 46) * Math.sin(kaabaRad);
+  // Kâbe artık kadranın MERKEZİNDE sabit duruyor (Yıldıznameli varyanttan
+  // istenen değişiklik) — önceden kenara yakın bir noktadaydı. Ok ve kıble
+  // ışını artık merkezden kadranın kenarına doğru uzanıyor; yön hâlâ
+  // `qiblaBearing`'e göre belirleniyor, yalnızca Kâbe'nin KENDİ konumu
+  // sabitlendi.
+  const kaabaX = CENTER;
+  const kaabaY = CENTER;
   const okX = CENTER + (RADIUS - 16) * Math.cos(kaabaRad);
   const okY = CENTER + (RADIUS - 16) * Math.sin(kaabaRad);
+  // Kıble ışınının kenara ulaştığı nokta (Kâbe artık merkezde olduğu için
+  // ışın merkezden BAŞLAYIP kadranın kenarına kadar gidiyor).
+  const isinUcX = CENTER + (RADIUS - 12) * Math.cos(kaabaRad);
+  const isinUcY = CENTER + (RADIUS - 12) * Math.sin(kaabaRad);
 
   const cizgiler = Array.from({ length: 72 }, (_, i) => i * 5);
   const vurgu = hizali ? colors.success : colors.copperVivid;
+
+  // ── YILDIZ (girih) HALKASI ──
+  // Düzeltme: önceki sürümde yıldız noktaları mockup'taki gelişigüzel
+  // rozet şeklinden birebir kopyalanmıştı — merkeze göre SİMETRİK değildi,
+  // en uzak köşe kadranın dış çerçevesine değecek kadar taşıyordu ("daire
+  // kısmına yapışmış" şikayeti buradan geliyordu). Şimdi matematiksel
+  // olarak doğru, merkeze göre tam simetrik sekiz köşeli bir yıldız
+  // üretiliyor: dış yarıçap kadranın iç halkasının biraz içinde kalacak
+  // şekilde sınırlandı, iç yarıçap dış yarıçapın ~%42'si (klasik girih
+  // yıldızı oranı) — artık hiçbir köşe çerçeveye değmiyor.
+  const YILDIZ_DIS_R = RADIUS - 46;
+  const YILDIZ_IC_R = YILDIZ_DIS_R * 0.42;
+  const yildizNoktalari = Array.from({ length: 16 }, (_, i) => {
+    const r = i % 2 === 0 ? YILDIZ_DIS_R : YILDIZ_IC_R;
+    const aci = ((i * 22.5 - 90) * Math.PI) / 180;
+    const x = CENTER + r * Math.cos(aci);
+    const y = CENTER + r * Math.sin(aci);
+    return `${x},${y}`;
+  }).join(' ');
 
   if (rehberAcik) {
     return (
@@ -236,6 +264,13 @@ export default function QiblaScreen({ onClose }: Props) {
                 <Stop offset="0.5" stopColor={colors.copperBright} />
                 <Stop offset="1" stopColor={colors.gold} />
               </LinearGradient>
+              {/* Kâbe artık merkezde durduğu için, hemen arkasına sıcak bir
+                  ışıma halesi eklendi (Yıldıznameli varyanttan) — kadranın
+                  koyu zemininden ayrışıp dikkat merkezi olması için. */}
+              <RadialGradient id="kaabeHale" cx="50%" cy="50%" r="50%">
+                <Stop offset="0" stopColor={colors.gold} stopOpacity={0.5} />
+                <Stop offset="1" stopColor={colors.gold} stopOpacity={0} />
+              </RadialGradient>
             </Defs>
 
             {/* Dış madeni çerçeve */}
@@ -270,6 +305,19 @@ export default function QiblaScreen({ onClose }: Props) {
               <Circle
                 cx={CENTER} cy={CENTER} r={RADIUS - 40}
                 stroke={colors.textOnDarkMuted} strokeWidth={0.75} fill="none" opacity={0.25}
+              />
+
+              {/* Yıldız (girih) halkası — Yıldıznameli varyanttan eklendi.
+                  Sekiz köşeli yıldız, kadranla birlikte döner (bu <G>'nin
+                  içinde), ince çizgili ve düşük opaklıkla — tali halkanın
+                  hemen içinde, ana yön etiketlerinin gerisinde kalacak
+                  şekilde konumlandı, okunabilirliği bozmuyor. */}
+              <Polygon
+                points={yildizNoktalari}
+                fill="none"
+                stroke={colors.primaryLight}
+                strokeWidth={0.8}
+                opacity={0.5}
               />
 
               {cizgiler.map((deg) => {
@@ -314,20 +362,30 @@ export default function QiblaScreen({ onClose }: Props) {
                 );
               })}
 
-              {/* Kıble ışını — hafif ışıma efektiyle iki katman */}
+              {/* Kıble ışını — hafif ışıma efektiyle iki katman (Kâbe artık
+                  merkezde olduğu için ışın merkezden kadranın kenarına
+                  doğru uzanıyor, yön hâlâ qiblaBearing'e göre) */}
               <Line
                 x1={CENTER} y1={CENTER}
-                x2={CENTER + (RADIUS - 28) * Math.cos(kaabaRad)}
-                y2={CENTER + (RADIUS - 28) * Math.sin(kaabaRad)}
+                x2={isinUcX} y2={isinUcY}
                 stroke={vurgu} strokeWidth={6} opacity={0.18}
                 strokeLinecap="round"
               />
               <Line
                 x1={CENTER} y1={CENTER}
-                x2={CENTER + (RADIUS - 28) * Math.cos(kaabaRad)}
-                y2={CENTER + (RADIUS - 28) * Math.sin(kaabaRad)}
+                x2={isinUcX} y2={isinUcY}
                 stroke={vurgu} strokeWidth={2.5} opacity={0.7}
                 strokeLinecap="round"
+              />
+              {/* Turkuaz noktalı ok çizgisi — Yıldıznameli varyanttan
+                  eklendi, kalın ışının üzerinde ince bir ikinci katman
+                  olarak duruyor, kıble yönünü daha "teknik/pusula" hissiyle
+                  vurguluyor. */}
+              <Line
+                x1={CENTER} y1={CENTER}
+                x2={isinUcX} y2={isinUcY}
+                stroke={colors.primaryBright} strokeWidth={1.5} opacity={0.85}
+                strokeDasharray="1 5" strokeLinecap="round"
               />
 
               <G transform={`rotate(${(qiblaBearing + 180) % 360} ${okX} ${okY})`}>
@@ -340,51 +398,53 @@ export default function QiblaScreen({ onClose }: Props) {
                 />
               </G>
 
-              {/* ── KÂBE İLLÜSTRASYONU ──
-                  Önceki sürüm tek bir düz siyah kare + iki çizgiydi ve
-                  "ne olduğu anlaşılmıyor" geri bildirimi aldı. Yeni çizim:
-                  gradyanlı gövde (hacim), Kiswa'nın altın kuşağını (hizam)
-                  gerçek oranıyla veren bir bant, kapı (Kâbe kapısı/mültezem)
-                  detayı ve hafif bir taban gölgesi. Kadranla birlikte döner
-                  ama kendi içinde her zaman dik durur. */}
-              <G transform={`rotate(${h} ${kaabaX} ${kaabaY})`}>
-                {/* Taban gölgesi */}
-                <Rect
-                  x={kaabaX - 12} y={kaabaY + 12.5} width={24} height={3} rx={1.5}
-                  fill={colors.primaryDeep} opacity={0.4}
-                />
-                {/* Gövde */}
-                <Rect
-                  x={kaabaX - 11} y={kaabaY - 13} width={22} height={26} rx={1.5}
-                  fill="url(#kaabeGovde)" stroke={colors.gold} strokeWidth={1}
-                />
-                {/* Kiswa kuşağı (hizam) — üst üçte birde altın bant */}
-                <Rect
-                  x={kaabaX - 11} y={kaabaY - 5.5} width={22} height={4.5}
-                  fill="url(#kaabeKisve)"
-                />
-                <Line
-                  x1={kaabaX - 11} y1={kaabaY - 5.5} x2={kaabaX + 11} y2={kaabaY - 5.5}
-                  stroke={colors.gold} strokeWidth={0.5} opacity={0.8}
-                />
-                <Line
-                  x1={kaabaX - 11} y1={kaabaY - 1} x2={kaabaX + 11} y2={kaabaY - 1}
-                  stroke={colors.gold} strokeWidth={0.5} opacity={0.8}
-                />
-                {/* Kapı (mültezem) — altın çerçeveli küçük dikdörtgen */}
-                <Rect
-                  x={kaabaX - 3} y={kaabaY + 1.5} width={6} height={9} rx={0.6}
-                  fill="#0A0A0A" stroke={colors.gold} strokeWidth={0.7}
-                />
-                {/* Sol yüzey highlight — hacim hissini güçlendirir */}
-                <Line
-                  x1={kaabaX - 9} y1={kaabaY - 11.5} x2={kaabaX - 9} y2={kaabaY + 11.5}
-                  stroke={colors.copperLight} strokeWidth={0.6} opacity={0.35}
-                />
-              </G>
-
-              <Circle cx={CENTER} cy={CENTER} r={5.5} fill={colors.copperVivid} stroke={colors.primaryDark} strokeWidth={1.2} />
             </G>
+
+            {/* ── KÂBE İLLÜSTRASYONU ──
+                Düzeltme: önceki sürümde bu blok kadranın DÖNEN <G>'sinin
+                içindeydi — kadran döndükçe Kâbe de onunla birlikte eğiliyor,
+                "yamuk" görünüyordu. Kullanıcı isteği kesin: Kâbe her zaman
+                DİK dursun. Bu yüzden blok kadranın rotasyon grubunun
+                TAMAMEN DIŞINA alındı — artık `h` (pusula yönü) hiç
+                etkilemiyor, ekranda sabit ve her zaman dik duruyor. Konumu
+                hâlâ kadranın tam merkezi (CENTER, CENTER). Hemen arkasına
+                sıcak bir ışıma halesi var ki koyu kadran zemininden
+                ayrışsın. Çizim dili (gradyanlı gövde, kiswa kuşağı, kapı
+                detayı, taban gölgesi) AYNEN korundu. */}
+            <Circle cx={CENTER} cy={CENTER} r={34} fill="url(#kaabeHale)" />
+            {/* Taban gölgesi */}
+            <Rect
+              x={kaabaX - 12} y={kaabaY + 12.5} width={24} height={3} rx={1.5}
+              fill={colors.primaryDeep} opacity={0.4}
+            />
+            {/* Gövde */}
+            <Rect
+              x={kaabaX - 11} y={kaabaY - 13} width={22} height={26} rx={1.5}
+              fill="url(#kaabeGovde)" stroke={colors.gold} strokeWidth={1}
+            />
+            {/* Kiswa kuşağı (hizam) — üst üçte birde altın bant */}
+            <Rect
+              x={kaabaX - 11} y={kaabaY - 5.5} width={22} height={4.5}
+              fill="url(#kaabeKisve)"
+            />
+            <Line
+              x1={kaabaX - 11} y1={kaabaY - 5.5} x2={kaabaX + 11} y2={kaabaY - 5.5}
+              stroke={colors.gold} strokeWidth={0.5} opacity={0.8}
+            />
+            <Line
+              x1={kaabaX - 11} y1={kaabaY - 1} x2={kaabaX + 11} y2={kaabaY - 1}
+              stroke={colors.gold} strokeWidth={0.5} opacity={0.8}
+            />
+            {/* Kapı (mültezem) — altın çerçeveli küçük dikdörtgen */}
+            <Rect
+              x={kaabaX - 3} y={kaabaY + 1.5} width={6} height={9} rx={0.6}
+              fill="#0A0A0A" stroke={colors.gold} strokeWidth={0.7}
+            />
+            {/* Sol yüzey highlight — hacim hissini güçlendirir */}
+            <Line
+              x1={kaabaX - 9} y1={kaabaY - 11.5} x2={kaabaX - 9} y2={kaabaY + 11.5}
+              stroke={colors.copperLight} strokeWidth={0.6} opacity={0.35}
+            />
           </Svg>
         </View>
 

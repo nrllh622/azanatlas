@@ -65,10 +65,13 @@ import { getGununAyeti } from '../data/ayetler';
 import { getDiniGun, getYaklasanDiniGun } from '../data/diniGunler';
 import { getTariheEnYakinOlay } from '../data/tariheBugun';
 import { widgetVerisiniGuncelle } from '../lib/widgetVeriDeposu';
+import { useCeviri } from '../i18n/DilContext';
+import { AY_ANAHTARLARI } from '../i18n/ceviriler';
 
 import Icon, { IconName, vakitIcon } from '../components/Icon';
 import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
 import IslamicPattern from '../components/IslamicPattern';
+import BannerReklam from '../components/BannerReklam';
 
 import LocationPickerScreen from './LocationPickerScreen';
 import SettingsScreen from './SettingsScreen';
@@ -101,26 +104,28 @@ type SubScreen =
   | 'esma'
   | 'tema';
 
-const AY_ADLARI = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
-
-const SEKMELER: { id: Tab; ad: string; ikon: DoluIkonAdi }[] = [
-  { id: 'home', ad: 'Ana Sayfa', ikon: 'anasayfa' },
-  { id: 'imsakiye', ad: 'İmsakiye', ikon: 'imsakiye' },
-  { id: 'kesfet', ad: 'Keşfet', ikon: 'kesfet' },
-  { id: 'qibla', ad: 'Kıble', ikon: 'kible' },
-  { id: 'settings', ad: 'Ayarlar', ikon: 'ayarlar' },
+// Madde 2 (i18n paketi): bu iki dizi eskiden görüntülenecek Türkçe metni
+// (`ad`) doğrudan taşıyordu — ama bu dizi MODÜL YÜKLENİRKEN bir kez
+// oluşuyor, `useCeviri()` ise bir React hook'u (render içinde çağrılmalı).
+// Bu yüzden `ad` yerine bir çeviri ANAHTARI (`adAnahtari`) tutuluyor;
+// gerçek metin render sırasında `t(s.adAnahtari)` ile alınıyor — dil
+// değiştiğinde bu diziler yeniden oluşmaya gerek kalmadan doğru metni
+// gösterir.
+const SEKMELER: { id: Tab; adAnahtari: 'sekmeAnaSayfa' | 'sekmeImsakiye' | 'sekmeKesfet' | 'sekmeKible' | 'sekmeAyarlar'; ikon: DoluIkonAdi }[] = [
+  { id: 'home', adAnahtari: 'sekmeAnaSayfa', ikon: 'anasayfa' },
+  { id: 'imsakiye', adAnahtari: 'sekmeImsakiye', ikon: 'imsakiye' },
+  { id: 'kesfet', adAnahtari: 'sekmeKesfet', ikon: 'kesfet' },
+  { id: 'qibla', adAnahtari: 'sekmeKible', ikon: 'kible' },
+  { id: 'settings', adAnahtari: 'sekmeAyarlar', ikon: 'ayarlar' },
 ];
 
 /** Ana Sayfa'daki dört hızlı araç — en sık kullanılanlar.
  *  Madde 6: Kıble alt navigasyona taşındığı için burada Takip'e yer açıldı. */
-const HIZLI_ARACLAR: { hedef: SubScreen; ad: string; ikon: DoluIkonAdi }[] = [
-  { hedef: 'takip', ad: 'Takip', ikon: 'takip' },
-  { hedef: 'tesbih', ad: 'Tesbih', ikon: 'tesbih' },
-  { hedef: 'esma', ad: 'Esmâ', ikon: 'esma' },
-  { hedef: 'kaza', ad: 'Kaza', ikon: 'kaza' },
+const HIZLI_ARACLAR: { hedef: SubScreen; adAnahtari: 'aracTakip' | 'aracTesbih' | 'aracEsma' | 'aracKaza'; ikon: DoluIkonAdi }[] = [
+  { hedef: 'takip', adAnahtari: 'aracTakip', ikon: 'takip' },
+  { hedef: 'tesbih', adAnahtari: 'aracTesbih', ikon: 'tesbih' },
+  { hedef: 'esma', adAnahtari: 'aracEsma', ikon: 'esma' },
+  { hedef: 'kaza', adAnahtari: 'aracKaza', ikon: 'kaza' },
 ];
 
 function ikiHane(n: number): string {
@@ -141,6 +146,7 @@ function geriSayimBicimle(ms: number): string {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { t, vakitAdi } = useCeviri();
   const { location, locations, activeId, setActiveId } = useLocationContext();
   const { settings, setOnTime } = useNotificationSettings();
   const {
@@ -422,7 +428,7 @@ export default function HomeScreen() {
             onPress={() => setSub('location')}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Konumu değiştir"
+            accessibilityLabel={t('konumDegistirEtiketi')}
           >
             <View style={styles.konumIkonKap}>
               <Icon name="konum" size={19} color={colors.copperLight} />
@@ -432,7 +438,7 @@ export default function HomeScreen() {
                 {location.il}, {location.ilce}
               </Text>
               <Text style={styles.konumTarih} numberOfLines={1}>
-                {now.getDate()} {AY_ADLARI[now.getMonth()]} · {hijri.day} {hijri.month} {hijri.year}
+                {now.getDate()} {t(AY_ANAHTARLARI[now.getMonth()])} · {hijri.day} {hijri.month} {hijri.year}
               </Text>
             </View>
           </TouchableOpacity>
@@ -442,7 +448,7 @@ export default function HomeScreen() {
             onPress={() => setTab('settings')}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Bildirim ayarları"
+            accessibilityLabel={t('bildirimAyarlariEtiketi')}
           >
             <Icon name="hatirlatici" size={20} color={colors.copperLight} />
           </TouchableOpacity>
@@ -463,7 +469,7 @@ export default function HomeScreen() {
                   onPress={() => konumDegistir(-1)}
                   hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Önceki konum"
+                  accessibilityLabel={t('oncekiKonum')}
                 >
                   <Icon name="sol" size={18} color={colors.copperLight} />
                 </TouchableOpacity>
@@ -477,7 +483,7 @@ export default function HomeScreen() {
                   onPress={() => konumDegistir(1)}
                   hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Sonraki konum"
+                  accessibilityLabel={t('sonrakiKonum')}
                 >
                   <Icon name="sag" size={18} color={colors.copperLight} />
                 </TouchableOpacity>
@@ -486,17 +492,17 @@ export default function HomeScreen() {
 
             {/* Sıradaki vakit + geri sayım */}
             <View style={styles.siradakiKap}>
-              <Text style={styles.siradakiEtiket}>SIRADAKİ VAKİT</Text>
+              <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
               <View style={styles.siradakiAdSatir}>
                 <Icon name={vakitIcon(next.key)} size={22} color={colors.copperLight} />
-                <Text style={styles.siradakiAd}>{next.label}</Text>
+                <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
               {/* Madde 2 (bu tur): büyük sayacın ne olduğu etiketsiz belirsizdi
                   — artık "KALAN SÜRE" etiketiyle birlikte gösteriliyor. Sayaç
                   zaten her saniye `now` güncellendiği için otomatik azalıyor
                   (bkz. `kalanMs` hesaplaması) — bu yalnızca bir etiket ekliyor. */}
-              <Text style={styles.kalanSureEtiket}>KALAN SÜRE</Text>
+              <Text style={styles.kalanSureEtiket}>{t('kalanSure')}</Text>
               <Text style={styles.geriSayim}>{geriSayimBicimle(kalanMs)}</Text>
             </View>
 
@@ -506,10 +512,10 @@ export default function HomeScreen() {
             </View>
             <View style={styles.ilerlemeAltSatir}>
               <Text style={styles.ilerlemeUc}>
-                {current.label} {saatBicimle(current.date)}
+                {vakitAdi(current.key)} {saatBicimle(current.date)}
               </Text>
               <Text style={styles.ilerlemeUc}>
-                {next.label} {saatBicimle(next.date)}
+                {vakitAdi(next.key)} {saatBicimle(next.date)}
               </Text>
             </View>
           </View>
@@ -525,7 +531,7 @@ export default function HomeScreen() {
                 color={vakitKaynak === 'diyanet' ? colors.success : colors.textMuted}
               />
               <Text style={styles.kaynakCipYazi}>
-                {vakitKaynak === 'diyanet' ? 'Diyanet Takvimi' : 'Yerel hesaplama'}
+                {vakitKaynak === 'diyanet' ? t('diyanetTakvimi') : t('yerelHesaplama')}
               </Text>
             </View>
 
@@ -534,10 +540,10 @@ export default function HomeScreen() {
                 style={styles.seriCip}
                 onPress={() => setSub('takip')}
                 accessibilityRole="button"
-                accessibilityLabel={`${seri} günlük seri. Takip ekranını aç`}
+                accessibilityLabel={t('gunlukSeriEtiketi', seri)}
               >
                 <Icon name="yildiz" size={12} color={colors.copper} />
-                <Text style={styles.seriCipYazi}>{seri} günlük seri</Text>
+                <Text style={styles.seriCipYazi}>{t('gunlukSeri', seri)}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -561,7 +567,7 @@ export default function HomeScreen() {
             <View style={styles.yaklasanSatir}>
               <Icon name="hilal" size={17} color={colors.copper} />
               <Text style={styles.yaklasanYazi}>
-                {yaklasan.gun.ad}'a {yaklasan.kalanGun} gün kaldı
+                {t('kalanGunKaldi', yaklasan.gun.ad, yaklasan.kalanGun)}
               </Text>
             </View>
           ) : null}
@@ -570,7 +576,7 @@ export default function HomeScreen() {
             <View style={styles.bilgiSerit}>
               <Icon name="bilgi" size={15} color={colors.textMuted} />
               <Text style={styles.bilgiSeritYazi}>
-                Diyanet verisine ulaşılamadı, geçici olarak yerel hesaplama gösteriliyor.
+                {t('diyanetUlasilamadi')}
               </Text>
             </View>
           )}
@@ -578,7 +584,7 @@ export default function HomeScreen() {
           {kerahat.active && (
             <View style={styles.uyariSerit}>
               <Icon name="uyari" size={15} color={colors.white} />
-              <Text style={styles.uyariSeritYazi}>Mekruh vakti — {kerahat.reason}</Text>
+              <Text style={styles.uyariSeritYazi}>{t('mekruhVakti', kerahat.reason)}</Text>
             </View>
           )}
 
@@ -586,7 +592,7 @@ export default function HomeScreen() {
             <View style={styles.iftarSerit}>
               <Icon name="hilal" size={15} color={colors.primaryDeep} />
               <Text style={styles.iftarSeritYazi}>
-                İftara kalan süre: {geriSayimBicimle(Math.max(0, aksam.date.getTime() - now.getTime()))}
+                {t('iftaraKalan', geriSayimBicimle(Math.max(0, aksam.date.getTime() - now.getTime())))}
               </Text>
             </View>
           )}
@@ -628,7 +634,7 @@ export default function HomeScreen() {
                       activeOpacity={0.6}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: kilindi }}
-                      accessibilityLabel={`${v.label} namazını kıldım olarak işaretle`}
+                      accessibilityLabel={t('kilindiOlarakIsaretle', vakitAdi(v.key))}
                     >
                       <Icon
                         name={kilindi ? 'onay' : 'daire'}
@@ -652,12 +658,12 @@ export default function HomeScreen() {
                     style={[styles.vakitAd, suAnki && styles.vakitAdAktif]}
                     numberOfLines={1}
                   >
-                    {v.label}
+                    {vakitAdi(v.key)}
                   </Text>
 
                   {suAnki && (
                     <View style={styles.simdiRozet}>
-                      <Text style={styles.simdiRozetYazi}>Şimdi</Text>
+                      <Text style={styles.simdiRozetYazi}>{t('simdi')}</Text>
                     </View>
                   )}
 
@@ -675,7 +681,7 @@ export default function HomeScreen() {
                       activeOpacity={0.6}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!bildirimAcik }}
-                      accessibilityLabel={`${v.label} vakti bildirimi`}
+                      accessibilityLabel={t('vaktiBildirimi', vakitAdi(v.key))}
                     >
                       <Icon
                         name={bildirimAcik ? 'bildirimAcik' : 'bildirimKapali'}
@@ -699,12 +705,12 @@ export default function HomeScreen() {
           <View style={styles.hizliKart}>
             {HIZLI_ARACLAR.map((arac) => (
               <TouchableOpacity
-                key={arac.ad}
+                key={arac.adAnahtari}
                 style={styles.hizliOge}
                 onPress={() => setSub(arac.hedef)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={arac.ad}
+                accessibilityLabel={t(arac.adAnahtari)}
               >
                 <View style={styles.hizliIkonKap}>
                   <DoluIkon ad={arac.ikon} boyut={21} zemin={colors.primarySoft} />
@@ -723,24 +729,26 @@ export default function HomeScreen() {
                     <View style={styles.hizliNokta} />
                   )}
                 </View>
-                <Text style={styles.hizliAd}>{arac.ad}</Text>
+                <Text style={styles.hizliAd}>{t(arac.adAnahtari)}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
           {/* ============ REKLAM ALANI ============
-              Banner reklam entegrasyonu (react-native-google-mobile-ads)
-              henüz eklenmedi; bu, gerçek reklamın kaplayacağı sabit
-              yüksekliği (standart banner 50dp) ayırarak yukarıdaki tüm
-              içeriğin reklam eklendiğinde YER DEĞİŞTİRMEMESİNİ sağlıyor.
-              Reklam kodu eklendiğinde bu View'in içi doldurulacak. */}
-          <View style={styles.reklamAlani} />
+              Madde 3 (i18n+reklam paketi): react-native-google-mobile-ads
+              entegre edildi. `BannerReklam` bileşeni Expo Go'da (native
+              modül bulunamadığında) sessizce aynı yükseklikte boş bir View
+              render eder — içerik konumu hiçbir durumda değişmiyor. Şu an
+              Google'ın herkese açık TEST kimliği kullanılıyor; gerçek
+              AdMob birim kimliği alınınca `BannerReklam.tsx`'teki
+              `BANNER_UNIT_ID` güncellenmeli (bkz. o dosyadaki uyarı). */}
+          <BannerReklam style={styles.reklamAlani} />
 
           {/* ============ GÜNÜN AYETİ ============ */}
           <View style={styles.ayetKart}>
             <View style={styles.ayetBaslikSatir}>
               <Icon name="ayet" size={16} color={colors.copperLight} />
-              <Text style={styles.ayetBaslik}>Günün Ayeti</Text>
+              <Text style={styles.ayetBaslik}>{t('gununAyeti')}</Text>
             </View>
             <Text style={styles.ayetMetin}>{ayet.meal}</Text>
             <Text style={styles.ayetKaynak}>{ayet.kaynak}</Text>
@@ -756,7 +764,7 @@ export default function HomeScreen() {
             <View style={styles.tarihBaslikSatir}>
               <Icon name="imsakiye" size={17} color={colors.copper} />
               <Text style={styles.tarihBaslik}>
-                {tarihOlayi.bugunMu ? 'İslam Tarihinde Bugün' : 'İslam Tarihinden'}
+                {tarihOlayi.bugunMu ? t('islamTarihindeBugun') : t('islamTarihinden')}
               </Text>
             </View>
             <View style={styles.tarihIcerik}>
@@ -767,8 +775,8 @@ export default function HomeScreen() {
                 {!tarihOlayi.bugunMu && (
                   <Text style={styles.tarihGoreceli}>
                     {tarihOlayi.gunFarki > 0
-                      ? `Yıl dönümüne ${tarihOlayi.gunFarki} gün var`
-                      : `Yıl dönümü ${Math.abs(tarihOlayi.gunFarki)} gün önceydi`}
+                      ? t('yilDonumineGunVar', tarihOlayi.gunFarki)
+                      : t('yilDonumuGunOnceydi', Math.abs(tarihOlayi.gunFarki))}
                   </Text>
                 )}
               </View>
@@ -812,7 +820,7 @@ export default function HomeScreen() {
                 activeOpacity={0.75}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: aktif }}
-                accessibilityLabel={s.ad}
+                accessibilityLabel={t(s.adAnahtari)}
               >
                 <View style={[styles.navIkonKap, aktif && styles.navIkonKapAktif]}>
                   {/* Aktif sekmede ikon dolgulu dikdörtgen üzerinde
@@ -830,7 +838,7 @@ export default function HomeScreen() {
                   />
                 </View>
                 <Text style={[styles.navYazi, aktif && styles.navYaziAktif]} numberOfLines={1}>
-                  {s.ad}
+                  {t(s.adAnahtari)}
                 </Text>
               </TouchableOpacity>
             );
@@ -1155,9 +1163,10 @@ const styles = StyleSheet.create({
   },
 
   // ---------- REKLAM ALANI ----------
-  // Standart banner reklam yüksekliği (50dp) + üst/alt boşluk kadar sabit
-  // yer ayrılıyor; reklam kodu eklendiğinde içerik konumu değişmeyecek.
-  reklamAlani: { height: 50, marginTop: spacing.sm },
+  // Artık gerçek `BannerReklam` bileşenine geçirilen konum stili — yükseklik
+  // artık BannerReklam'ın kendi minHeight'inden geliyor, burada yalnızca
+  // üstteki boşluk (marginTop) kalıyor.
+  reklamAlani: { marginTop: spacing.sm },
 
   // ---------- GÜNÜN AYETİ ----------
   ayetKart: {

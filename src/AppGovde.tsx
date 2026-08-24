@@ -21,7 +21,7 @@
 // sırada açılış animasyonu zaten ekranda.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './screens/HomeScreen';
@@ -33,29 +33,59 @@ import { GeneralSettingsProvider } from './context/GeneralSettingsContext';
 import { VaktindeKilProvider } from './context/VaktindeKilContext';
 import { RemindersProvider } from './context/RemindersContext';
 import { IbadetTakibiProvider } from './context/IbadetTakibiContext';
+import { DilProvider } from './i18n/DilContext';
+
+/**
+ * Reklam SDK'sını uygulama açılışında BİR KEZ başlatır. `require` ile
+ * korumalı çağrılıyor — Expo Go'da bu native modül bulunamaz, `catch`
+ * bloğu sessizce yutar (bkz. `components/BannerReklam.tsx`'teki aynı
+ * desen). `initialize()` çağrılmadan `<BannerAd>` reklamı yüklemez, bu
+ * yüzden bu adım BannerReklam ile birlikte, ayrı bir dosyada tutuldu.
+ */
+function reklamSdkBaslat() {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mobileAds = require('react-native-google-mobile-ads').default;
+    mobileAds().initialize();
+  } catch {
+    // Expo Go'da veya modül henüz kurulmadıysa sessizce atlanır.
+  }
+}
 
 export default function AppGovde() {
+  useEffect(() => {
+    reklamSdkBaslat();
+  }, []);
+
+
   return (
     <SafeAreaProvider>
-      <LocationProvider>
-        <CalculationSettingsProvider>
-          <GeneralSettingsProvider>
-            <VaktindeKilProvider>
-              <RemindersProvider>
-                <KazaProvider>
-                  <IbadetTakibiProvider>
-                    <NotificationSettingsProvider>
-                      {/* Üst blok koyu olduğu için durum çubuğu açık renkte */}
-                      <StatusBar style="light" />
-                      <HomeScreen />
-                    </NotificationSettingsProvider>
-                  </IbadetTakibiProvider>
-                </KazaProvider>
-              </RemindersProvider>
-            </VaktindeKilProvider>
-          </GeneralSettingsProvider>
-        </CalculationSettingsProvider>
-      </LocationProvider>
+      {/* DilProvider en dışta — çünkü metin çevirisi hem HomeScreen hem
+          ileride tüm alt ekranlar tarafından kullanılacak, tema gibi
+          açılıştan önce okunması ZORUNLU değil (metinler StyleSheet'e
+          kilitlenmiyor), ama sağlayıcı hiyerarşisinde en tepede olması
+          herhangi bir alt bileşenin sorunsuz erişebilmesini garanti eder. */}
+      <DilProvider>
+        <LocationProvider>
+          <CalculationSettingsProvider>
+            <GeneralSettingsProvider>
+              <VaktindeKilProvider>
+                <RemindersProvider>
+                  <KazaProvider>
+                    <IbadetTakibiProvider>
+                      <NotificationSettingsProvider>
+                        {/* Üst blok koyu olduğu için durum çubuğu açık renkte */}
+                        <StatusBar style="light" />
+                        <HomeScreen />
+                      </NotificationSettingsProvider>
+                    </IbadetTakibiProvider>
+                  </KazaProvider>
+                </RemindersProvider>
+              </VaktindeKilProvider>
+            </GeneralSettingsProvider>
+          </CalculationSettingsProvider>
+        </LocationProvider>
+      </DilProvider>
     </SafeAreaProvider>
   );
 }
