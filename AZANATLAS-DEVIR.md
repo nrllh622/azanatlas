@@ -4,9 +4,12 @@
 > devam edebilmesi için hazırlandı. **Yeni sohbete bu dosyayı ekle ve
 > "AzanAtlas'a devam ediyoruz, devir dosyasını oku" de.**
 >
-> Son güncelleme: 24 Ağustos 2026 · Paket 5 teslim edildi (Paket 4'ün eksik/
-> yetersiz kalan maddelerinin kökten düzeltmesi + alt navigasyon yeniden
-> tasarımı, kullanıcı onayı alınıp uygulandı).
+> Son güncelleme: 24 Ağustos 2026 · Paket 6 teslim edildi (üst şerit yeniden
+> renklendirme, Kalan Süre etiketi, tema değişikliği onay pop-up'ı, Kıble↔Takip
+> yer değişimi, 3 ekranın tema diline geçirilmesi). **NOT:** Kullanıcıdan
+> Paket 6 teslim edilirken YENİ bir 10 maddelik liste daha geldi (Paket 7
+> konusu) — bu liste henüz işlenmedi, sıradaki oturum bununla başlamalı
+> (bkz. §7 "Bekleyen — Paket 7").
 
 ---
 
@@ -84,19 +87,24 @@ opening archive: Failed to open 'azanatlas-paketN.zip'` hatası alırsın —
 ```powershell
 cd C:\Users\nrllh\azanatlas
 
-tar -xf azanatlas-paket5.zip
-del azanatlas-paket5.zip
+tar -xf azanatlas-paket6.zip
+del azanatlas-paket6.zip
 
 git add .
-git commit -m "Paket 5: anasayfa sıkıştırma, tarih kartı fallback, kesfet ikonu kök çözüm, tema koyultma, alt nav Zümrüt Şerit"
+git commit -m "Paket 6: ust serit yeniden renklendirme, Kalan Sure etiketi, tema onay pop-up, Kible-Takip yer degisimi, 3 ekran tema gecisi"
 git push origin master:main
 
 npx.cmd expo start -c --go
 ```
 
-**Not:** Paket 5'te `package.json`/`app.json` DEĞİŞMEDİ — yeni bağımlılık
-yok, bu yüzden `npm install` bu pakette gerekli değil (Paket 4'te gerekliydi,
-o zaten kurulduysa tekrar kurmaya gerek yok).
+**Not:** Paket 6'da `package.json`/`app.json` DEĞİŞMEDİ — yeni bağımlılık
+yok, bu yüzden `npm install` bu pakette gerekli değil.
+
+(Paket 5 komutları — arşiv olarak artık `paket5` değil `paket6`
+kullanılmalı, ama komut kalıbı aynı: `tar -xf azanatlas-paket5.zip` /
+`del azanatlas-paket5.zip` / commit mesajı "Paket 5: anasayfa sıkıştırma,
+tarih kartı fallback, kesfet ikonu kök çözüm, tema koyultma, alt nav
+Zümrüt Şerit" — sadece referans için burada bırakıldı.)
 
 **"running scripts is disabled on this system" hatası** (`npm install`
 veya `npm ...` çalıştırırken): PowerShell'in execution-policy kısıtlaması
@@ -202,6 +210,53 @@ bozma.**
 ---
 
 ## 4. DOSYA HARİTASI
+
+### Paket 6'da değişen dosyalar
+
+| Dosya | Değişiklik |
+|---|---|
+| `screens/HomeScreen.tsx` | Üst şerit artık `colors.primary` zemin (koyu yeşil), `IslamicPattern` overlay eklendi; konum/bildirim butonları dolgu daireden yarı-saydam "cam" daireye döndü (`rgba(255,255,255,0.10)` zemin, `rgba(255,255,255,0.18)` kenarlık), ikon rengi `copperLight`; konum metinleri `textOnDark`/`textOnDarkMuted`'a geçti. Geri sayımın üstüne "KALAN SÜRE" etiketi eklendi. Sıradaki Vakit saati 26→32px büyütüldü, "Sıradaki" adı 26→22px küçültüldü (satır dengesi için). Kıble ve Takip'in konumu YAPISAL olarak değişti — bkz. §3 "Sekme/Araç yer değişimi" |
+| `screens/TemaScreen.tsx` | Otomatik (1.8sn sonra kendiliğinden) yeniden başlatma KALDIRILDI — yerine kullanıcı onaylı `Modal` geldi: "Şimdi Yeniden Başlat" / "Daha Sonra". Reddedilirse uygulama AÇIK kalıyor, hiçbir zorlama yok |
+| `screens/LocationPickerScreen.tsx` | Kendi özel başlığı kaldırıldı, `ScreenHeader` kullanılıyor (3 mod: liste/il/ilçe); hardcoded punto/renk yerine theme token'ları; buton stilleri `primary` zeminli birincil + çerçeveli ikincil olarak yenilendi |
+| `screens/VaktindeKilScreen.tsx` | Kendi özel başlığı kaldırıldı, `ScreenHeader` (bilgi ikonu ile) kullanılıyor; kart/switch stilleri theme token'larına ve `primaryBright` switch rengine geçti |
+| `screens/RemindersScreen.tsx` | Kendi özel başlığı kaldırıldı, `ScreenHeader` kullanılıyor; kart/switch stilleri theme token'larına geçti; kullanılmayan bir eski import temizlendi |
+
+**Bu paket dışında değişen dosya yok** — `package.json`/`app.json` aynı,
+`npm install` gerekmiyor.
+
+### Sekme/Araç yer değişimi — Kıble ↔ Takip (Paket 6)
+
+Kullanıcı isteği: Kıble alt navigasyona (kalıcı sekme) taşınsın, Takip onun
+yerine hızlı-araç satırına (anasayfadaki araç kartı) geçsin — yani ikisi yer
+değiştirsin.
+
+**Yapılan yapısal değişiklik:**
+- `Tab` tipi: `'takip'` çıktı, `'qibla'` girdi → artık
+  `'home' | 'imsakiye' | 'kesfet' | 'qibla' | 'settings'`.
+- `SubScreen` tipi: `'qibla'` çıktı, `'takip'` girdi.
+- `SEKMELER` (alt nav dizisi) artık Kıble'yi listeliyor, Takip'i değil.
+- `HIZLI_ARACLAR` (anasayfa hızlı-araç kartları) artık Takip'i listeliyor,
+  Kıble'yi değil.
+- Keşfet ekranından yönlendirme (`kesfetYonlendir`) ters çevrildi: `'kible'`
+  artık `setTab('qibla')`'ya, `'takip'` artık `setSub('takip')`'e gidiyor.
+- Alt-ekran render dispatch'i: `sub === 'takip'` → `TakipScreen`
+  (eskiden `sub === 'qibla'` → `QiblaScreen`'di).
+- Sekme içeriği dispatch'i: `tab === 'qibla'` → `QiblaScreen` (eskiden
+  `tab === 'takip'` → `TakipScreen`'di).
+- Kaza sayısına bağlı bildirim noktası (kırmızı nokta), eskiden alt-nav
+  Takip ikonundaydı — artık hızlı-araç Takip ikonunda (yeni `hizliNokta`
+  stili). Eski `navNokta` stili tamamen silindi.
+
+**ÖNEMLİ — neden `TakipScreen.tsx`/`QiblaScreen.tsx`'in kendisi
+DEĞİŞMEDİ:** İkisi de zaten opsiyonel `onClose?: () => void` prop'u
+destekliyordu — `onClose` verilmezse (kalıcı sekme modu) `ScreenHeader`
+kapatma butonu yerine boş bir `sideBtn` placeholder çiziyor, verilirse
+(pushed sub-screen modu) kapatma butonu çiziyor. Bu yüzden hangi ekranın
+sekme, hangisinin araç olduğu SADECE `HomeScreen.tsx`'teki dispatch/tip
+tanımlarıyla belirleniyor — hedef ekranların içinde hiçbir değişiklik
+gerekmedi. Yeni bir sekme/araç yer değişimi istenirse aynı desen
+kullanılabilir: hedef ekranın `onClose` prop'u opsiyonel mi diye kontrol et,
+öyleyse sadece `HomeScreen.tsx`'i düzenle.
 
 ### Paket 5'te değişen dosyalar
 
@@ -315,6 +370,83 @@ beyaz sheet'ti.
 
 Palet kalibrasyon yöntemi, rol sözleşmesi, punto ölçeği, ikon kullanımı
 kuralları aynen geçerli. **Tek fark:** artık 10 palet var, 11 değil.
+
+---
+
+## 7. BEKLEYEN — PAKET 7 (kullanıcıdan yeni liste geldi, HENÜZ İŞLENMEDİ)
+
+Paket 6 teslim edilirken kullanıcıdan aşağıdaki 10 maddelik yeni liste
+geldi (2 ekran görüntüsü + widget/açılış ekranı referans görselleriyle
+birlikte). **Bu liste bu pakette işlenmedi** — bir sonraki oturumun ilk işi
+bu olmalı. Kullanıcının kendi ifadeleriyle, sırayla:
+
+1. Anasayfadaki vakitlerde yatsı tam çıkmıyor — özel gün eklenince aşağı
+   kaymış. Reklam alanını da hesaba katarak vakitleri tam sığdır. Ayrıca
+   Kıble/Tesbih/Esmâ/Kaza scroll'suz ilk görünsün — gerekirse ikon/emoji/
+   yazı küçült ama yazılar mutlaka okunaklı kalsın.
+2. Anasayfanın kavisli (curved) üst şerit yapısı beğenilmedi — düz/kavissiz
+   hale dönülsün, ama en üstteki bildirim/konum butonları kalsın.
+3. "Günün Ayeti"nden sonra İslam tarihinde o gün yaşanan önemli olaylar
+   gösterilsin demişti, hâlâ yapılmamış diyor. **DİKKAT:** bu muhtemelen
+   Paket 5'te eklenen `getTariheEnYakinOlay()` fallback'ini kapsıyor olabilir
+   — ekran görüntüleri Paket 5 öncesine mi ait kontrol et, ama yine de
+   kartın gerçekten göründüğünü cihazda doğrula.
+4. Ayarlar ekranı ve altındaki HİÇBİR ekranda temanın görünümü yansımıyor,
+   sadece renk değişiyor diyor — pop-up'lar dahil TÜM ekranlar anasayfanın
+   renk/ton/görsel diliyle tam uyumlu olmalı. **DİKKAT:** Paket 6'da
+   LocationPicker/VaktindeKil/Reminders zaten bu yöne taşındı — kullanıcının
+   ekran görüntüleri bu değişiklik öncesine mi ait kontrol et; ayrıca
+   SettingsScreen ve diğer araçları (Tesbih/Esmâ/Kaza/Kıble) da tara.
+5. Tema değişikliğinde bilgilendirme + birkaç saniye sonra KENDİLİĞİNDEN
+   yeniden başlama istiyor. **ÇELİŞKİ:** Paket 6'da kullanıcı onayı
+   gerektiren pop-up'a geçildi (otomatik değil). Bu madde muhtemelen Paket 6
+   öncesi yazılmış — kullanıcıya YENİ pop-up davranışını göster, otomatik
+   mi onaylı mı istediğini doğrulamadan karar değiştirme.
+6. Sıradaki Vakit saati küçük + tema renginden dolayı görünürlüğü az; aynı
+   yerdeki "şimdiki vakit"/"sonraki vakit" yazıları da tema renginden ötürü
+   belirgin değil — kullanıcı deneyimine ve tema uyumuna sadık kalarak farklı
+   bir renk önerilebilir. **DİKKAT:** Paket 6'da saat 32px'e büyütüldü —
+   ekran görüntüsü bu değişiklik öncesine mi ait kontrol et.
+7. Keşfet ikonu tıklanınca tema renginden dolayı ikon bozuluyor (ekran
+   görüntüsü var). **DİKKAT:** Paket 5'te DoluIkon kök neden çözümü
+   yapıldı — bu şikayet o düzeltme öncesine mi ait, cihazda tekrar doğrula.
+8. (İki kez "8" yazılmış, iki ayrı madde:)
+   - 8a. Temalarda "Zümrüt Varak" iki kez var, "Zümrüt&Varak" (ve işareti
+     olan) kaldırılsın. **DİKKAT:** devir dosyası bunun Paket 4'te zaten
+     kaldırıldığını, 10 palet olduğunu söylüyor — kullanıcının cihazındaki
+     gerçek palet listesini kontrol et, çelişki varsa cihaz hangi paket
+     sürümünde kaldıysa ona göre kök nedeni bul.
+   - 8b. Zümrüt Varak/Lila Tezhibi/Tuğra Bordosu/Kisve Siyahı temalarındaki
+     renkler hâlâ çok parlak/açık, göz yoruyor, ekrana bakılamıyor diyor —
+     daha da koyulaştır. **DİKKAT:** Paket 5'te bu 4 palet zaten
+     koyulaştırılmış ve WCAG doğrulaması yapılmıştı — kullanıcının ekran
+     görüntüsü Paket 5 öncesine mi ait kontrol et; yine de gerekirse bir tur
+     daha koyulaştır ve tekrar WCAG doğrula.
+9. Kıble pusulası kötü, önceki tasarımlar daha güzeldi; Kâbe görseli
+   anlaşılmıyor kadar kötü. Kullanıcı daha önce Muslim Pro ve benzeri
+   uygulamalardan pusula referans görselleri vermiş — bizimki onlar kadar
+   güzel olmalı. **YENİ İŞ — henüz hiç başlanmadı.**
+10. Widget: Expo'da şimdilik çalışmasın (development build'de test
+    edilecek) ama üretilen 3 varyant beğenilmedi — özellikle uygulama adı
+    çok aşağıda kalmış, Muslim Pro'daki gibi olmalı. Ayrıca "Ezan Vakti Pro"
+    örneğindeki gibi (ekte referans görsel var) animasyonlu, mutlaka cami
+    görselli bir AÇILIŞ EKRANI isteniyor — 3 yeni açılış ekranı varyantı
+    daha üretilmesi isteniyor. **YENİ İŞ — henüz hiç başlanmadı.**
+
+**Ek kalıcı kural (kullanıcı bu turda tekrarladı, hafızaya zaten
+kaydedildi):** İnternetten kullanılacak HER görsel/medya mutlaka ücretsiz
+ve ticari hak sorunu olmayan kaynaklardan olmalı; izin istemeden araştırıp
+seçilebilir ama lisans MUTLAKA doğrulanmalı. Bu kural TÜM projelerde
+geçerli (bkz. §2 madde 6 — zaten oradaydı, kullanıcı bu turda tekrar
+vurguladı).
+
+**Paket 7'ye başlarken izlenecek yöntem:** Yukarıdaki "DİKKAT" notlarının
+çoğu, ekran görüntülerinin Paket 5/6 öncesine ait olabileceğine işaret
+ediyor (§0'daki "ÖNEMLİ ÖĞRENİLEN DERS" ile aynı risk). Kod okumakla
+yetinme — cihazdaki GÜNCEL build'i çalıştırıp/inceleyip her maddenin hâlâ
+geçerli olup olmadığını tek tek doğrula, sonra düzelt. Gerçekten hâlâ
+sorunluysa kök nedeni bul (yüzeysel yama değil) ve devir dosyasına aynı
+titizlikle işle.
 
 ---
 

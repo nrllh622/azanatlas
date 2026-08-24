@@ -1,9 +1,14 @@
 // src/screens/VaktindeKilScreen.tsx
+//
+// Madde 4 (devir dosyası — bu tur): kendi özel başlığını çiziyordu, artık
+// ortak ScreenHeader kullanıyor; hardcoded punto/köşe değerleri theme.ts
+// token'larına (fontSize/radius/elevation) taşındı.
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing, radius, typography, fontSize, lineHeight, elevation } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { useVaktindeKil, VaktindeKilSound } from '../context/VaktindeKilContext';
 import SimplePickerModal from '../components/SimplePickerModal';
@@ -35,7 +40,6 @@ async function playPreview(sound: VaktindeKilSound) {
 }
 
 export default function VaktindeKilScreen({ onClose }: Props) {
-  const insets = useSafeAreaInsets();
   const {
     enabled,
     firstDelayMinutes,
@@ -51,24 +55,15 @@ export default function VaktindeKilScreen({ onClose }: Props) {
   const [infoVisible, setInfoVisible] = useState(false);
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.backArrow}>‹ Geri</Text>
-          </TouchableOpacity>
-          <Text style={styles.header}>Vaktinde Kıl</Text>
-        </View>
-        <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <TouchableOpacity onPress={() => setInfoVisible(!infoVisible)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.infoLink}>Nedir?</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.closeText}>Kapat</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.wrap}>
+      <ScreenHeader
+        title="Vaktinde Kıl"
+        icon="vaktindekil"
+        onClose={onClose}
+        rightIcon="bilgi"
+        onRightPress={() => setInfoVisible((v) => !v)}
+      />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {infoVisible && (
           <View style={styles.infoCard}>
             <Text style={styles.infoText}>
@@ -91,17 +86,22 @@ export default function VaktindeKilScreen({ onClose }: Props) {
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardLabelInline}>Vaktinde Kıl</Text>
-            <Switch value={enabled} onValueChange={setEnabled} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch
+              value={enabled}
+              onValueChange={setEnabled}
+              trackColor={{ true: colors.primaryBright, false: undefined }}
+              thumbColor={colors.white}
+            />
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>İlk Uyarı Gecikmesi</Text>
-        <TouchableOpacity style={styles.card} onPress={() => setDelayPickerVisible(true)}>
+        <TouchableOpacity style={styles.card} onPress={() => setDelayPickerVisible(true)} activeOpacity={0.75}>
           <Text style={styles.cardSubtext}>{firstDelayMinutes} dakika</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Uyarı Sıklığı</Text>
-        <TouchableOpacity style={styles.card} onPress={() => setIntervalPickerVisible(true)}>
+        <TouchableOpacity style={styles.card} onPress={() => setIntervalPickerVisible(true)} activeOpacity={0.75}>
           <Text style={styles.cardSubtext}>{repeatIntervalMinutes} dakikada bir</Text>
         </TouchableOpacity>
 
@@ -109,6 +109,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
         <View style={styles.soundRow}>
           <TouchableOpacity
             style={styles.soundOption}
+            activeOpacity={0.75}
             onPress={() => {
               setSound('bip');
               playPreview('bip');
@@ -121,6 +122,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.soundOption}
+            activeOpacity={0.75}
             onPress={() => {
               setSound('dong');
               playPreview('dong');
@@ -155,28 +157,78 @@ export default function VaktindeKilScreen({ onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
-  header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
-  closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
-  infoLink: { fontFamily: typography.bodyBold, color: colors.sand, fontSize: 14, textDecorationLine: 'underline' },
+  wrap: { flex: 1, backgroundColor: colors.cream },
   scrollContent: { padding: spacing.lg },
-  infoCard: { backgroundColor: 'rgba(250,246,236,0.12)', borderRadius: 14, padding: spacing.md, marginBottom: spacing.md },
-  infoText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 13, lineHeight: 19 },
-  quoteCard: { backgroundColor: colors.white, borderRadius: 14, padding: spacing.md, marginBottom: spacing.md },
-  quoteText: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
-  quoteSource: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, textAlign: 'right', marginTop: spacing.sm },
-  sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.md, marginBottom: spacing.sm },
-  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm },
+  infoCard: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  infoText: {
+    fontFamily: typography.bodyMedium,
+    color: colors.textOnLight,
+    fontSize: fontSize.small,
+    lineHeight: lineHeight.small,
+  },
+  quoteCard: {
+    backgroundColor: colors.primaryDark,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  quoteText: {
+    fontFamily: typography.bodyMedium,
+    color: colors.textOnDark,
+    fontSize: fontSize.small,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: lineHeight.small,
+  },
+  quoteSource: {
+    fontFamily: typography.bodyBold,
+    color: colors.copperLight,
+    fontSize: fontSize.tiny,
+    textAlign: 'right',
+    marginTop: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: typography.bodyBold,
+    color: colors.copper,
+    fontSize: fontSize.tiny,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...elevation.card,
+  },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardLabelInline: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16 },
-  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 15 },
-  soundRow: { flexDirection: 'row', gap: spacing.lg },
-  soundOption: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, flex: 1 },
-  checkbox: { width: 20, height: 20, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  cardLabelInline: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.bodyLg },
+  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: fontSize.body },
+  soundRow: { flexDirection: 'row', gap: spacing.md },
+  soundOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  checkbox: {
+    width: 20, height: 20, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 4,
+    alignItems: 'center', justifyContent: 'center',
+  },
   checkboxActive: { backgroundColor: colors.primary },
-  checkmark: { color: colors.white, fontSize: 12 },
-  soundLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 15 },
+  soundLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.body },
 });

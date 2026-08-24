@@ -1,11 +1,15 @@
 // src/screens/RemindersScreen.tsx
+//
+// Madde 4 (devir dosyası — bu tur): kendi özel başlığını çiziyordu, artık
+// ortak ScreenHeader kullanıyor; hardcoded punto/köşe değerleri theme.ts
+// token'larına (fontSize/radius/elevation) taşındı.
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography } from '../theme';
+import { colors, spacing, radius, typography, fontSize, elevation } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { useReminders, ReminderTypeSetting } from '../context/RemindersContext';
-import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
 import SimplePickerModal from '../components/SimplePickerModal';
 
@@ -18,7 +22,6 @@ const MINUTE_OPTIONS = [15, 30, 45, 60, 90, 120, 150];
 type ReminderKey = 'sahur' | 'teheccut' | 'pazartesiPersembeOrucu' | 'cumaNamazi';
 
 export default function RemindersScreen({ onClose }: Props) {
-  const insets = useSafeAreaInsets();
   const { settings, setSahur, setTeheccut, setOruc, setCuma } = useReminders();
   const [minutePickerFor, setMinutePickerFor] = useState<ReminderKey | null>(null);
   const [soundPickerFor, setSoundPickerFor] = useState<ReminderKey | null>(null);
@@ -37,7 +40,12 @@ export default function RemindersScreen({ onClose }: Props) {
         <Text style={styles.sectionTitle}>{title}</Text>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={s.enabled} onValueChange={(v) => setters[key]({ enabled: v })} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch
+              value={s.enabled}
+              onValueChange={(v) => setters[key]({ enabled: v })}
+              trackColor={{ true: colors.primaryBright, false: undefined }}
+              thumbColor={colors.white}
+            />
             <Text style={styles.baseLabel}>{baseLabel}</Text>
             <TouchableOpacity onPress={() => setMinutePickerFor(key)}>
               <Text style={styles.minutesLink}>{s.minutesBefore} dk. önce</Text>
@@ -49,6 +57,7 @@ export default function RemindersScreen({ onClose }: Props) {
           {key === 'pazartesiPersembeOrucu' && (
             <TouchableOpacity
               style={styles.checkboxRow}
+              activeOpacity={0.75}
               onPress={() => setOruc({ remindDayBefore: !settings.pazartesiPersembeOrucu.remindDayBefore })}
             >
               <View style={[styles.checkbox, settings.pazartesiPersembeOrucu.remindDayBefore && styles.checkboxActive]}>
@@ -66,14 +75,9 @@ export default function RemindersScreen({ onClose }: Props) {
   const activeSoundPicker = soundPickerFor ? settings[soundPickerFor] : null;
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
-      <View style={styles.headerRow}>
-        <Text style={styles.header}>Hatırlatıcılar</Text>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.closeText}>Kapat</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={styles.wrap}>
+      <ScreenHeader title="Hatırlatıcılar" icon="hatirlatici" onClose={onClose} />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {renderRow('sahur', 'Sahur Uyarısı', 'İmsaktan')}
         {renderRow('teheccut', 'Teheccüt Uyandırma', 'İmsaktan')}
         {renderRow('pazartesiPersembeOrucu', 'Pazartesi/Perşembe Orucu', 'İmsaktan')}
@@ -105,21 +109,38 @@ export default function RemindersScreen({ onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
-  header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
-  closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
+  wrap: { flex: 1, backgroundColor: colors.cream },
   scrollContent: { padding: spacing.lg },
   section: { marginBottom: spacing.md },
-  sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, marginBottom: spacing.xs },
-  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md },
+  sectionTitle: {
+    fontFamily: typography.bodyBold,
+    color: colors.copper,
+    fontSize: fontSize.tiny,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    marginBottom: spacing.xs,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...elevation.card,
+  },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  baseLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 15, flex: 1 },
-  minutesLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 14, textDecorationLine: 'underline' },
-  soundIcon: { fontSize: 20 },
+  baseLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.body, flex: 1 },
+  minutesLink: {
+    fontFamily: typography.bodyBold,
+    color: colors.primaryDark,
+    fontSize: fontSize.small,
+    textDecorationLine: 'underline',
+  },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  checkbox: { width: 20, height: 20, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  checkbox: {
+    width: 20, height: 20, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 4,
+    alignItems: 'center', justifyContent: 'center',
+  },
   checkboxActive: { backgroundColor: colors.primary },
-  checkmark: { color: colors.white, fontSize: 12 },
-  checkboxLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 14 },
+  checkboxLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.small },
 });

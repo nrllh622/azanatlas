@@ -1,9 +1,17 @@
 // src/screens/LocationPickerScreen.tsx
+//
+// Madde 4 (devir dosyası — bu tur): bu ekran hâlâ kendi özel başlığını
+// çiziyordu (backArrow/header metinleri), ScreenHeader/IslamicPattern
+// kullanmıyordu — anasayfa dışındaki ekranlar arasında görsel tutarsızlık
+// yaratıyordu. Şimdi Ayarlar/Tesbih/Kıble gibi ekranlarla aynı ortak
+// başlık bileşenine ve token ölçeğine geçirildi.
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { colors, spacing, radius, typography } from '../theme';
+import { colors, spacing, radius, typography, fontSize, lineHeight, elevation } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { TURKEY_PROVINCES, Province } from '../data/turkeyLocations';
 import { DISTRICT_COORDS } from '../data/districtCoords';
@@ -75,15 +83,11 @@ export default function LocationPickerScreen({ onDone }: Props) {
 
   if (mode === 'list') {
     return (
-      <View style={[styles.safeArea, { paddingTop: insets.top + spacing.md }]}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={onDone} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.backArrow}>‹ Geri</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.header}>Şehri Değiştir</Text>
+      <View style={styles.wrap}>
+        <ScreenHeader title="Şehri Değiştir" icon="konum" onClose={onDone} />
         <FlatList
           style={styles.list}
+          contentContainerStyle={styles.listIcerik}
           data={locations}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -93,6 +97,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
                 setActiveId(item.id);
                 onDone();
               }}
+              activeOpacity={0.75}
             >
               <View style={styles.rowTextWrap}>
                 {item.isGps && <Icon name="konum" size={15} color={colors.copper} />}
@@ -109,17 +114,14 @@ export default function LocationPickerScreen({ onDone }: Props) {
           )}
         />
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>
-          <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading}>
+          <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading} activeOpacity={0.85}>
             <View style={styles.actionBtnInner}>
-              <Icon name="konum" size={16} color={colors.primaryDark} />
+              <Icon name="konum" size={16} color={colors.textOnDark} />
               <Text style={styles.actionBtnText}>{gpsLoading ? 'Konum alınıyor…' : 'GPS ile Ekle'}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => setMode('province')}>
-            <Text style={styles.actionBtnText}>+ İl/İlçe Seçerek Ekle</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onDone} style={styles.closeBtn}>
-            <Text style={styles.closeText}>Kapat</Text>
+          <TouchableOpacity style={styles.actionBtnIkincil} onPress={() => setMode('province')} activeOpacity={0.75}>
+            <Text style={styles.actionBtnIkincilText}>+ İl/İlçe Seçerek Ekle</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -128,18 +130,17 @@ export default function LocationPickerScreen({ onDone }: Props) {
 
   if (mode === 'province') {
     return (
-      <View style={[styles.safeArea, { paddingTop: insets.top + spacing.md }]}>
-        <TouchableOpacity onPress={() => setMode('list')}>
-          <Text style={styles.backText}>‹ Geri</Text>
-        </TouchableOpacity>
-        <Text style={styles.header}>İl Seç</Text>
+      <View style={styles.wrap}>
+        <ScreenHeader title="İl Seç" icon="konum" onClose={() => setMode('list')} />
         <FlatList
           style={styles.list}
+          contentContainerStyle={styles.listIcerik}
           data={TURKEY_PROVINCES}
           keyExtractor={(item) => item.name}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}
+              activeOpacity={0.75}
               onPress={() => {
                 setSelectedProvince(item);
                 setMode('district');
@@ -154,18 +155,22 @@ export default function LocationPickerScreen({ onDone }: Props) {
   }
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.md }]}>
-      <TouchableOpacity onPress={() => setMode('province')}>
-        <Text style={styles.backText}>‹ İllere dön</Text>
-      </TouchableOpacity>
-      <Text style={styles.header}>{selectedProvince?.name} · İlçe Seç</Text>
+    <View style={styles.wrap}>
+      <ScreenHeader
+        title="İlçe Seç"
+        subtitle={selectedProvince?.name}
+        icon="konum"
+        onClose={() => setMode('province')}
+      />
       <FlatList
         style={styles.list}
+        contentContainerStyle={styles.listIcerik}
         data={selectedProvince?.districts ?? []}
         keyExtractor={(item) => item.name}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.row}
+            activeOpacity={0.75}
             onPress={() => {
               const coords = getCoordsFor(selectedProvince!.name, item.name);
               addLocation({
@@ -187,28 +192,47 @@ export default function LocationPickerScreen({ onDone }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.primary, paddingHorizontal: spacing.lg },
-  headerRow: { marginBottom: spacing.xs },
-  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
-  header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22, marginBottom: spacing.md },
-  backText: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 15, marginBottom: spacing.sm },
+  wrap: { flex: 1, backgroundColor: colors.cream },
   list: { flex: 1 },
-  footer: { paddingTop: spacing.sm },
-  closeBtn: { alignItems: 'center', marginTop: spacing.sm, paddingVertical: spacing.sm },
-  closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
+  listIcerik: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.sm },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(250,246,236,0.12)',
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  rowActive: { backgroundColor: 'rgba(201,162,39,0.15)' },
+  rowActive: { borderColor: colors.primaryBright, borderWidth: 2 },
   rowTextWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexShrink: 1 },
-  rowText: { fontFamily: typography.bodyMedium, color: colors.textOnDark, fontSize: 17, flexShrink: 1 },
+  rowText: {
+    fontFamily: typography.bodyBold,
+    color: colors.textOnLight,
+    fontSize: fontSize.bodyLg,
+    lineHeight: lineHeight.bodyLg,
+    flexShrink: 1,
+  },
+  deleteText: { fontFamily: typography.bodyBold, color: colors.danger, fontSize: fontSize.small },
+  actionBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    ...elevation.card,
+  },
   actionBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
-  deleteText: { fontFamily: typography.bodyMedium, color: colors.danger, fontSize: 13 },
-  actionBtn: { backgroundColor: colors.gold, borderRadius: radius.pill, paddingVertical: spacing.sm, alignItems: 'center', marginTop: spacing.sm },
-  actionBtnText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: 14 },
+  actionBtnText: { fontFamily: typography.bodyBold, color: colors.textOnDark, fontSize: fontSize.body },
+  actionBtnIkincil: {
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  actionBtnIkincilText: { fontFamily: typography.bodyBold, color: colors.primaryDark, fontSize: fontSize.body },
 });

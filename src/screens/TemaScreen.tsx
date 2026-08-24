@@ -2,13 +2,12 @@
 //
 // TEMA SEÇİMİ
 //
-// 11 palet, her biri kendi renkleriyle çizilmiş küçük bir önizleme kartı
-// olarak listelenir. Kullanıcı bir palet seçtiğinde tercih hemen kaydedilir,
-// ekranın üstünde "Tema değişti" bilgilendirmesi belirir ve kısa bir geri
-// sayımın ardından uygulama KENDİLİĞİNDEN yeniden başlar.
+// 10 palet, her biri kendi renkleriyle çizilmiş küçük bir önizleme kartı
+// olarak listelenir. Kullanıcı bir palet seçtiğinde tercih hemen kaydedilir
+// ve bir POP-UP ile yeniden başlatma için ONAY istenir.
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// NEDEN ANINDA DEĞİŞMİYOR, NEDEN OTOMATİK YENİDEN BAŞLIYOR?
+// NEDEN ANINDA DEĞİŞMİYOR?
 //
 // Ekran stilleri `StyleSheet.create` ile modül yüklenirken bir kez oluşur —
 // React Native'in en hızlı çalışan yolu budur. Anlık tema değişimi için her
@@ -16,30 +15,35 @@
 // yeniden hesaplanması demek olurdu. Günde beş kez hızlıca açılıp kapanan bir
 // uygulamada bu takas doğru bulunmadı.
 //
-// Bu yüzden değişim bir SONRAKİ açılışta uygulanıyor — ama kullanıcıyı elle
-// kapat/aç yapmaya zorlamak yerine `expo-updates`'in `Updates.reloadAsync()`
-// fonksiyonuyla uygulama YAZILIMSAL olarak kendini yeniden başlatıyor. Süre
-// (1.8 sn) kullanıcının "tema değişti" mesajını okuyabileceği kadar uzun,
-// ama bekletmeyecek kadar kısa tutuldu.
+// ─────────────────────────────────────────────────────────────────────────────
+// NEDEN OTOMATİK DEĞİL, ONAYLI YENİDEN BAŞLATMA? (bu turda değişti)
+//
+// Önceki sürüm bilgilendirmeyi gösterip 1.8 saniye sonra kullanıcıya
+// SORMADAN `Updates.reloadAsync()` çağırıyordu. Kullanıcı açık bir onay
+// istenmesini, reddedilirse uygulamanın KAPANMAMASINI istedi. Yeni akış:
+// tema kaydedilir → `OnayPopup` modalı görünür → "Şimdi Yeniden Başlat"
+// onaylanırsa `Updates.reloadAsync()` çağrılır; "Daha Sonra" seçilirse
+// pop-up kapanır, uygulama olduğu gibi açık kalır ve yeni tema bir SONRAKİ
+// doğal açılışta (kullanıcı uygulamayı normal şekilde kapatıp açtığında)
+// uygulanır — bu, zaten var olan "Seçiminiz kaydedildi" bilgi şeridiyle
+// tutarlı bir davranış.
 //
 // Önizleme kartları bu kısıttan ETKİLENMEZ: renklerini `styles`'tan değil,
 // doğrudan palet tanımından satır içi alırlar. Yani kullanıcı seçmeden önce
 // her paletin gerçek renklerini görebilir.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import * as Updates from 'expo-updates';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
+import IslamicPattern from '../components/IslamicPattern';
 import {
   colors, spacing, radius, typography, elevation, fontSize, lineHeight,
   PALETLER, PaletAdi, aktifPaletAdi,
 } from '../theme';
 import { temayiKaydet, kayitliTemayiOku } from '../lib/temaDeposu';
-
-/** Yeniden başlatmadan önce bilgilendirme mesajının ekranda kaldığı süre. */
-const YENIDEN_BASLATMA_GECIKME_MS = 1800;
 
 interface Props {
   onClose?: () => void;
@@ -78,14 +82,14 @@ function Onizleme({ renkler }: { renkler: Record<string, string> }) {
 export default function TemaScreen({ onClose }: Props) {
   const [secili, setSecili] = useState<PaletAdi>(aktifPaletAdi());
   const [calisan] = useState<PaletAdi>(aktifPaletAdi());
+  // Onay pop-up'ının açık olup olmadığı. Kaydetme başarılı olur olmaz true
+  // olur; kullanıcı "Şimdi Yeniden Başlat" ya da "Daha Sonra" diyene kadar
+  // ekranda kalır — otomatik kapanma/geri sayım YOK.
+  const [onayAcik, setOnayAcik] = useState(false);
   const [yenidenBasliyor, setYenidenBasliyor] = useState(false);
-  const zamanlayici = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     kayitliTemayiOku().then(setSecili);
-    return () => {
-      if (zamanlayici.current) clearTimeout(zamanlayici.current);
-    };
   }, []);
 
   const degisiklikVar = secili !== calisan;
@@ -100,22 +104,26 @@ export default function TemaScreen({ onClose }: Props) {
       // yerine kullanıcıya durum bildirilmeli — aşağıdaki şerit bunu yapar.
       return;
     }
+    // Kaydetme başarılıysa onay pop-up'ı açılır — otomatik yeniden başlatma
+    // YOK, kullanıcı karar verene kadar bekler.
+    setOnayAcik(true);
+  };
 
-    // Kaydetme başarılıysa uygulama kendini yeniden başlatır. Kullanıcı
-    // "Tema değişti" mesajını okuyacak kadar bir süre bekleniyor, sonra
-    // Updates.reloadAsync() JS+native tarafı sıfırdan yükler — bu noktada
-    // App.tsx yeniden çalışır ve yeni palet StyleSheet'lere kilitlenir.
+  const yenidenBaslat = async () => {
     setYenidenBasliyor(true);
-    zamanlayici.current = setTimeout(async () => {
-      try {
-        await Updates.reloadAsync();
-      } catch {
-        // Expo Go'da veya development build dışı ortamlarda reloadAsync
-        // native modülü bulamayabilir — bu durumda kullanıcıyı elle
-        // kapatıp açması için bilgilendiriyoruz, uygulamayı kilitlemiyoruz.
-        setYenidenBasliyor(false);
-      }
-    }, YENIDEN_BASLATMA_GECIKME_MS);
+    try {
+      await Updates.reloadAsync();
+    } catch {
+      // Expo Go'da veya development build dışı ortamlarda reloadAsync
+      // native modülü bulamayabilir — bu durumda kullanıcıyı elle kapatıp
+      // açması için bilgilendiriyoruz, uygulamayı kilitlemiyoruz.
+      setYenidenBasliyor(false);
+      setOnayAcik(false);
+    }
+  };
+
+  const dahaSonra = () => {
+    setOnayAcik(false);
   };
 
   const anahtarlar = Object.keys(PALETLER) as PaletAdi[];
@@ -126,42 +134,28 @@ export default function TemaScreen({ onClose }: Props) {
         title="Tema"
         subtitle={`${anahtarlar.length} renk düzeni`}
         icon="tema"
-        onClose={yenidenBasliyor ? undefined : onClose}
+        onClose={onClose}
       />
 
       <ScrollView
         contentContainerStyle={styles.icerik}
         showsVerticalScrollIndicator={false}
-        scrollEnabled={!yenidenBasliyor}
       >
-        {yenidenBasliyor ? (
-          <View style={styles.yenidenBaslatKart}>
-            <Icon name="onay" size={22} color={colors.success} />
-            <Text style={styles.yenidenBaslatBaslik}>Tema değişti</Text>
-            <Text style={styles.yenidenBaslatYazi}>
-              {PALETLER[secili].ad} teması uygulanıyor. Uygulama birazdan
-              kendiliğinden yeniden başlayacak…
+        {degisiklikVar && !onayAcik && (
+          <View style={styles.uyariKart}>
+            <Icon name="bilgi" size={20} color={colors.copperVivid} />
+            <Text style={styles.uyariYazi}>
+              Seçiminiz kaydedildi. Yeni tema, uygulamayı kapatıp açtığınızda
+              uygulanacak.
             </Text>
           </View>
-        ) : (
-          <>
-            {degisiklikVar && (
-              <View style={styles.uyariKart}>
-                <Icon name="bilgi" size={20} color={colors.copperVivid} />
-                <Text style={styles.uyariYazi}>
-                  Seçiminiz kaydedildi. Yeni tema, uygulamayı kapatıp açtığınızda
-                  uygulanacak.
-                </Text>
-              </View>
-            )}
-
-            <Text style={styles.aciklama}>
-              Tüm temalar İslami sanat geleneğinden türetildi. Her birinin metin
-              okunabilirliği ayrı ayrı ölçüldü — hangisini seçerseniz seçin
-              yazılar net kalır.
-            </Text>
-          </>
         )}
+
+        <Text style={styles.aciklama}>
+          Tüm temalar İslami sanat geleneğinden türetildi. Her birinin metin
+          okunabilirliği ayrı ayrı ölçüldü — hangisini seçerseniz seçin
+          yazılar net kalır.
+        </Text>
 
         {anahtarlar.map((ad) => {
           const palet = PALETLER[ad];
@@ -172,7 +166,6 @@ export default function TemaScreen({ onClose }: Props) {
               style={[styles.kart, aktif && styles.kartAktif]}
               onPress={() => sec(ad)}
               activeOpacity={0.85}
-              disabled={yenidenBasliyor}
               accessibilityRole="radio"
               accessibilityState={{ selected: aktif }}
               accessibilityLabel={`${palet.ad} teması. ${palet.aciklama}`}
@@ -198,18 +191,64 @@ export default function TemaScreen({ onClose }: Props) {
           );
         })}
 
-        {!yenidenBasliyor && (
-          <View style={styles.notKap}>
-            <Icon name="bilgi" size={16} color={colors.textMuted} />
-            <Text style={styles.notYazi}>
-              Tema seçtiğinizde uygulama birkaç saniye içinde kendiliğinden
-              yeniden başlar. Bu, uygulamanın hızlı açılmasını korumak için
-              bilinçli bir tercihtir — anlık değişim her ekran çiziminde ek
-              hesaplama gerektirirdi.
-            </Text>
-          </View>
-        )}
+        <View style={styles.notKap}>
+          <Icon name="bilgi" size={16} color={colors.textMuted} />
+          <Text style={styles.notYazi}>
+            Tema seçtiğinizde bir onay penceresi açılır. Hemen yeniden
+            başlatmak istemezseniz uygulama olduğu gibi açık kalır, yeni tema
+            bir sonraki normal açılışta uygulanır.
+          </Text>
+        </View>
       </ScrollView>
+
+      {/* ============ TEMA DEĞİŞİKLİĞİ ONAY POP-UP'I ============
+          Madde 3 (bu tur): otomatik geri sayımlı yeniden başlatma yerine,
+          kullanıcıdan açık onay isteyen bir pop-up. "Daha Sonra" seçilirse
+          uygulama KAPANMAZ — yalnızca pop-up kapanır. */}
+      <Modal
+        visible={onayAcik}
+        transparent
+        animationType="fade"
+        onRequestClose={dahaSonra}
+      >
+        <View style={styles.modalArkaPlan}>
+          <View style={styles.modalKart}>
+            <IslamicPattern color={colors.cream} opacity={0.08} tile={36} />
+            <View style={styles.modalIcerik}>
+              <View style={styles.modalIkonKap}>
+                <Icon name="onay" size={26} color={colors.success} />
+              </View>
+              <Text style={styles.modalBaslik}>Tema değişti</Text>
+              <Text style={styles.modalYazi}>
+                {PALETLER[secili].ad} teması kaydedildi. Değişikliğin
+                uygulanması için uygulamanın yeniden başlaması gerekiyor.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnBirincil]}
+                onPress={yenidenBaslat}
+                disabled={yenidenBasliyor}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+              >
+                <Text style={styles.modalBtnBirincilYazi}>
+                  {yenidenBasliyor ? 'Yeniden başlatılıyor…' : 'Şimdi Yeniden Başlat'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnIkincil]}
+                onPress={dahaSonra}
+                disabled={yenidenBasliyor}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+              >
+                <Text style={styles.modalBtnIkincilYazi}>Daha Sonra</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -243,31 +282,6 @@ const onz = StyleSheet.create({
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.cream },
   icerik: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
-
-  yenidenBaslatKart: {
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...elevation.raised,
-  },
-  yenidenBaslatBaslik: {
-    fontFamily: typography.displaySemibold,
-    fontSize: fontSize.title,
-    color: colors.primaryDark,
-    marginTop: spacing.xs,
-  },
-  yenidenBaslatYazi: {
-    fontFamily: typography.bodyMedium,
-    fontSize: fontSize.small,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: lineHeight.small,
-  },
 
   aciklama: {
     fontFamily: typography.bodyMedium,
@@ -343,5 +357,73 @@ const styles = StyleSheet.create({
     fontSize: fontSize.tiny,
     color: colors.textMuted,
     lineHeight: lineHeight.tiny,
+  },
+
+  // ---------- ONAY POP-UP'I ----------
+  modalArkaPlan: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  modalKart: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: colors.cream,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    ...elevation.raised,
+  },
+  modalIcerik: {
+    alignItems: 'center',
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  modalIkonKap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  modalBaslik: {
+    fontFamily: typography.displaySemibold,
+    fontSize: fontSize.title,
+    color: colors.primaryDark,
+  },
+  modalYazi: {
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: lineHeight.small,
+    marginBottom: spacing.sm,
+  },
+  modalBtn: {
+    width: '100%',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnBirincil: {
+    backgroundColor: colors.primary,
+    marginTop: spacing.xs,
+  },
+  modalBtnBirincilYazi: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.body,
+    color: colors.textOnDark,
+  },
+  modalBtnIkincil: {
+    marginTop: spacing.xs,
+  },
+  modalBtnIkincilYazi: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.body,
+    color: colors.textMuted,
   },
 });

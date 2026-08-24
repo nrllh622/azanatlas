@@ -5,11 +5,12 @@
 // Bu dosya iki işi birden yapar:
 //
 //   1) KABUK (shell): Alt navigasyondaki beş sekme (Ana Sayfa, İmsakiye,
-//      Keşfet, Takip, Ayarlar) arasında geçişi yönetir ve alt navigasyonu
+//      Keşfet, Kıble, Ayarlar) arasında geçişi yönetir ve alt navigasyonu
 //      KALICI olarak ekranda tutar — Muslim Pro'daki gibi, sekme değişse de
-//      alt çubuk yerinde kalır. Kıble/Tesbih/Kaza gibi araçlar ise tam ekran
+//      alt çubuk yerinde kalır. Takip/Tesbih/Kaza gibi araçlar ise tam ekran
 //      açılır (alt çubuk gizlenir), çünkü bunlar bir "sekme" değil, bir
-//      görevin içine girmektir.
+//      görevin içine girmektir. (Kıble ile Takip'in rolleri kullanıcı
+//      isteğiyle değiştirildi — Kıble artık kalıcı sekme, Takip tam ekran araç.)
 //
 //      Alt çubuk `position: absolute` DEĞİL, normal akışta duruyor: içerik
 //      flex:1 ile üstte, çubuk altında. Böylece hiçbir ekranın son satırı
@@ -82,14 +83,17 @@ import KesfetScreen, { KesfetHedef } from './KesfetScreen';
 import TakipScreen from './TakipScreen';
 import TemaScreen from './TemaScreen';
 
-/** Alt navigasyondaki kalıcı sekmeler. */
-type Tab = 'home' | 'imsakiye' | 'kesfet' | 'takip' | 'settings';
+/** Alt navigasyondaki kalıcı sekmeler.
+ *  Madde 6 (bu tur): Kıble artık burada, Takip ise tam ekran araca taşındı
+ *  — kullanıcı bu iki özelliğin alt navigasyon/hızlı-araç konumlarını
+ *  birbiriyle değiştirmek istedi. */
+type Tab = 'home' | 'imsakiye' | 'kesfet' | 'qibla' | 'settings';
 
 /** Tam ekran açılan, alt navigasyonu gizleyen araç ekranları. */
 type SubScreen =
   | null
   | 'location'
-  | 'qibla'
+  | 'takip'
   | 'kaza'
   | 'vaktindekil'
   | 'reminders'
@@ -106,13 +110,14 @@ const SEKMELER: { id: Tab; ad: string; ikon: DoluIkonAdi }[] = [
   { id: 'home', ad: 'Ana Sayfa', ikon: 'anasayfa' },
   { id: 'imsakiye', ad: 'İmsakiye', ikon: 'imsakiye' },
   { id: 'kesfet', ad: 'Keşfet', ikon: 'kesfet' },
-  { id: 'takip', ad: 'Takip', ikon: 'takip' },
+  { id: 'qibla', ad: 'Kıble', ikon: 'kible' },
   { id: 'settings', ad: 'Ayarlar', ikon: 'ayarlar' },
 ];
 
-/** Ana Sayfa'daki dört hızlı araç — en sık kullanılanlar. */
+/** Ana Sayfa'daki dört hızlı araç — en sık kullanılanlar.
+ *  Madde 6: Kıble alt navigasyona taşındığı için burada Takip'e yer açıldı. */
 const HIZLI_ARACLAR: { hedef: SubScreen; ad: string; ikon: DoluIkonAdi }[] = [
-  { hedef: 'qibla', ad: 'Kıble', ikon: 'kible' },
+  { hedef: 'takip', ad: 'Takip', ikon: 'takip' },
   { hedef: 'tesbih', ad: 'Tesbih', ikon: 'tesbih' },
   { hedef: 'esma', ad: 'Esmâ', ikon: 'esma' },
   { hedef: 'kaza', ad: 'Kaza', ikon: 'kaza' },
@@ -334,16 +339,24 @@ export default function HomeScreen() {
   const kesfetYonlendir = useCallback((hedef: KesfetHedef) => {
     // Keşfet ızgarasındaki bazı kutular bir SEKMEYE, bazıları tam ekran bir
     // ARACA gider. İkisini burada ayırıyoruz.
-    if (hedef === 'imsakiye' || hedef === 'takip' || hedef === 'settings') {
-      setTab(hedef as Tab);
+    //
+    // Madde 6 (bu tur): Kıble/Takip'in Tab/SubScreen rolleri değişti —
+    // Kıble artık bir SEKME ('qibla' → Tab), Takip artık tam ekran bir
+    // ARAÇ ('takip' → SubScreen). Keşfet ızgarasındaki 'kible'/'takip'
+    // literal string'leri DEĞİŞMEDİ (KesfetScreen.tsx aynen duruyor), yalnızca
+    // bu dispatch mantığı hangi hedefin Tab hangisinin SubScreen olduğunu
+    // güncellendi.
+    if (hedef === 'imsakiye' || hedef === 'kible' || hedef === 'settings') {
+      const SEKME_ESLEME: Record<string, Tab> = {
+        imsakiye: 'imsakiye',
+        kible: 'qibla',
+        settings: 'settings',
+      };
+      setTab(SEKME_ESLEME[hedef]);
       return;
     }
-    // HATA DÜZELTMESİ: Keşfet ızgarası Kıble kutusu için 'kible' gönderiyor,
-    // ama alt ekran anahtarı 'qibla'. İsimler eşleşmediği için Keşfet'ten
-    // Kıble hiç açılmıyordu. Açık eşleme tablosu, ileride benzer bir
-    // uyumsuzluğun sessizce oluşmasını da engelliyor.
     const ALT_EKRAN_ESLEME: Record<string, SubScreen> = {
-      kible: 'qibla',
+      takip: 'takip',
       tesbih: 'tesbih',
       esma: 'esma',
       kaza: 'kaza',
@@ -360,7 +373,7 @@ export default function HomeScreen() {
   // TAM EKRAN ARAÇLAR — alt navigasyon gizlenir
   // -------------------------------------------------------------------
   if (sub === 'location') return <LocationPickerScreen onDone={() => setSub(null)} />;
-  if (sub === 'qibla') return <QiblaScreen onClose={() => setSub(null)} />;
+  if (sub === 'takip') return <TakipScreen onClose={() => setSub(null)} />;
   if (sub === 'kaza') return <KazaScreen onClose={() => setSub(null)} />;
   if (sub === 'vaktindekil') return <VaktindeKilScreen onClose={() => setSub(null)} />;
   if (sub === 'reminders') return <RemindersScreen onClose={() => setSub(null)} />;
@@ -377,8 +390,8 @@ export default function HomeScreen() {
     sekmeIcerigi = <ImsakiyeScreen />;
   } else if (tab === 'kesfet') {
     sekmeIcerigi = <KesfetScreen onNavigate={kesfetYonlendir} />;
-  } else if (tab === 'takip') {
-    sekmeIcerigi = <TakipScreen />;
+  } else if (tab === 'qibla') {
+    sekmeIcerigi = <QiblaScreen />;
   } else if (tab === 'settings') {
     sekmeIcerigi = (
       <SettingsScreen
@@ -395,9 +408,15 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ============ ÜST BLOK: konum, tarih, sıradaki vakit ============ */}
-        {/* ÜST ŞERİT — krem zeminde: konum solda, bildirim düğmesi sağda.
-            (1. ekran görüntüsündeki düzen) */}
+        {/* Madde 1 (bu tur): kullanıcı üst şeridin krem zeminini, hemen
+            altındaki hero ile aynı ana renge (primary) boyanmasını istedi —
+            böylece üst şerit + hero tek parça koyu bir blok gibi görünüyor.
+            Konum/bildirim ikonları koyu zemine uygun biçimde yeniden
+            tasarlandı: dolgulu daireler yerine ince kenarlıklı, yarı saydam
+            "cam" düğmeler — parlak beyaz dolgu koyu zeminde çok sert
+            dururdu, bu yumuşak versiyon hem okunaklı hem tema rengine sadık. */}
         <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.xs }]}>
+          <IslamicPattern color={colors.cream} opacity={0.07} tile={44} />
           <TouchableOpacity
             style={styles.konumBlok}
             onPress={() => setSub('location')}
@@ -406,7 +425,7 @@ export default function HomeScreen() {
             accessibilityLabel="Konumu değiştir"
           >
             <View style={styles.konumIkonKap}>
-              <Icon name="konum" size={20} color={colors.white} />
+              <Icon name="konum" size={19} color={colors.copperLight} />
             </View>
             <View style={styles.konumMetin}>
               <Text style={styles.konumIl} numberOfLines={1}>
@@ -425,14 +444,15 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Bildirim ayarları"
           >
-            <Icon name="hatirlatici" size={22} color={colors.copperVivid} />
+            <Icon name="hatirlatici" size={20} color={colors.copperLight} />
           </TouchableOpacity>
         </View>
 
         {/* HERO KARTI — düz (köşesiz) kart. Önceki sürümde alt kenarları
             büyük yarıçapla kavisliydi; kullanıcı geri bildirimiyle düz
-            dikdörtgen forma dönüldü. Üstteki konum/bildirim şeridi zaten
-            ayrı bir bileşen olduğu için bu değişiklikten etkilenmiyor. */}
+            dikdörtgen forma dönüldü. Üst şerit artık aynı ana renkte
+            olduğu için aradaki sınır kasıtlı olarak belirsizleştirildi
+            (hero'nun üst iç boşluğu azaltıldı) — ikisi tek blok okunuyor. */}
         <View style={styles.hero}>
           <IslamicPattern color={colors.cream} opacity={0.09} tile={44} />
 
@@ -472,6 +492,11 @@ export default function HomeScreen() {
                 <Text style={styles.siradakiAd}>{next.label}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
+              {/* Madde 2 (bu tur): büyük sayacın ne olduğu etiketsiz belirsizdi
+                  — artık "KALAN SÜRE" etiketiyle birlikte gösteriliyor. Sayaç
+                  zaten her saniye `now` güncellendiği için otomatik azalıyor
+                  (bkz. `kalanMs` hesaplaması) — bu yalnızca bir etiket ekliyor. */}
+              <Text style={styles.kalanSureEtiket}>KALAN SÜRE</Text>
               <Text style={styles.geriSayim}>{geriSayimBicimle(kalanMs)}</Text>
             </View>
 
@@ -507,7 +532,7 @@ export default function HomeScreen() {
             {seri > 0 && (
               <TouchableOpacity
                 style={styles.seriCip}
-                onPress={() => setTab('takip')}
+                onPress={() => setSub('takip')}
                 accessibilityRole="button"
                 accessibilityLabel={`${seri} günlük seri. Takip ekranını aç`}
               >
@@ -690,6 +715,13 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                   )}
+                  {/* Bu nokta önceden alt navigasyondaki Takip ikonundaydı
+                      (kazaTotal>0 iken küçük bir "bakılası bir şey var"
+                      göstergesiydi). Takip alt navigasyondan kalktığı için
+                      buraya, Takip hızlı-araç ikonuna taşındı. */}
+                  {arac.hedef === 'takip' && kazaTotal > 0 && (
+                    <View style={styles.hizliNokta} />
+                  )}
                 </View>
                 <Text style={styles.hizliAd}>{arac.ad}</Text>
               </TouchableOpacity>
@@ -796,9 +828,6 @@ export default function HomeScreen() {
                     vurgu={aktif ? colors.primaryDark : colors.copperLight}
                     zemin={aktif ? colors.copperLight : colors.primaryDark}
                   />
-                  {s.id === 'takip' && kazaTotal > 0 && (
-                    <View style={styles.navNokta} />
-                  )}
                 </View>
                 <Text style={[styles.navYazi, aktif && styles.navYaziAktif]} numberOfLines={1}>
                   {s.ad}
@@ -819,40 +848,44 @@ const styles = StyleSheet.create({
   anaAkis: { flex: 1, backgroundColor: colors.cream },
   anaIcerik: { paddingBottom: spacing.lg },
 
-  // ---------- ÜST ŞERİT (krem zemin) ----------
+  // ---------- ÜST ŞERİT (artık krem değil, temanın ana rengi) ----------
   ustSerit: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+    overflow: 'hidden',
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xs,
     gap: spacing.sm,
   },
   konumBlok: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2, flex: 1 },
+  // Koyu zeminde artık dolgulu değil, ince kenarlıklı yarı saydam bir
+  // "cam" daire — parlak dolgu koyu zeminde aşırı sert dururdu.
   konumIkonKap: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.primary,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
   konumMetin: { flex: 1 },
   konumIl: {
     fontFamily: typography.bodyBold,
     fontSize: fontSize.body,
-    color: colors.primaryDark,
+    color: colors.textOnDark,
     lineHeight: lineHeight.body,
   },
   konumTarih: {
     fontFamily: typography.bodyMedium,
     fontSize: fontSize.micro,
-    color: colors.textMuted,
+    color: colors.textOnDarkMuted,
     lineHeight: lineHeight.micro,
   },
   bildirimBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.white,
-    borderWidth: 2, borderColor: colors.copperVivid,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    ...elevation.card,
   },
 
   // ---------- HERO (düz koyu kart — kavis kaldırıldı) ----------
@@ -889,20 +922,27 @@ const styles = StyleSheet.create({
   siradakiAd: {
     flex: 1,
     fontFamily: typography.displayFamily,
-    fontSize: 26,
+    fontSize: 22,
     color: colors.white,
-    lineHeight: 36,
+    lineHeight: 30,
   },
-  // Madde 6 (ısrarla tekrar edilen şikayet): saat hâlâ küçük/donuk
-  // bulunuyordu. fontSize.title (19) yetersizdi — displayFamily ile aynı
-  // ailede, geri sayımdan görünür biçimde küçük ama artık net okunan bir
-  // boyuta (26) çıkarıldı. Renk copperLight'ta kalıyor — her palette karşı
-  // ölçülen tek sıcak/parlak ton — ama artık bodyBold yerine display
-  // ailesiyle çizilerek geri sayımla aynı görsel ağırlık ailesinde.
+  // Kullanıcı bu satırı iki pakettir "hâlâ küçük" diye tekrarladı. 26px
+  // yetersiz kaldı — 32'ye çıkarıldı (vakit adı biraz küçültülerek satırın
+  // taşması engellendi, iki metin artık daha net bir görsel hiyerarşi
+  // kuruyor: isim ikincil, saat birincil vurgu). Renk copperLight'ta
+  // kalıyor — her palette karşı ölçülen tek sıcak/parlak ton.
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 26,
+    fontSize: 32,
     color: colors.copperLight,
+  },
+  kalanSureEtiket: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.micro,
+    color: colors.copperLight,
+    letterSpacing: 1.4,
+    marginTop: spacing.xs,
+    opacity: 0.9,
   },
   geriSayim: {
     fontFamily: typography.displayFamily,
@@ -1086,6 +1126,17 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   hizliRozetYazi: { fontFamily: typography.bodyBold, fontSize: 9, color: colors.white },
+  hizliNokta: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: colors.copperVivid,
+    borderWidth: 1.5,
+    borderColor: colors.white,
+  },
 
   // ---------- REKLAM ALANI ----------
   // Standart banner reklam yüksekliği (50dp) + üst/alt boşluk kadar sabit
@@ -1251,15 +1302,4 @@ const styles = StyleSheet.create({
     color: colors.textOnDarkMuted,
   },
   navYaziAktif: { fontFamily: typography.bodyBold, color: colors.copperLight },
-  navNokta: {
-    position: 'absolute',
-    top: 4,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.copperVivid,
-    borderWidth: 1.5,
-    borderColor: colors.primaryDark,
-  },
 });
