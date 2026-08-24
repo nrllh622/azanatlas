@@ -62,7 +62,7 @@ import { getKerahatInfo } from '../lib/kerahat';
 import { takipEdilebilir, TakipVakti } from '../lib/ibadetTakibi';
 import { getGununAyeti } from '../data/ayetler';
 import { getDiniGun, getYaklasanDiniGun } from '../data/diniGunler';
-import { getTariheBugun } from '../data/tariheBugun';
+import { getTariheEnYakinOlay } from '../data/tariheBugun';
 import { widgetVerisiniGuncelle } from '../lib/widgetVeriDeposu';
 
 import Icon, { IconName, vakitIcon } from '../components/Icon';
@@ -263,7 +263,11 @@ export default function HomeScreen() {
     () => (diniGun ? null : getYaklasanDiniGun(now, (d) => toHijri(d, hijriAdjustmentDays))),
     [diniGun, now.toDateString(), hijriAdjustmentDays]
   );
-  const tarihOlayi = useMemo(() => getTariheBugun(now), [now.toDateString()]);
+  // Madde 3 (devir dosyası — kullanıcı ısrarla tekrarladı): kart artık HER
+  // GÜN görünüyor. Tam eşleşme yoksa takvimdeki en yakın gerçek olay,
+  // "bugün" değil kendi tarihiyle ("X gün sonra/önce yaşandı" gibi)
+  // gösteriliyor — bkz. tariheBugun.ts içindeki açıklama.
+  const tarihOlayi = useMemo(() => getTariheEnYakinOlay(now), [now.toDateString()]);
 
   // Widget (madde 10, devir dosyası §7): vakitler her yeniden hesaplandığında
   // (konum/gün/yöntem değiştiğinde) AsyncStorage'a yazılıyor ki widget'ın
@@ -393,7 +397,7 @@ export default function HomeScreen() {
         {/* ============ ÜST BLOK: konum, tarih, sıradaki vakit ============ */}
         {/* ÜST ŞERİT — krem zeminde: konum solda, bildirim düğmesi sağda.
             (1. ekran görüntüsündeki düzen) */}
-        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.xs }]}>
           <TouchableOpacity
             style={styles.konumBlok}
             onPress={() => setSub('location')}
@@ -603,7 +607,7 @@ export default function HomeScreen() {
                     >
                       <Icon
                         name={kilindi ? 'onay' : 'daire'}
-                        size={23}
+                        size={20}
                         color={kilindi ? colors.success : colors.borderStrong}
                       />
                     </TouchableOpacity>
@@ -614,7 +618,7 @@ export default function HomeScreen() {
                   <View style={[styles.vakitIkonKap, suAnki && styles.vakitIkonKapAktif]}>
                     <Icon
                       name={vakitIcon(v.key)}
-                      size={15}
+                      size={13}
                       color={suAnki ? colors.primaryDeep : colors.primary}
                     />
                   </View>
@@ -678,7 +682,7 @@ export default function HomeScreen() {
                 accessibilityLabel={arac.ad}
               >
                 <View style={styles.hizliIkonKap}>
-                  <DoluIkon ad={arac.ikon} boyut={26} zemin={colors.primarySoft} />
+                  <DoluIkon ad={arac.ikon} boyut={21} zemin={colors.primarySoft} />
                   {arac.hedef === 'kaza' && kazaTotal > 0 && (
                     <View style={styles.hizliRozet}>
                       <Text style={styles.hizliRozetYazi}>
@@ -711,23 +715,33 @@ export default function HomeScreen() {
           </View>
 
           {/* ── İSLAM TARİHİNDE BUGÜN ──
-              Yalnızca o güne ait doğrulanmış bir olay varsa görünür.
-              Her günü doldurmak için tarihi tartışmalı olaylar eklenmedi. */}
-          {tarihOlayi && (
-            <View style={styles.tarihKart}>
-              <View style={styles.tarihBaslikSatir}>
-                <Icon name="imsakiye" size={17} color={colors.copper} />
-                <Text style={styles.tarihBaslik}>İslam Tarihinde Bugün</Text>
-              </View>
-              <View style={styles.tarihIcerik}>
-                <Text style={styles.tarihYil}>{tarihOlayi.yil}</Text>
-                <View style={styles.tarihMetin}>
-                  <Text style={styles.tarihOlayBaslik}>{tarihOlayi.baslik}</Text>
-                  <Text style={styles.tarihAciklama}>{tarihOlayi.aciklama}</Text>
-                </View>
+              Madde 3: kart artık HER GÜN görünüyor. Tam eşleşme varsa
+              "İslam Tarihinde Bugün" başlığıyla; yoksa takvimdeki en yakın
+              olay "İslam Tarihinden" başlığı + göreceli tarih ibaresiyle
+              gösteriliyor — böylece hiçbir gün kart kaybolmuyor ama hiçbir
+              olay da gerçek tarihi dışında "bugün" diye sunulmuyor. */}
+          <View style={styles.tarihKart}>
+            <View style={styles.tarihBaslikSatir}>
+              <Icon name="imsakiye" size={17} color={colors.copper} />
+              <Text style={styles.tarihBaslik}>
+                {tarihOlayi.bugunMu ? 'İslam Tarihinde Bugün' : 'İslam Tarihinden'}
+              </Text>
+            </View>
+            <View style={styles.tarihIcerik}>
+              <Text style={styles.tarihYil}>{tarihOlayi.olay.yil}</Text>
+              <View style={styles.tarihMetin}>
+                <Text style={styles.tarihOlayBaslik}>{tarihOlayi.olay.baslik}</Text>
+                <Text style={styles.tarihAciklama}>{tarihOlayi.olay.aciklama}</Text>
+                {!tarihOlayi.bugunMu && (
+                  <Text style={styles.tarihGoreceli}>
+                    {tarihOlayi.gunFarki > 0
+                      ? `Yıl dönümüne ${tarihOlayi.gunFarki} gün var`
+                      : `Yıl dönümü ${Math.abs(tarihOlayi.gunFarki)} gün önceydi`}
+                  </Text>
+                )}
               </View>
             </View>
-          )}
+          </View>
         </View>
       </ScrollView>
     );
@@ -740,49 +754,59 @@ export default function HomeScreen() {
     <View style={styles.kabuk}>
       <View style={styles.icerikAlani}>{sekmeIcerigi}</View>
 
-      <View style={[styles.altNav, { paddingBottom: insets.bottom + spacing.xs }]}>
-        {SEKMELER.map((s) => {
-          const aktif = s.id === tab;
-          return (
-            <TouchableOpacity
-              key={s.id}
-              style={styles.navOge}
-              onPress={() => setTab(s.id)}
-              activeOpacity={0.75}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: aktif }}
-              accessibilityLabel={s.ad}
-            >
-              <View style={[styles.navIkonKap, aktif && styles.navIkonKapAktif]}>
-                {/* Aktif sekmede ikon PARLAK dolgu üzerinde durduğu için
-                    gövde rengi koyuya çevriliyor; pasiflerde ise koyu
-                    navigasyon zemininde okunacak açık tonlar kullanılıyor.
-                    HATA DÜZELTMESİ: "Keşfet" ikonu tıklanınca bozuk
-                    görünüyordu — sebebi hem varsayılan activeOpacity'nin
-                    (0.2) dolgulu ikonu şeffaflaştırıp katmanları birbirine
-                    karıştırması, hem de pasif haldeki govde/vurgu renk
-                    çiftinin (textOnDarkMuted + copperLight) kesfet
-                    ikonundaki 4 kutucukla düşük kontrastta çakışmasıydı.
-                    activeOpacity yükseltildi; pasif ikon artık A1 (parlak
-                    turkuaz) katmanıyla aynı aileden, net ayrışan bir vurgu
-                    kullanıyor. */}
-                <DoluIkon
-                  ad={s.ikon}
-                  boyut={26}
-                  govde={aktif ? colors.primaryDeep : colors.textOnDarkMuted}
-                  vurgu={aktif ? colors.primaryDark : colors.primaryBright}
-                  zemin={aktif ? colors.primaryBright : colors.primaryDark}
-                />
-                {s.id === 'takip' && kazaTotal > 0 && (
-                  <View style={styles.navNokta} />
-                )}
-              </View>
-              <Text style={[styles.navYazi, aktif && styles.navYaziAktif]} numberOfLines={1}>
-                {s.ad}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      {/* ============ ALT NAVİGASYON — "Zümrüt Şerit" (Varyant C) ============
+          Kullanıcıya 3 varyant sunuldu (Yumuşak Cam / Yükselen Nokta /
+          Zümrüt Şerit), Zümrüt Şerit onaylandı: aktif sekmenin üstünde ince
+          bir bakır (copperLight) şerit + dolgulu pil daralıp dikdörtgene
+          dönüşüyor. Şerit, her sekmenin kendi genişliğine eşit bölünmüş bir
+          üst satırda, yalnızca aktif sekmenin payında görünür oluyor. */}
+      <View style={[styles.altNavKap, { paddingBottom: insets.bottom + spacing.xs }]}>
+        <View style={styles.serit}>
+          {SEKMELER.map((s) => (
+            <View key={s.id} style={styles.seritPay}>
+              {s.id === tab && <View style={styles.seritCizgi} />}
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.altNav}>
+          {SEKMELER.map((s) => {
+            const aktif = s.id === tab;
+            return (
+              <TouchableOpacity
+                key={s.id}
+                style={styles.navOge}
+                onPress={() => setTab(s.id)}
+                activeOpacity={0.75}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: aktif }}
+                accessibilityLabel={s.ad}
+              >
+                <View style={[styles.navIkonKap, aktif && styles.navIkonKapAktif]}>
+                  {/* Aktif sekmede ikon dolgulu dikdörtgen üzerinde
+                      durduğu için gövde rengi koyuya çevriliyor; pasiflerde
+                      koyu navigasyon zemininde okunacak açık tonlar
+                      kullanılıyor. "Keşfet" ikonunun tıklanınca bozuk
+                      görünme sorununun kök nedeni DoluIkon.tsx içindeydi
+                      (bkz. o dosyadaki not) ve orada kalıcı çözüldü. */}
+                  <DoluIkon
+                    ad={s.ikon}
+                    boyut={24}
+                    govde={aktif ? colors.primaryDeep : colors.textOnDarkMuted}
+                    vurgu={aktif ? colors.primaryDark : colors.copperLight}
+                    zemin={aktif ? colors.copperLight : colors.primaryDark}
+                  />
+                  {s.id === 'takip' && kazaTotal > 0 && (
+                    <View style={styles.navNokta} />
+                  )}
+                </View>
+                <Text style={[styles.navYazi, aktif && styles.navYaziAktif]} numberOfLines={1}>
+                  {s.ad}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -801,30 +825,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
     gap: spacing.sm,
   },
-  konumBlok: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
+  konumBlok: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + 2, flex: 1 },
   konumIkonKap: {
-    width: 44, height: 44, borderRadius: 22,
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
   konumMetin: { flex: 1 },
   konumIl: {
     fontFamily: typography.bodyBold,
-    fontSize: fontSize.bodyLg,
+    fontSize: fontSize.body,
     color: colors.primaryDark,
-    lineHeight: lineHeight.bodyLg,
+    lineHeight: lineHeight.body,
   },
   konumTarih: {
     fontFamily: typography.bodyMedium,
-    fontSize: fontSize.tiny,
+    fontSize: fontSize.micro,
     color: colors.textMuted,
-    lineHeight: lineHeight.tiny,
+    lineHeight: lineHeight.micro,
   },
   bildirimBtn: {
-    width: 46, height: 46, borderRadius: 23,
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: colors.white,
     borderWidth: 2, borderColor: colors.copperVivid,
     alignItems: 'center', justifyContent: 'center',
@@ -832,10 +856,13 @@ const styles = StyleSheet.create({
   },
 
   // ---------- HERO (düz koyu kart — kavis kaldırıldı) ----------
+  // Madde 1 (ısrarla tekrar edilen şikayet): dikey boşluklar burada da
+  // sıkıştırıldı — hero, Kıble/Tesbih/Esmâ/Kaza satırının scroll'suz
+  // görünmesini engelleyen en büyük tek bloktu.
   hero: {
     backgroundColor: colors.primary,
     overflow: 'hidden',
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
   },
   heroIc: { paddingHorizontal: spacing.lg },
 
@@ -845,36 +872,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  konumOrta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    flexShrink: 1,
-  },
-  konumYazi: {
-    fontFamily: typography.bodyBold,
-    fontSize: 14,
-    color: colors.textOnDark,
-    flexShrink: 1,
-  },
 
-  miladiTarih: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 12.5,
-    color: colors.textOnDarkMuted,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  hicriTarih: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 11.5,
-    color: colors.copperLight,
-    textAlign: 'center',
-    marginTop: 1,
-  },
-
-  siradakiKap: { marginTop: spacing.xs },
+  siradakiKap: { marginTop: 2 },
   siradakiEtiket: {
     fontFamily: typography.bodyBold,
     fontSize: fontSize.tiny,
@@ -894,20 +893,23 @@ const styles = StyleSheet.create({
     color: colors.white,
     lineHeight: 36,
   },
-  // Saat önceden textOnDarkMuted (bazı temalarda hero zeminine çok yakın,
-  // düşük kontrastlı) kullanıyordu; artık copperLight — sıcak, parlak ve
-  // her palette karşı ölçülmüş kontrast — kullanılıyor, ayrıca büyütüldü.
+  // Madde 6 (ısrarla tekrar edilen şikayet): saat hâlâ küçük/donuk
+  // bulunuyordu. fontSize.title (19) yetersizdi — displayFamily ile aynı
+  // ailede, geri sayımdan görünür biçimde küçük ama artık net okunan bir
+  // boyuta (26) çıkarıldı. Renk copperLight'ta kalıyor — her palette karşı
+  // ölçülen tek sıcak/parlak ton — ama artık bodyBold yerine display
+  // ailesiyle çizilerek geri sayımla aynı görsel ağırlık ailesinde.
   siradakiSaat: {
-    fontFamily: typography.bodyBold,
-    fontSize: fontSize.title,
+    fontFamily: typography.displaySemibold,
+    fontSize: 26,
     color: colors.copperLight,
   },
   geriSayim: {
     fontFamily: typography.displayFamily,
-    fontSize: fontSize.countdown,
+    fontSize: 38,
     color: colors.white,
-    lineHeight: 54,
-    marginTop: 2,
+    lineHeight: 46,
+    marginTop: 0,
     letterSpacing: 1,
   },
 
@@ -915,7 +917,7 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: 'rgba(253,250,241,0.22)',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     overflow: 'hidden',
   },
   // Koyu hero üzerinde dolgu; metin taşımadığı için en canlı ton kullanılabilir.
@@ -933,9 +935,9 @@ const styles = StyleSheet.create({
   ilerlemeUc: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.copperLight },
 
   // ---------- GÖVDE ----------
-  govde: { paddingHorizontal: spacing.md, marginTop: spacing.sm },
+  govde: { paddingHorizontal: spacing.md, marginTop: spacing.xs },
 
-  cipSatir: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm, flexWrap: 'wrap' },
+  cipSatir: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.xs, flexWrap: 'wrap' },
   kaynakCip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1006,15 +1008,15 @@ const styles = StyleSheet.create({
   // TAMAMI (İmsak'tan Yatsı'ya) artı reklam alanı ve dört hızlı araç
   // scroll YAPILMADAN ilk ekranda görünsün diye. Yazı boyu küçültülmedi —
   // okunabilirlik korunuyor, kazanılan alan yalnızca boşluklardan geliyor.
-  vakitListe: { gap: 4 },
+  vakitListe: { gap: 3 },
   vakitSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs + 2,
     backgroundColor: colors.white,
     borderRadius: radius.sm,
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -1022,11 +1024,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDark,
     borderColor: colors.primaryDark,
   },
-  isaretBosluk: { width: 22 },
+  isaretBosluk: { width: 20 },
   vakitIkonKap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1056,15 +1058,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    paddingVertical: spacing.sm + 2,
-    marginTop: spacing.sm,
+    paddingVertical: spacing.xs + 2,
+    marginTop: spacing.xs + 2,
     ...elevation.card,
   },
-  hizliOge: { flex: 1, alignItems: 'center', gap: spacing.xs + 1 },
+  hizliOge: { flex: 1, alignItems: 'center', gap: 3 },
   hizliIkonKap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1200,34 +1202,55 @@ const styles = StyleSheet.create({
     lineHeight: lineHeight.small,
     marginTop: 3,
   },
+  tarihGoreceli: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.micro,
+    color: colors.copper,
+    marginTop: 4,
+  },
 
-  // ---------- ALT NAVİGASYON ----------
-  // Alt navigasyon belirginleştirildi: ikon kabı ve yazı büyütüldü, aktif
-  // sekmenin dolgusu tam doygun tonda ve üstünde ince bir gösterge çizgisi
-  // var — hangi sekmede olduğunuz uzaktan bakınca anlaşılıyor.
-  altNav: {
+  // ---------- ALT NAVİGASYON — "Zümrüt Şerit" (onaylanan Varyant C) ----------
+  // 3 sunulan varyanttan (Yumuşak Cam / Yükselen Nokta / Zümrüt Şerit)
+  // kullanıcının onayladığı: dolgulu pil daralıp DİKDÖRTGENE dönüşüyor,
+  // aktif sekmenin üstünde ince bir bakır (copperLight) şerit beliriyor.
+  altNavKap: { backgroundColor: colors.primaryDark },
+  serit: {
     flexDirection: 'row',
-    backgroundColor: colors.primaryDark,
-    paddingTop: spacing.sm,
     paddingHorizontal: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
+  seritPay: { flex: 1, alignItems: 'center' },
+  seritCizgi: {
+    width: '34%',
+    height: 2.5,
+    borderRadius: 1.5,
+    backgroundColor: colors.copperLight,
+  },
+  altNav: {
+    flexDirection: 'row',
+    paddingTop: spacing.xs + 2,
+    paddingHorizontal: spacing.xs,
+  },
   navOge: { flex: 1, alignItems: 'center', gap: 4 },
   navIkonKap: {
-    width: 54,
-    height: 34,
-    borderRadius: radius.pill,
+    width: 58,
+    height: 32,
+    borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navIkonKapAktif: { backgroundColor: colors.primaryBright },
+  // Dolgu artık primaryBright değil, copperLight'ın yumuşak/saydam bir
+  // katmanı — DoluIkon'daki A1 çakışma düzeltmesiyle de uyumlu, çünkü
+  // zemin artık primaryBright olmadığından o çakışma senaryosu hiç
+  // oluşmuyor bile (bkz. DoluIkon.tsx'teki A1 notu).
+  navIkonKapAktif: { backgroundColor: colors.copperLight },
   navYazi: {
     fontFamily: typography.bodyMedium,
     fontSize: fontSize.micro,
     color: colors.textOnDarkMuted,
   },
-  navYaziAktif: { fontFamily: typography.bodyBold, color: colors.primaryGlow },
+  navYaziAktif: { fontFamily: typography.bodyBold, color: colors.copperLight },
   navNokta: {
     position: 'absolute',
     top: 4,

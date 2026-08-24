@@ -65,7 +65,28 @@ export default function DoluIkon({
   const G1 = govde ?? colors.primary;       // koyu gövde
   const G2 = vurgu ?? colors.copperVivid;   // sıcak vurgu
   const BG = zemin ?? colors.white;         // iç boşluk / kontrast
-  const A1 = colors.primaryBright;          // açık turkuaz vurgu
+
+  // HATA DÜZELTMESİ, KÖKTEN (Keşfet ikonu tıklandığında "bozuk" görünmesi):
+  // A1 önceden SABİT olarak colors.primaryBright'tı — çağıran G1/G2/BG için
+  // ne renk gönderirse göndersin değişmiyordu. Alt navigasyonda aktif sekme
+  // tam olarak zemin=primaryBright, pasif sekme ise vurgu=primaryBright
+  // gönderiyor: her iki durumda da A1, ya BG ya da G2 ile AYNI renge
+  // düşüyordu. Keşfet ikonu dört kutudan biri A1, biri de yarı saydam BG/G2
+  // kullandığı için, bu çakışma olduğunda iki kutu görsel olarak birbirine
+  // karışıp ikon "bozuk/eksik" görünüyordu.
+  //
+  // Kalıcı çözüm: A1'i sabit bir renk yerine, G1/G2/BG'nin HİÇBİRİYLE
+  // çakışmayan ilk adaydan seçiyoruz. Aday sırası paletin doğal parlaklık
+  // basamağını izliyor (en açık turkuazdan başlayıp koyulaşır), böylece
+  // hangi çağrı bağlamında olursa olsun hem çakışma önlenir hem de seçilen
+  // renk her zaman "vurgu" hissi veren bir tondan gelir.
+  const A1_ADAYLARI = [
+    colors.primaryBright,
+    colors.primaryGlow,
+    colors.primaryLight,
+    colors.copperBright,
+  ];
+  const A1 = A1_ADAYLARI.find((c) => c !== G1 && c !== G2 && c !== BG) ?? colors.primaryBright;
 
   return (
     <Svg width={boyut} height={boyut} viewBox="0 0 32 32">

@@ -91,13 +91,65 @@ export const TARIH_OLAYLARI: TarihOlayi[] = [
 ];
 
 /**
- * Verilen güne ait tarihi olayı döndürür; o gün için kayıt yoksa null.
- *
- * Bilinçli olarak boş dönebilir: uydurma ya da tarihi tartışmalı bir olayla
- * her günü doldurmaktansa, kartın hiç görünmemesi tercih edildi.
+ * Verilen güne ait tarihi olayı döndürür; o gün için TAM eşleşen bir kayıt
+ * yoksa null. `getTariheBugun` yalnızca gün/ay birebir eşleştiğinde sonuç
+ * verir — "bugün" ibaresi doğru kalsın diye.
  */
-export function getTariheBugun(tarih: Date): TarihOlayi | null {
+export function getTariheBugunTamEslesme(tarih: Date): TarihOlayi | null {
   const ay = tarih.getMonth() + 1;
   const gun = tarih.getDate();
   return TARIH_OLAYLARI.find((o) => o.ay === ay && o.gun === gun) ?? null;
+}
+
+/**
+ * Geriye dönük uyumluluk için: `getTariheBugunTamEslesme` ile aynı.
+ * @deprecated Anasayfa artık `getTariheEnYakinOlay` (fallback'li sürüm) kullanıyor.
+ */
+export function getTariheBugun(tarih: Date): TarihOlayi | null {
+  return getTariheBugunTamEslesme(tarih);
+}
+
+/**
+ * TAKVİMDEKİ EN YAKIN OLAY (madde 3, devir dosyası — kullanıcı ısrarla
+ * "her gün gösterilsin" istedi).
+ *
+ * Liste kasıtlı olarak seyrek (yalnızca miladi tarihi tartışmasız olan ~12
+ * olay) — bu yüzden çoğu günde tam eşleşme yok. Her günü UYDURMA bir olayla
+ * doldurmak yerine, o güne göre takvimde EN YAKIN olan gerçek olayı, kendi
+ * gerçek tarihiyle birlikte gösteriyoruz ("26 Ağustos'ta yaşandı" gibi) —
+ * yani "bugün" değil "en yakın" olarak sunuluyor; doğruluk feda edilmiyor.
+ *
+ * Eşit uzaklıkta iki olay varsa yıl döngüsünde SIRADAKİ (ileri) olan seçilir.
+ */
+export function getTariheEnYakinOlay(tarih: Date): { olay: TarihOlayi; gunFarki: number; bugunMu: boolean } {
+  const ay = tarih.getMonth() + 1;
+  const gun = tarih.getDate();
+
+  const tam = getTariheBugunTamEslesme(tarih);
+  if (tam) return { olay: tam, gunFarki: 0, bugunMu: true };
+
+  // Yıl içindeki gün sırasına göre "bugünden kaç gün sonra/önce" hesapla.
+  // Basit bir yaklaşım: her olayı o yılki gün sayısına çevirip dairesel
+  // (365 gün) en kısa mesafeyi bul.
+  const gunSayisi = (a: number, g: number) => {
+    const kumulatif = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    return kumulatif[a - 1] + g;
+  };
+  const bugunNo = gunSayisi(ay, gun);
+
+  let enYakin = TARIH_OLAYLARI[0];
+  let enKisaFark = Infinity;
+  for (const o of TARIH_OLAYLARI) {
+    const olayNo = gunSayisi(o.ay, o.gun);
+    let fark = olayNo - bugunNo;
+    // Dairesel mesafe: ileri veya geri, hangisi kısaysa
+    if (fark > 182) fark -= 365;
+    if (fark < -182) fark += 365;
+    if (Math.abs(fark) < Math.abs(enKisaFark)) {
+      enKisaFark = fark;
+      enYakin = o;
+    }
+  }
+
+  return { olay: enYakin, gunFarki: enKisaFark, bugunMu: false };
 }

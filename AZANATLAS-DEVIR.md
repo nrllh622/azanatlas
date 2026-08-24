@@ -4,7 +4,9 @@
 > devam edebilmesi için hazırlandı. **Yeni sohbete bu dosyayı ekle ve
 > "AzanAtlas'a devam ediyoruz, devir dosyasını oku" de.**
 >
-> Son güncelleme: 24 Ağustos 2026 · Paket 4 teslim edildi (10 maddelik revizyon).
+> Son güncelleme: 24 Ağustos 2026 · Paket 5 teslim edildi (Paket 4'ün eksik/
+> yetersiz kalan maddelerinin kökten düzeltmesi + alt navigasyon yeniden
+> tasarımı, kullanıcı onayı alınıp uygulandı).
 
 ---
 
@@ -16,8 +18,16 @@ Klasör bağlıysa `mcp__remote-devices__device_list_dir` ile
 `device_stage_files` ile dosyaları al. **Cihazdaki kopya tek doğru kaynaktır** —
 kullanıcı her paketi uyguluyor.
 
+**⚠️ ÖNEMLİ ÖĞRENİLEN DERS (Paket 4→5):** Kullanıcı Paket 4'ten sonra "bazı
+maddeleri ısrarla yapmıyorsun" diye geri bildirdi. Sebep kötü niyet ya da
+atlama değildi — bazı "yapıldı" denen maddeler GERÇEKTE YETERSİZ kalmıştı
+(örn. İslam Tarihinde Bugün kartı kodda vardı ama veri seti o kadar seyrekti
+ki neredeyse hiçbir gün görünmüyordu). **Ders:** "kodda var" ile "kullanıcının
+gördüğü sonucu üretiyor" aynı şey değil — özellikle koşullu/veri-bağımlı
+özelliklerde, gerçek veri kapsamını da kontrol et.
+
 **Bekleyen kararlar:**
-- Açılış ekranı varyantı — Paket 4 ile 3 YENİ cami-görselli varyant eklendi
+- Açılış ekranı varyantı — 3 cami-görselli varyant eklendi
   (`cami-siluet`, `cami-hilal`, `cami-altin`), ama `App.tsx`'te aktif varyant
   hâlâ eski `'girih'`. Kullanıcı yeni varyantları görüp seçim yapmalı.
 - Widget — kod yazıldı ama HİÇ TEST EDİLMEDİ (Expo Go'da çalışmaz,
@@ -27,7 +37,11 @@ kullanıcı her paketi uyguluyor.
   edilecek — tema değiştirince gerçekten yeniden başlıyor mu doğrulanmalı.
 
 **Kullanıcının çalışma tarzı:** Ekran görüntüsüyle geri bildirim veriyor,
-karar gerektiren yerlerde onay istiyor, teslimat tam dosya + zip.
+karar gerektiren yerlerde onay istiyor, teslimat tam dosya + zip. Bir madde
+yarım kalırsa veya kodda olup sonuçta görünmüyorsa AYNI maddeyi tekrar
+tekrar yazıyor — bu bir sabır sınaması değil, gerçek bir sinyal: madde
+"tamam" işaretlenmeden önce gerçekten kullanıcının göreceği sonucu üretip
+üretmediği ayrıca doğrulanmalı.
 
 ---
 
@@ -62,25 +76,27 @@ karar gerektiren yerlerde onay istiyor, teslimat tam dosya + zip.
 ### Test komutları (her pakette verilecek)
 
 **ÖNEMLİ:** `azanatlas-paketN.zip` bir YER TUTUCUDUR — komutu çalıştırmadan
-önce `N` yerine gerçek paket numarasını yazmalısın (ör. Paket 4 için
-`azanatlas-paket4.zip`). Literal olarak `paketN` yazarsan `tar.exe: Error
+önce `N` yerine gerçek paket numarasını yazmalısın (ör. Paket 5 için
+`azanatlas-paket5.zip`). Literal olarak `paketN` yazarsan `tar.exe: Error
 opening archive: Failed to open 'azanatlas-paketN.zip'` hatası alırsın —
 çünkü o isimde bir dosya gerçekten yok.
 
 ```powershell
 cd C:\Users\nrllh\azanatlas
 
-tar -xf azanatlas-paket4.zip
-del azanatlas-paket4.zip
-
-npm.cmd install
+tar -xf azanatlas-paket5.zip
+del azanatlas-paket5.zip
 
 git add .
-git commit -m "..."
+git commit -m "Paket 5: anasayfa sıkıştırma, tarih kartı fallback, kesfet ikonu kök çözüm, tema koyultma, alt nav Zümrüt Şerit"
 git push origin master:main
 
 npx.cmd expo start -c --go
 ```
+
+**Not:** Paket 5'te `package.json`/`app.json` DEĞİŞMEDİ — yeni bağımlılık
+yok, bu yüzden `npm install` bu pakette gerekli değil (Paket 4'te gerekliydi,
+o zaten kurulduysa tekrar kurmaya gerek yok).
 
 **"running scripts is disabled on this system" hatası** (`npm install`
 veya `npm ...` çalıştırırken): PowerShell'in execution-policy kısıtlaması
@@ -108,8 +124,10 @@ halde), aşağıdaki iki ihtimali sırayla kontrol et:
 - `npx.cmd` kullan — PowerShell'de düz `npx` execution-policy hatası veriyor.
 - `--go` şart — projede `expo-dev-client` kurulu, bayraksız dev-build moduna düşer.
 - `-c` şart — önbellek temizliği, yeni dosyalarda gerekli.
-- **Paket 4'ten itibaren `npm install` ŞART** — `expo-updates` ve
-  `react-native-android-widget` yeni bağımlılıklar olarak eklendi.
+- **`npm install` yalnızca `package.json` değiştiğinde gerekli** — Paket 4
+  `expo-updates` ve `react-native-android-widget` eklediği için gerekliydi;
+  Paket 5 bağımlılık eklemiyor, gerekmiyor. Her paketin kendi test komutu
+  bloğu bunu netleştirir.
 - **EAS build hakkı harcanmıyor.** `expo start --go` ve `expo run:android`
   ikisi de yerel; kotadan düşen tek şey `eas build`.
 - Push reddedilirse: `git fetch origin` → `git merge origin/main` → tekrar push.
@@ -142,11 +160,17 @@ sabah = Türkiye/Diyanet konvansiyonunda max(fajr, sunrise − 60dk)
 ```
 
 ### Tema sistemi
-- **Paket 4 itibarıyla 10 palet** (11 değil — "Zümrüt & Varak" duplikasyonu
-  kaldırıldı, sadece "Zümrüt Varak" kaldı).
+- **10 palet** (11 değil — "Zümrüt & Varak" duplikasyonu kaldırıldı, sadece
+  "Zümrüt Varak" kaldı).
 - `zumrutVarak`, `lilaTezhibi`, `kisveSiyahi`, `tugraBordosu` paletleri Paket
-  4'te KOYULAŞTIRILDI (önceki sürüm çok parlak/göz yorucuydu). Tüm kritik
-  metin/zemin çiftleri WCAG AAA seviyesinde doğrulandı (script ile).
+  4'te koyulaştırılmıştı ama YETERSİZ kalmıştı — kullanıcı Paket 5'te aynı
+  şikayeti tekrarladı. Paket 5'te bu dört palette `copperLight`/`gold`
+  (aynı renk, alias), `textOnDarkMuted` ve `primaryGlow` DAHA DA
+  koyulaştırıldı (bkz. §5 "kök neden" notu) — bu üçü koyu zeminde METİN
+  rolünde kullanıldığı için en çok göz yoran değerlerdi. Tüm kritik
+  metin/zemin çiftleri WCAG AA eşiğinde (büyük metin ≥3:1, gövde metni
+  ≥4.5:1) yeniden doğrulandı (Python script ile, gerçek kullanım
+  bağlamlarına karşı — sadece rastgele renk çiftlerine karşı değil).
 - `colors` bir **Proxy** — her okumada aktif paletten değer döner.
 - Seçim `AsyncStorage`'da, `temaDeposu.ts` yönetiyor.
 - **YENİ (Paket 4):** Tema seçildiğinde artık elle kapat-aç GEREKMİYOR —
@@ -177,7 +201,32 @@ bozma.**
 
 ---
 
-## 4. DOSYA HARİTASI — Paket 4'te değişen/eklenen dosyalar
+## 4. DOSYA HARİTASI
+
+### Paket 5'te değişen dosyalar
+
+| Dosya | Değişiklik |
+|---|---|
+| `screens/HomeScreen.tsx` | Üst şerit/hero/vakit satırları/hızlı araçlar tekrar sıkıştırıldı (Kıble/Tesbih/Esmâ/Kaza artık scroll'suz görünüyor — hesap notu §5'te); Sıradaki Vakit saati büyütüldü (19→26px, display font); İslam Tarihinde Bugün artık HER GÜN görünüyor (fallback mantığı) |
+| `data/tariheBugun.ts` | `getTariheEnYakinOlay()` eklendi — tam eşleşme yoksa takvimdeki en yakın gerçek olayı, kendi tarihiyle birlikte gösteriyor. Eski `getTariheBugun` geriye dönük uyumluluk için korundu (deprecated) |
+| `components/DoluIkon.tsx` | Keşfet ikonu "bozuk görünme" hatası KÖKTEN çözüldü — bkz. §5 |
+| `theme.ts` | 4 koyu tema paleti (Zümrüt Varak, Lila Tezhibi, Tuğra Bordosu, Kisve Siyahı) daha da koyulaştırıldı |
+| `screens/HomeScreen.tsx` (aynı dosya, ek değişiklik) | Alt navigasyon "Zümrüt Şerit" (Varyant C) olarak yeniden tasarlandı — bkz. aşağıdaki alt başlık |
+
+**Bu paket dışında değişen dosya yok** — `package.json`/`app.json` aynı,
+`npm install` gerekmiyor.
+
+### Alt navigasyon kararı — ÇÖZÜLDÜ
+
+3 varyant (Yumuşak Cam / Yükselen Nokta / Zümrüt Şerit) bir Artifact
+sayfasında sunuldu, kullanıcı **Zümrüt Şerit**'i onayladı: dolgulu pil
+daralıp dikdörtgene (58×32, `radius.sm`) dönüştü; dolgu rengi
+`primaryBright`'tan `copperLight`'a değişti; aktif sekmenin üstünde, o
+sekmenin payı kadar genişlikte ince bir `copperLight` şerit beliriyor
+(`styles.serit`/`seritPay`/`seritCizgi`). 10 paletin tamamında yeni renk
+kombinasyonu (DoluIkon'un G1/G2/BG/A1) çakışma testinden geçirildi.
+
+### Paket 4'te değişen/eklenen dosyalar
 
 | Dosya | Değişiklik |
 |---|---|
@@ -210,15 +259,48 @@ burada tekrar edilmiyor: Kıldım butonu, Kıble pusulası doğruluğu,
 Keşfet→Kıble eşlemesi, Android bildirim kanalı, Expo Go kırmızı hata ekranı,
 Kerahat ayarı parametre uyuşmazlığı.)
 
-### YENİ — "Keşfet ikonu tıklanınca bozuluyor" (Paket 4'te çözüldü)
-**Sebep:** İki neden birleşiyordu: (1) `TouchableOpacity`'lerin çoğunda
-`activeOpacity` belirtilmemişti (RN varsayılanı 0.2 — dolgulu SVG ikonu
-şeffaflaştırıp katmanları karıştırıyordu), (2) alt navigasyonda pasif
-sekmenin `vurgu` rengi (`copperLight`) kesfet ikonundaki 4 renkli kutucukla
-düşük kontrastta çakışıyordu.
-**Çözüm:** Tüm `TouchableOpacity`'lere `activeOpacity` eklendi (0.6–0.8
-arası, konuma göre); pasif alt nav ikonunun vurgu rengi `primaryBright`'a
-çekildi.
+### "Keşfet ikonu tıklanınca bozuluyor" — Paket 4'teki çözüm YETERSİZDİ,
+### Paket 5'te KÖKTEN çözüldü
+**Paket 4'te yapılan (yetersiz kaldı):** `activeOpacity` eklendi ve alt
+navigasyonun KENDİ renk seçimleri ayarlandı — ama bu sorunu ekrana özel bir
+yamayla kapattı, bileşenin kendi içindeki asıl kusuru bırakmıştı.
+
+**Gerçek kök neden (Paket 5'te bulundu):** `DoluIkon.tsx` içinde dördüncü
+bir vurgu rengi olan `A1`, `govde`/`vurgu`/`zemin` prop'larından bağımsız,
+SABİT olarak `colors.primaryBright` idi. Alt navigasyon aktif sekmede tam
+olarak `zemin={colors.primaryBright}` gönderiyor, pasif sekmede ise
+`vurgu={colors.primaryBright}` gönderiyor — yani HER İKİ durumda da A1,
+çağıranın gönderdiği başka bir renkle birebir çakışıyordu. Keşfet ikonu dört
+kutudan birini A1 ile dolduruyor; A1 çakıştığında o kutu zeminle/başka bir
+kutuyla görsel olarak birleşip ikon "eksik/bozuk" görünüyordu.
+
+**Kalıcı çözüm:** `A1` artık sabit değil — `govde`/`vurgu`/`zemin`'in
+HİÇBİRİYLE çakışmayan ilk adayı otomatik seçen bir liste
+(`primaryBright → primaryGlow → primaryLight → copperBright`) kullanıyor.
+Bu, DoluIkon'u kullanan HER ekran/bağlam için (bugün 3 çağrı noktası var:
+Keşfet ızgarası, Ana Sayfa hızlı araçlar, alt navigasyon) otomatik olarak
+çalışır — yeni bir ekrandan yeni renk kombinasyonuyla çağrılsa bile. 10
+paletin tamamında, gerçek 3 çağrı bağlamında (nav aktif, nav pasif,
+ızgara/hızlı-araç) Python scriptiyle doğrulandı: hiçbir çakışma yok.
+
+### "İslam Tarihinde Bugün ısrarla gösterilmiyor" — Paket 3-4'te "yapıldı"
+### denildi ama veri kapsamı yetersizdi
+**Kök neden:** Kart kodda gerçekten vardı ve doğru yerdeydi (Günün
+Ayeti'nden sonra) — ama `tariheBugun.ts`'deki veri seti yalnızca 12 kayıt
+içeriyordu (yılda ~353 gün için HİÇ kayıt yok). Kullanıcı hangi gün
+kontrol ederse etsin, büyük ihtimalle kart görünmüyordu — "yapmadın" izlenimi
+buradan geliyordu, kod hiç çalışmıyor değildi.
+**Çözüm:** `getTariheEnYakinOlay()` — tam eşleşme yoksa takvimdeki en yakın
+GERÇEK olayı, kendi gerçek tarihiyle ("Yıl dönümüne N gün var" gibi)
+gösteriyor. Böylece kart her gün dolu ama hiçbir olay uydurma bir "bugün"
+etiketiyle sunulmuyor — dosyanın kendi "doğruluk feda edilmesin" ilkesi
+korundu.
+
+### Anasayfa hâlâ scroll gerektiriyordu (Paket 4'teki sıkıştırma yetersizdi)
+**Çözüm:** Üst şerit, hero, vakit satırları ve hızlı araçlar kartı ayrı ayrı
+tekrar sıkıştırıldı (bkz. §4 dosya haritası). Kaba dp hesabıyla toplam
+yükseklik ~557dp'ye indi — tipik kullanılabilir ekran yüksekliği (~640-780dp)
+içinde rahat sığıyor. Gerçek cihazda doğrulama kullanıcıdan bekleniyor.
 
 ### YENİ — Ayarlar ekranı ve popup'lar tema diline uymuyordu
 **Sebep:** `SettingsScreen` kendi başlığını yazıyordu, `ScreenHeader`
