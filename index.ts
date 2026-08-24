@@ -2,7 +2,12 @@ import { registerRootComponent } from 'expo';
 import { LogBox } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
-import { handleMarkPrayedAction, MARK_PRAYED_ACTION } from './src/lib/vaktindeKilActions';
+import {
+  handleMarkPrayedAction,
+  handleDismissReminderAction,
+  MARK_PRAYED_ACTION,
+  DISMISS_ACTION,
+} from './src/lib/vaktindeKilActions';
 
 import App from './App';
 
@@ -61,13 +66,15 @@ console.error = (...args: any[]) => {
   _origConsoleError(...args);
 };
 
-// ÖNEMLİ: Bu görev, uygulama TAMAMEN KAPALIYKEN (killed state) "Kıldım"
-// butonuna basıldığında da çalışabilmesi için modül düzeyinde (component
-// ağacının dışında) tanımlanıyor. `Notifications.addNotificationResponseReceivedListener`
-// yalnızca JS/React ortamı hafızada canlıyken tetiklenir; uygulama tamamen
-// kapatıldığında o listener hiç çalışmaz. Bu native arka plan görevi ise
-// process kapalı olsa bile Android tarafından tetiklenir — "Kıldım"
-// butonunun her durumda çalışmasını sağlayan asıl mekanizma budur.
+// ÖNEMLİ: Bu görev, uygulama TAMAMEN KAPALIYKEN (killed state) "Kıldım" ya
+// da "Sonra hatırlat" butonuna basıldığında da çalışabilmesi için modül
+// düzeyinde (component ağacının dışında) tanımlanıyor.
+// `Notifications.addNotificationResponseReceivedListener` yalnızca JS/React
+// ortamı hafızada canlıyken tetiklenir; uygulama tamamen kapatıldığında o
+// listener hiç çalışmaz. Bu native arka plan görevi ise process kapalı olsa
+// bile Android tarafından tetiklenir — her iki butonun da her durumda
+// çalışmasını (ve aynı vakte ait diğer bildirim eşlerini kapatmasını)
+// sağlayan asıl mekanizma budur.
 const BACKGROUND_NOTIFICATION_TASK = 'AZANATLAS_BACKGROUND_NOTIFICATION_TASK';
 
 // Tüm blok try/catch içinde: bu kod UYGULAMA AÇILMADAN ÖNCE, modül yüklenirken
@@ -85,10 +92,13 @@ try {
     if (!isNotificationResponse) return;
 
     const response = data as unknown as { actionIdentifier: string; notification: any };
-    if (response.actionIdentifier !== MARK_PRAYED_ACTION) return;
-
     const content = response.notification?.request?.content?.data;
-    await handleMarkPrayedAction(content);
+
+    if (response.actionIdentifier === MARK_PRAYED_ACTION) {
+      await handleMarkPrayedAction(content);
+    } else if (response.actionIdentifier === DISMISS_ACTION) {
+      await handleDismissReminderAction(content);
+    }
   });
 
   Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch(() => {

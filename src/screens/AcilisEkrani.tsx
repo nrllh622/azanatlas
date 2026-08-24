@@ -223,14 +223,17 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
               </Svg>
             </Animated.View>
 
-            {/* Ufuk çizgisi — iki yana açılır */}
+            {/* Ufuk çizgisi — iki yana açılır. `width` yerine `scaleX`
+                kullanılıyor (bkz. 'ufuk-cizgisi' varyantındaki aynı gerekçe:
+                `width` native animasyon sürücüsünde desteklenmiyor). */}
             <Animated.View
               style={{
                 position: 'absolute',
                 height: 2,
+                width: EKRAN_G * 0.62,
                 backgroundColor: C.coral,
-                width: a2.interpolate({ inputRange: [0, 1], outputRange: [0, EKRAN_G * 0.62] }),
                 opacity: a2,
+                transform: [{ scaleX: a2 }],
               }}
             />
 
@@ -483,22 +486,25 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
       // camiyi arkadan aydınlatarak belirmesi — "gün doğumu" hissi.
       // ═══════════════════════════════════════════════════════════════════
       case 'ufuk-cizgisi':
-        // Madde 4 (bu paket): dış `camiSahne` artık DİKEY ORTALANIYOR (cami
-        // ekranın kenarına yapışmasın diye) — ama bu varyantın kendi iç
-        // kompozisyonu (gökyüzü üstte, ufuk çizgisi + cami tam bu kutunun
-        // ALTINDA) hâlâ birbirine göre sabit kalmalı. Bu yüzden kendi
-        // pozisyon bağlamını taşıyan ayrı bir sarmalayıcı kutu kullanılıyor;
-        // bu kutu camiSahne'nin ortasında durur, içeriği ise KENDİ İÇİNDE
-        // alta yaslanır — mosque + ufuk çizgisi ilişkisi bozulmadan tüm
-        // sahne yukarı taşınmış olur.
+        // `camiSahne` artık sabit yükseklikli (bkz. styles.camiSahne) ve
+        // bu iç `View` onu `flex: 1` ile tamamen dolduruyor. Gökyüzü
+        // gradyanı sahnenin tamamını kaplar; ufuk çizgisi ve cami ise
+        // `position: 'absolute', bottom: ...` ile bu (artık sınırlı
+        // yükseklikteki) kutunun ALT kısmına yaslanır — gökyüzü/ışık/cami
+        // arasındaki göreli kompozisyon korunurken tüm blok, kendini
+        // saran sabit boyutlu sahnenin dışına taşmadan ortalanmış olur.
         return (
-          <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <View style={{ flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
             {/* Gökyüzü — koyudan aydınlığa geçiş hissi veren sabit gradyan
-                zemin, sıcak tonun opaklığı animasyonla artıyor */}
+                zemin, sıcak tonun opaklığı animasyonla artıyor. Sahnenin
+                tamamını kaplar ki sahne dikey ortalandığında gökyüzü de
+                onunla birlikte ortalanmış olsun (önceki `top: 0` + sabit
+                yükseklik, sahnenin büyük bir kısmını boş bırakıyordu). */}
             <Svg
               width={EKRAN_G}
-              height={Math.min(EKRAN_G, 420)}
+              height="100%"
               viewBox="0 0 100 100"
+              preserveAspectRatio="none"
               style={{ position: 'absolute', top: 0 }}
             >
               <Defs>
@@ -535,15 +541,24 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
               </Svg>
             </Animated.View>
 
-            {/* Ufuk çizgisi — cami tabanı hizasında iki yana açılır */}
+            {/* Ufuk çizgisi — cami tabanı hizasında iki yana açılır.
+                `width`'i doğrudan animasyonlamak yerine `scaleX` transform
+                kullanılıyor: `width` layout özelliği native animasyon
+                sürücüsünde desteklenmiyor ("Style property 'width' is not
+                supported by native animated module" uyarısı buradan
+                geliyordu) — `a2` aynı zamanda `useNativeDriver: true` ile
+                çalıştırılıyor, o yüzden ona bağlı her stil de native-uyumlu
+                bir özellik olmalı. Sabit tam genişlik + `scaleX: 0→1`
+                görsel olarak birebir aynı "iki yana açılma" etkisini verir. */}
             <Animated.View
               style={{
                 position: 'absolute',
                 bottom: spacing.xl + 2,
                 height: 2,
+                width: EKRAN_G * 0.86,
                 backgroundColor: C.coral,
-                width: a2.interpolate({ inputRange: [0, 1], outputRange: [0, EKRAN_G * 0.86] }),
                 opacity: a2,
+                transform: [{ scaleX: a2 }],
               }}
             />
 
@@ -630,14 +645,19 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
     }
   })();
 
-  // Madde 4 (bu paket — ısrarla tekrar edilen şikayet): cami önceki
-  // düzende ekranın en altına, kenara yapışık duruyordu ("çok altta
-  // kalmış") ve ad/slogan üstteydi. Kullanıcı isteği üzerine SIRA
-  // DEĞİŞTİRİLDİ: cami artık ekranın ÜST/ORTA bölgesinde, kenara
-  // yapışmadan, daha fazla nefes payıyla duruyor; AzanAtlas adı ve
-  // sloganı ise camiden SONRA, ekranın alt kısmında gösteriliyor. Girih/
-  // şafak/hatem varyantlarında (aşağıdaki `else` dalı) motif zaten
-  // ortada, ad altta kalmaya devam ediyor — bu üçü değişmedi.
+  // Madde 4 (önceki paket): cami önceki düzende ekranın en altına, kenara
+  // yapışık duruyordu ve ad/slogan üstteydi — SIRA değiştirilip cami üste,
+  // ad/slogan alta alınmıştı. Ancak `camiDuzen`'in `justifyContent:
+  // 'space-between'` + `camiSahne`'nin `flex: 1` olması, sahneyi ekranın
+  // neredeyse tamamını kaplayacak kadar büyütüyordu; içindeki gerçek görsel
+  // (özellikle 'ufuk-cizgisi' varyantı) o kutunun alt kısmına yaslandığı
+  // için üst yarı boş görünüyordu ("ekranın yarısı boş" şikayeti). Bu turda
+  // düzeltildi: `camiDuzen` artık dikey ORTALIYOR (`justifyContent:
+  // 'center'`), sahne `flex` yerine sabit/otomatik bir yükseklik alıyor —
+  // görsel ve altındaki AzanAtlas adı + slogan artık tek bir blok olarak
+  // ekranın TAM ortasında duruyor. Girih/şafak/hatem varyantlarında
+  // (aşağıdaki `else` dalı) motif zaten ortada, ad altta kalmaya devam
+  // ediyor — bu üçü değişmedi.
   const camiVaryanti =
     varyant === 'cami-siluet' || varyant === 'cami-hilal' || varyant === 'cami-altin' || varyant === 'ufuk-cizgisi';
 
@@ -712,26 +732,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 
-  // ---------- CAMİ VARYANTLARI: cami üstte/ortada, ad ve slogan altta ----------
-  // Madde 4 (bu paket): sıra değişti — cami artık kenara yapışık değil,
-  // kendi alanında DİKEY OLARAK ORTALANIYOR (justifyContent: 'center'),
-  // ad/slogan bloğu ekranın alt kısmında ayrı bir sabit yükseklikte duruyor.
+  // ---------- CAMİ VARYANTLARI: görsel + ad/slogan TEK BLOK olarak ortada ----------
+  // `camiDuzen` artık `flex: 1` + `justifyContent: 'center'` ile kendi
+  // içeriğini (sahne + yazı bloğu) dikey olarak EKRANIN TAM ORTASINA
+  // yerleştiriyor. Önceki `space-between` + sahnenin `flex: 1` olması,
+  // sahneyi ekranın büyük kısmını kaplayacak kadar büyütüyor, içindeki
+  // görsel kutunun alt kısmına yaslanınca üst yarı boş kalıyordu.
+  // `camiSahne` artık `flex` almıyor, ekran genişliğine göre sabit bir
+  // KARE alan kaplıyor (görsellerin kendi `Svg` boyutlarıyla, örn. 300px,
+  // uyumlu) — böylece sahne içeriği kadar yer kaplıyor, fazladan boşluk
+  // bırakmıyor.
   camiDuzen: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.xxl + spacing.lg,
+    justifyContent: 'center',
   },
   camiSahne: {
-    flex: 1,
     width: '100%',
+    height: Math.min(EKRAN_G * 0.95, 340),
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  yaziBlokAlt: { alignItems: 'center' },
+  yaziBlokAlt: { alignItems: 'center', marginTop: spacing.xl },
   adBuyuk: {
     fontFamily: typography.displayFamily,
     fontSize: 40,

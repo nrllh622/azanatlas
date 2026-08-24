@@ -4,12 +4,21 @@
 > devam edebilmesi için hazırlandı. **Yeni sohbete bu dosyayı ekle ve
 > "AzanAtlas'a devam ediyoruz, devir dosyasını oku" de.**
 >
-> Son güncelleme: 24 Ağustos 2026 · Paket 7 teslim edildi (tema pop-up'ına
-> "Vazgeç" eklendi, üst yeşil blok alt köşeleri kavisli yapıldı, vakit
-> listesi Yatsı tam sığacak şekilde daha da sıkıştırıldı). Paket 6'da
-> gelen 10 maddelik listenin BİR KISMI zaten çözülmüş çıktı (kod
-> doğrulamasıyla teyit edildi — §7'de detay), pusula/Kâbe görseli ve
-> widget/açılış ekranı varyantları HÂLÂ AÇIK (bkz. §7 "Bekleyen — Paket 8").
+> Son güncelleme: 24 Ağustos 2026 · Bu turda: (1) Anasayfadaki "Günün Ayeti"
+> ve "İslam Tarihinde Bugün" kartları artık dil değişiminde gerçekten
+> değişiyor. (2) Reklam SDK çökmesi (`RNGoogleMobileAdsModule could not be
+> found`) kalıcı olarak düzeltildi. (3) Bildirimler (vakit bildirimleri,
+> hatırlatıcılar, Vaktinde Kıl) artık seçili dilde kuruluyor. (4) Açılış
+> ekranındaki cami görseli yukarı, uygulama adı+slogan aşağı alındı. (5)
+> Banner reklam zaten test reklamı gösteriyor — mağaza yayınından önce
+> gerçek AdMob ID'leriyle değiştirilecek. (6) Çok dillilik (i18n) taraması
+> TAMAMLANDI — uygulamadaki 14 ekranın ve 2 paylaşımlı popup'ın tamamı artık
+> `useCeviri()` üzerinden çeviriyle çalışıyor, hiçbir ekranda sabit Türkçe
+> metin kalmadı (yer adları ve dini veri metinleri hariç — bkz. §8). Ayrıca
+> kullanıcıdan **YENİ, henüz hiç işlenmemiş** 10 maddelik büyük bir liste
+> geldi (anasayfa düzeni, kavisli üst şerit kaldırma, tema tutarlılığı,
+> pusula/Kâbe yeniden tasarımı, 3 widget varyantı, 3 açılış ekranı
+> varyantı) — kullanıcı bu listeye "dur" dedi, henüz BAŞLANMADI. Bkz. §7.
 
 ---
 
@@ -18,33 +27,32 @@
 **Yapman gereken ilk şey:** Kullanıcının bilgisayarındaki projeyi oku.
 Klasör bağlıysa `mcp__remote-devices__device_list_dir` ile
 `C:\Users\nrllh\azanatlas\src` içeriğini listele, sonra
-`device_stage_files` ile dosyaları al. **Cihazdaki kopya tek doğru kaynaktır** —
-kullanıcı her paketi uyguluyor.
+`device_stage_files` ile dosyaları al. **Cihazdaki kopya tek doğru kaynaktır.**
 
-**⚠️ ÖNEMLİ ÖĞRENİLEN DERS (Paket 4→5):** Kullanıcı Paket 4'ten sonra "bazı
-maddeleri ısrarla yapmıyorsun" diye geri bildirdi. Sebep kötü niyet ya da
-atlama değildi — bazı "yapıldı" denen maddeler GERÇEKTE YETERSİZ kalmıştı
-(örn. İslam Tarihinde Bugün kartı kodda vardı ama veri seti o kadar seyrekti
-ki neredeyse hiçbir gün görünmüyordu). **Ders:** "kodda var" ile "kullanıcının
-gördüğü sonucu üretiyor" aynı şey değil — özellikle koşullu/veri-bağımlı
-özelliklerde, gerçek veri kapsamını da kontrol et.
+**⚠️ İŞ AKIŞI DEĞİŞTİ (önemli):** Eski devir dosyalarında "zip paketi
+hazırla, kullanıcı `tar -xf` ile açsın" akışı anlatılıyordu. **Bu akış artık
+KULLANILMIYOR.** Güncel kural: dosyalar `SendUserFile` ile gönderilip
+ardından `mcp__remote-devices__device_commit_files` ile doğrudan
+`C:\Users\nrllh\azanatlas\...` altındaki gerçek yoluna yazılıyor — kullanıcı
+hiçbir zip açmıyor, hiçbir şey elle taşımıyor. Kod aşağıdaki test/git
+komutlarını çalıştırmadan önce zaten yerinde.
 
-**Bekleyen kararlar:**
-- Açılış ekranı varyantı — 3 cami-görselli varyant eklendi
-  (`cami-siluet`, `cami-hilal`, `cami-altin`), ama `App.tsx`'te aktif varyant
-  hâlâ eski `'girih'`. Kullanıcı yeni varyantları görüp seçim yapmalı.
-- Widget — kod yazıldı ama HİÇ TEST EDİLMEDİ (Expo Go'da çalışmaz,
-  `expo run:android` gerekir). Kullanıcı "development build aldığımızda test
-  ederiz" dedi.
-- `expo-updates` paketi eklendi ama `npm install` sonrası ilk kez test
-  edilecek — tema değiştirince gerçekten yeniden başlıyor mu doğrulanmalı.
+**⚠️ ÖNEMLİ ÖĞRENİLEN DERS:** Kullanıcı geçmişte "bazı maddeleri ısrarla
+yapmıyorsun" diye geri bildirmişti. Sebep atlama değildi — bazı "yapıldı"
+denen maddeler GERÇEKTE YETERSİZ kalmıştı (örn. İslam Tarihinde Bugün kartı
+kodda vardı ama veri seti o kadar seyrekti ki neredeyse hiçbir gün
+görünmüyordu). **Ders:** "kodda var" ile "kullanıcının gördüğü sonucu
+üretiyor" aynı şey değil — özellikle koşullu/veri-bağımlı özelliklerde,
+gerçek veri kapsamını da kontrol et. Yeni bir madde geldiğinde önce mevcut
+kodu oku, "zaten yapılmış" gibi görünse bile kullanıcının ekran görüntüsü
+daha güncel bir build'e mi ait diye kontrol et.
 
-**Kullanıcının çalışma tarzı:** Ekran görüntüsüyle geri bildirim veriyor,
-karar gerektiren yerlerde onay istiyor, teslimat tam dosya + zip. Bir madde
-yarım kalırsa veya kodda olup sonuçta görünmüyorsa AYNI maddeyi tekrar
-tekrar yazıyor — bu bir sabır sınaması değil, gerçek bir sinyal: madde
-"tamam" işaretlenmeden önce gerçekten kullanıcının göreceği sonucu üretip
-üretmediği ayrıca doğrulanmalı.
+**Kullanıcının çalışma tarzı:** Ekran görüntüsüyle/uzun numaralı listelerle
+geri bildirim veriyor, görsel/tasarım kararlarında önce varyant sunulup
+onay istenmesini tercih ediyor (bkz. §7), teslimat artık doğrudan cihaza
+(device bridge). Bir madde yarım kalırsa veya kodda olup sonuçta
+görünmüyorsa AYNI maddeyi tekrar yazıyor — bu bir sabır sınaması değil,
+gerçek bir sinyal.
 
 ---
 
@@ -54,103 +62,61 @@ tekrar yazıyor — bu bir sabır sınaması değil, gerçek bir sinyal: madde
 |---|---|
 | **Uygulama** | AzanAtlas — Türkçe/global namaz vakitleri uygulaması |
 | **Paket adı** | `com.azanatlas.app` |
-| **Teknoloji** | React Native + Expo SDK 54 (`expo ~54.0.35`, RN 0.81.5) |
+| **Teknoloji** | React Native + Expo SDK 54 (`expo ~54.0.35`, RN 0.81.5, React 19.1.0) |
 | **Proje yolu** | `C:\Users\nrllh\azanatlas` (Windows, kullanıcı: nrllh) |
 | **GitHub** | `nrllh622/azanatlas` — yerel dal `master`, uzak dal `main` |
 | **Push komutu** | `git push origin master:main` |
-| **Hedef kitle** | Global / uluslararası (Türkiye öncelikli değil, eşit) |
+| **Hedef kitle** | Global / uluslararası (Türkiye öncelikli değil, eşit) — bu yüzden çok dillilik (TR/EN) çalışması sürüyor |
 | **Kapsam kararı** | "Orta genişlik" — sosyal ağ, premium mağaza, gerçek AI sohbet YOK |
 
 ---
 
 ## 2. KULLANICININ KALICI TALİMATLARI
 
-1. **Her çalışma sonunda test komutlarını yaz** — Expo Go'da çalıştırma dahil.
-2. **Git komutlarını da yaz** — pull, commit, push, gerekiyorsa diğerleri.
-3. **"Uygulamadaki renkler, resimler, görseller, ikonlar, butonlar, yazılar ve
-   uygulamadaki her şey İslami tonlarda olmalı."**
+1. **Her çalışma sonunda test komutlarını yaz** — Expo Go'da çalıştırma dahil, `.cmd` uzantılı (PowerShell execution-policy kısıtı: `npm.cmd`, `npx.cmd`).
+2. **Git komutlarını da yaz** — pull, commit, push, gerekiyorsa diğerleri. Push her zaman `git push origin master:main`.
+3. **"Uygulamadaki renkler, resimler, görseller, ikonlar, butonlar, yazılar ve uygulamadaki her şey İslami tonlarda olmalı."**
 4. **Performansa dikkat** — uygulama hızlı açılmalı, ekran geçişleri hızlı olmalı.
-5. **Teslimat biçimi:** tam dosya içeriği (kısmi/satır ekleme değil), zip olarak,
-   proje klasörünün üzerine açılacak şekilde.
-6. **YENİ (Paket 4):** İnternetten kullanılan HER görsel/medya mutlaka ücretsiz
-   ve ticari hak sorunu olmayan kaynaklardan olmalı — izin istemeden araştırıp
-   seçilebilir ama lisans MUTLAKA doğrulanmalı. Bu kural TÜM projelerde geçerli.
+5. **Teslimat biçimi:** ASLA zip/indirilebilir paket değil — dosyalar doğrudan `C:\Users\nrllh\azanatlas` içine, device bridge (`SendUserFile` + `device_commit_files`) ile yazılıyor. Kullanıcı GitHub'a kendisi push ediyor (Claude'un bu oturumda gerçek `git` komutu çalıştırma imkânı yok — komutlar kullanıcı için yazılıp teslim ediliyor).
+6. **Görsel/medya lisans kuralı (TÜM projelerde geçerli, kullanıcı birden fazla kez vurguladı):** "görseller ile ilgili internette free olarak kullanılacak her türlü görsel için gerekirse araştırma yap ve benden izin istemeden bu görselleri kullan. fakat lisans hakları, ticari kullanım hakkı gibi konulara dikkat et. kullanacağın bütün materyaller mutlaka free ve hiçbir ticari hakkı olmamalı." — izin istemeden araştırıp seçilebilir ama lisans MUTLAKA doğrulanmalı.
+7. **Devir dosyası yalnızca açıkça istendiğinde oluşturulur/güncellenir** — her paket sonunda otomatik üretilmez.
+8. **Görsel/tasarım kararlarında (yeni bir bileşen, renk şeması, pusula/Kâbe illüstrasyonu, widget/açılış ekranı varyantı gibi) önce birkaç varyant üretip sunmak, onay aldıktan SONRA koda işlemek** kullanıcının tercih ettiği yöntem (alt navigasyon "Zümrüt Şerit" kararı bu şekilde verilmişti).
 
-### Test komutları (her pakette verilecek)
-
-**ÖNEMLİ:** `azanatlas-paketN.zip` bir YER TUTUCUDUR — komutu çalıştırmadan
-önce `N` yerine gerçek paket numarasını yazmalısın (ör. Paket 5 için
-`azanatlas-paket5.zip`). Literal olarak `paketN` yazarsan `tar.exe: Error
-opening archive: Failed to open 'azanatlas-paketN.zip'` hatası alırsın —
-çünkü o isimde bir dosya gerçekten yok.
+### Test komutları (her teslimatta yazılacak şablon)
 
 ```powershell
 cd C:\Users\nrllh\azanatlas
-
-tar -xf azanatlas-paket7.zip
-del azanatlas-paket7.zip
-
-git add .
-git commit -m "Paket 7: tema pop-up Vazgec secenegi, ust yesil blok kavisli alt kose, vakit listesi sikistirma (Yatsi sigdirma)"
-git push origin master:main
-
-npx.cmd expo start -c --go
+npx.cmd expo start -c
 ```
 
-**Not:** Paket 7'de `package.json`/`app.json` DEĞİŞMEDİ — yeni bağımlılık
-yok, bu yüzden `npm install` bu pakette gerekli değil.
+`package.json`/`app.json` değişmediyse `npm install` gerekmez; değiştiyse:
 
-**"Şimdi Yeniden Başlat" gerçekten yeniden başlatmıyor — bu bir hata
-değil, beklenen davranış:** `expo-updates`'in `Updates.reloadAsync()`
-fonksiyonu Expo Go'da native modülü BULAMAZ, `catch` bloğuna düşer ve
-sessizce pop-up'ı kapatır (uygulama çökmez ama yeniden de başlamaz). Bu
-özelliğin gerçekten çalıştığını görmek için **development build** şart:
+```powershell
+npm.cmd install
+```
+
+Widget veya `expo-updates`'in gerçek (native) davranışını test etmek için
+Expo Go yetmez, development build gerekir:
+
 ```powershell
 npx.cmd expo run:android
 ```
-Bu, `expo-dev-client` kullanan tam native bir build üretir/kurar (EAS
-build hakkı harcamaz, tamamen yerel). Kurulumdan sonra tema
-değiştirdiğinde "Şimdi Yeniden Başlat" gerçekten uygulamayı kapatıp
-yeniden açacak. Expo Go'da bu her zaman aynı şekilde (sessiz no-op)
-kalacak — bu paketin veya önceki paketlerin bir eksiği değil, Expo Go'nun
-native modül kısıtı.
 
-**"running scripts is disabled on this system" hatası** (`npm install`
-veya `npm ...` çalıştırırken): PowerShell'in execution-policy kısıtlaması
-`npm.ps1`'i engelliyor — `npx` için zaten uygulanan çözüm burada da geçerli:
-düz `npm` yerine `npm.cmd` kullan (yukarıdaki komutta zaten güncellendi).
-Aynı kısıtlama projede çalıştırılan HER npm/npx komutunu etkiler — `npm run
-...`, `npm uninstall ...` gibi komutları da hep `npm.cmd` ile yaz.
+### Git komutları (her teslimatta yazılacak şablon)
 
-**`tar` yine de "Failed to open" hatası verirse** (dosya adı doğru olduğu
-halde), aşağıdaki iki ihtimali sırayla kontrol et:
+```powershell
+cd C:\Users\nrllh\azanatlas
+git add .
+git commit -m "<bu turun kısa özeti>"
+git push origin master:main
+```
 
-1. **Dosya gerçekten o klasörde mi?** `dir azanatlas-paket4.zip` ile
-   doğrula — indirilenler klasörüne inmiş olabilir, `move` ile proje
-   köküne taşı.
-2. **PowerShell'in `tar`'ı yerine Windows'un `tar.exe`'sini zorla dene**,
-   ya da `tar` yerine PowerShell'in kendi arşiv aracını kullan:
-   ```powershell
-   Expand-Archive -Path azanatlas-paket4.zip -DestinationPath . -Force
-   del azanatlas-paket4.zip
-   ```
-   `-Force` mevcut dosyaların üzerine yazar — zip zaten proje köküne
-   açılacak şekilde hazırlanıyor, bu güvenlidir.
+Push reddedilirse: `git fetch origin` → `git merge origin/main` → tekrar push.
 
-**Diğer kritik komut notları:**
-- `npx.cmd` kullan — PowerShell'de düz `npx` execution-policy hatası veriyor.
-- `--go` şart — projede `expo-dev-client` kurulu, bayraksız dev-build moduna düşer.
-- `-c` şart — önbellek temizliği, yeni dosyalarda gerekli.
-- **`npm install` yalnızca `package.json` değiştiğinde gerekli** — Paket 4
-  `expo-updates` ve `react-native-android-widget` eklediği için gerekliydi;
-  Paket 5 bağımlılık eklemiyor, gerekmiyor. Her paketin kendi test komutu
-  bloğu bunu netleştirir.
-- **EAS build hakkı harcanmıyor.** `expo start --go` ve `expo run:android`
-  ikisi de yerel; kotadan düşen tek şey `eas build`.
-- Push reddedilirse: `git fetch origin` → `git merge origin/main` → tekrar push.
-- Widget ve `expo-updates`'in gerçek reload'u test edilecekse:
-  `npx expo run:android` (development build) gerekir, Expo Go'da ikisi de
-  sessizce devre dışı kalır (uygulama çökmez, sadece o özellik pasif kalır).
+**"Şimdi Yeniden Başlat" gerçekten yeniden başlatmıyor — bu bir hata
+değil:** `expo-updates`'in `Updates.reloadAsync()` fonksiyonu Expo Go'da
+native modülü BULAMAZ, `catch` bloğuna düşer ve sessizce pop-up'ı kapatır.
+Gerçek testi `npx.cmd expo run:android` (development build) gerektirir.
 
 ---
 
@@ -158,8 +124,9 @@ halde), aşağıdaki iki ihtimali sırayla kontrol et:
 
 ### Navigasyon (react-navigation YOK)
 `HomeScreen.tsx` bir **kabuk** görevi görüyor: 5 kalıcı sekme (Ana Sayfa,
-İmsakiye, Keşfet, Takip, Ayarlar) + tam ekran araçlar (Kıble, Tesbih, Esmâ,
-Kaza, Vaktinde Kıl, Hatırlatıcılar, Konum, Tema).
+İmsakiye, Keşfet, Kıble, Ayarlar — Kıble alt navigasyonda, Takip hızlı-araç
+satırında, bkz. önceki "Sekme/Araç yer değişimi" kararı) + tam ekran araçlar
+(Takip, Tesbih, Esmâ, Kaza, Vaktinde Kıl, Hatırlatıcılar, Konum, Tema).
 
 ### Vakit hesaplama — iki aşamalı
 1. `calculateVakitler()` — `adhan` kütüphanesiyle senkron, anında sonuç.
@@ -177,408 +144,332 @@ sabah = Türkiye/Diyanet konvansiyonunda max(fajr, sunrise − 60dk)
 ```
 
 ### Tema sistemi
-- **10 palet** (11 değil — "Zümrüt & Varak" duplikasyonu kaldırıldı, sadece
-  "Zümrüt Varak" kaldı).
-- `zumrutVarak`, `lilaTezhibi`, `kisveSiyahi`, `tugraBordosu` paletleri Paket
-  4'te koyulaştırılmıştı ama YETERSİZ kalmıştı — kullanıcı Paket 5'te aynı
-  şikayeti tekrarladı. Paket 5'te bu dört palette `copperLight`/`gold`
-  (aynı renk, alias), `textOnDarkMuted` ve `primaryGlow` DAHA DA
-  koyulaştırıldı (bkz. §5 "kök neden" notu) — bu üçü koyu zeminde METİN
-  rolünde kullanıldığı için en çok göz yoran değerlerdi. Tüm kritik
-  metin/zemin çiftleri WCAG AA eşiğinde (büyük metin ≥3:1, gövde metni
-  ≥4.5:1) yeniden doğrulandı (Python script ile, gerçek kullanım
-  bağlamlarına karşı — sadece rastgele renk çiftlerine karşı değil).
+- **10 palet** ("Zümrüt & Varak" duplikasyonu kaldırıldı, sadece "Zümrüt
+  Varak" kaldı).
 - `colors` bir **Proxy** — her okumada aktif paletten değer döner.
 - Seçim `AsyncStorage`'da, `temaDeposu.ts` yönetiyor.
-- **YENİ (Paket 4):** Tema seçildiğinde artık elle kapat-aç GEREKMİYOR —
-  `TemaScreen` kullanıcıya "Tema değişti" bilgilendirmesi gösterip 1.8 saniye
-  sonra `expo-updates`'in `Updates.reloadAsync()` fonksiyonuyla uygulamayı
-  KENDİLİĞİNDEN yeniden başlatıyor. Expo Go'da bu native modül
-  bulunamayacağı için sessizce eski (elle kapat-aç) davranışa düşer.
+- Tema seçildiğinde `TemaScreen` "Tema değişti" bilgilendirmesiyle
+  kullanıcı onaylı bir `Modal` gösteriyor: "Şimdi Yeniden Başlat" / "Daha
+  Sonra" / "Vazgeç" (Vazgeç, az önce yazılan seçimi geri alıp önceki
+  çalışan temayı tekrar kaydeder). Onay verilirse `expo-updates`'in
+  `Updates.reloadAsync()`'i çağrılır. Expo Go'da native modül bulunamadığı
+  için bu adım sessizce no-op olur (beklenen davranış, hata değil).
+- Her palet artık `adEn`/`aciklamaEn` alanlarını da taşıyor — `TemaScreen`
+  aktif dile göre isim/açıklamayı seçiyor (bkz. §8).
 
 ⚠️ **Kritik mimari detay korunuyor:** `App.tsx`, `src/AppGovde.tsx`'i statik
 import ETMİYOR — tema okunduktan sonra `require()` ile yüklüyor. **Bu yapıyı
 bozma.**
 
-### Widget (YENİ — Paket 4, henüz test edilmedi)
+### Widget (kod yazıldı, HİÇ test edilmedi)
 - `react-native-android-widget` paketiyle, Kotlin/XML yazmadan TSX widget.
-- `src/widget/AzanAtlasWidget.tsx` — görünüm (ana sayfa renk diliyle uyumlu
-  ama Muslim Pro kadar sade; TÜM 7 vakit gösteriliyor, Muslim Pro'nun
-  aksine).
+- `src/widget/AzanAtlasWidget.tsx` — görünüm.
 - `src/widget/widgetTaskHandler.ts` — Android'in tetiklediği görev,
-  `index.ts`'te try/catch içinde `registerWidgetTaskHandler` ile kayıtlı
-  (paket kurulu değilse/Expo Go'daysa sessizce atlanır).
+  `index.ts`'te try/catch içinde `registerWidgetTaskHandler` ile kayıtlı.
 - `src/lib/widgetVeriDeposu.ts` — "önceden hesapla, sonra oku" deseni:
   `HomeScreen` vakitleri her hesapladığında AsyncStorage'a yazıyor, widget
-  yalnızca bunu okuyor (kendi başına astronomik hesap yapmıyor).
+  yalnızca bunu okuyor.
 - `app.json`'a `react-native-android-widget` config plugin'i eklendi.
 - **Expo Go'da hiçbir etkisi yok.** `npx expo run:android` (development
-  build) ile test edilecek.
-- Canlı geri sayım YOK (Android kısıtı, statik liste — Muslim Pro da öyle).
+  build) ile test edilecek — kullanıcı bunu development build alınca
+  deneyeceğini belirtmişti.
+- Canlı geri sayım YOK (Android kısıtı, statik liste).
+- Kullanıcı mevcut tasarımı beğenmedi, özellikle uygulama adının konumu —
+  bkz. §7 madde 10, henüz işlenmedi.
+
+### Reklam SDK — çökme düzeltildi (bu turun işi)
+`react-native-google-mobile-ads` `16.0.1` sabitlendi (Expo SDK 54
+uyumluluğu için). Daha önce paket, `require('react-native-google-mobile-ads')`
+çağrısını düz bir `try/catch` içine alıyordu — bu YETERSİZ çıktı: paketin iç
+modül zinciri (`index.ts` → `MobileAds.ts` → `GoogleMobileAdsModule.ts`)
+`TurboModuleRegistry.getEnforcing()`'i senkron çağırıyor ve bu throw, bu RN/
+Expo sürümünde çevresindeki try/catch tarafından güvenilir şekilde
+yakalanamıyordu — sonuç: "Uncaught Error: TurboModuleRegistry.getEnforcing(...):
+'RNGoogleMobileAdsModule' could not be found" ile açılışta çökme.
+
+**Kalıcı çözüm:** `require()` çağrısından ÖNCE `NativeModules.RNGoogleMobileAdsModule`
+truthiness kontrolü ekleniyor — modül gerçekten bağlı değilse `require()`
+hiç denenmiyor. İki yerde uygulandı:
+- `src/components/BannerReklam.tsx`
+- `src/AppGovde.tsx` (`reklamSdkBaslat()` içinde)
+
+**Banner reklam durumu:** Şu an test reklamı (`ca-app-pub-3940256099942544~...`,
+`app.json`'daki `react-native-google-mobile-ads` plugin config'inde) —
+kullanıcı "mağazada yayınlayınca gerçek ID'ye geçelim" dedi, bu yüzden kod
+tarafında ek bir işlem YAPILMADI, sadece onaylandı. **Mağaza yayınından
+hemen önce yapılacak:** `app.json`'daki `androidAppId`/`iosAppId` ve
+`BannerReklam.tsx`/`AppGovde.tsx` içindeki birim ID'lerini gerçek AdMob
+ID'leriyle değiştir.
 
 ---
 
-## 4. DOSYA HARİTASI
-
-### Paket 6'da değişen dosyalar
+## 4. DOSYA HARİTASI (bu turda değişen dosyalar)
 
 | Dosya | Değişiklik |
 |---|---|
-| `screens/HomeScreen.tsx` | Üst şerit artık `colors.primary` zemin (koyu yeşil), `IslamicPattern` overlay eklendi; konum/bildirim butonları dolgu daireden yarı-saydam "cam" daireye döndü (`rgba(255,255,255,0.10)` zemin, `rgba(255,255,255,0.18)` kenarlık), ikon rengi `copperLight`; konum metinleri `textOnDark`/`textOnDarkMuted`'a geçti. Geri sayımın üstüne "KALAN SÜRE" etiketi eklendi. Sıradaki Vakit saati 26→32px büyütüldü, "Sıradaki" adı 26→22px küçültüldü (satır dengesi için). Kıble ve Takip'in konumu YAPISAL olarak değişti — bkz. §3 "Sekme/Araç yer değişimi" |
-| `screens/TemaScreen.tsx` | Otomatik (1.8sn sonra kendiliğinden) yeniden başlatma KALDIRILDI — yerine kullanıcı onaylı `Modal` geldi: "Şimdi Yeniden Başlat" / "Daha Sonra". Reddedilirse uygulama AÇIK kalıyor, hiçbir zorlama yok |
-| `screens/LocationPickerScreen.tsx` | Kendi özel başlığı kaldırıldı, `ScreenHeader` kullanılıyor (3 mod: liste/il/ilçe); hardcoded punto/renk yerine theme token'ları; buton stilleri `primary` zeminli birincil + çerçeveli ikincil olarak yenilendi |
-| `screens/VaktindeKilScreen.tsx` | Kendi özel başlığı kaldırıldı, `ScreenHeader` (bilgi ikonu ile) kullanılıyor; kart/switch stilleri theme token'larına ve `primaryBright` switch rengine geçti |
-| `screens/RemindersScreen.tsx` | Kendi özel başlığı kaldırıldı, `ScreenHeader` kullanılıyor; kart/switch stilleri theme token'larına geçti; kullanılmayan bir eski import temizlendi |
+| `src/data/ayetler.ts` | 39 ayetin tamamına `kaynakEn`/`mealEn` eklendi |
+| `src/data/tariheBugun.ts` | 13 tarihi olayın tamamına `baslikEn`/`aciklamaEn` eklendi |
+| `src/screens/HomeScreen.tsx` | Ayet/tarih kartları artık `dil` state'ine göre EN/TR alan seçiyor; bildirim zamanlayıcı çağrılarına `dil` parametresi eklendi + `useEffect` bağımlılık dizisine `dil` eklendi |
+| `src/i18n/ceviriler.ts` | `bildirimler`, `kibleEkrani` bölümleri + `kapatBuyuk`/`vazgecBuyuk`/`tamamBuyuk` eklendi; `tDil()`/`vakitAdiDil()` yardımcı fonksiyonları (hook çağıramayan `lib/*.ts` dosyaları için) |
+| `src/lib/notificationScheduler.ts` | `configureAndroidChannels()` ve `scheduleAllNotifications()` artık `dil` parametresi alıyor, tüm bildirim başlık/gövde/kanal adları `tDil()` üzerinden geliyor |
+| `src/lib/remindersScheduler.ts` | `scheduleReminders()` artık `dil` parametresi alıyor (sahur, teheccüt, Pazartesi/Perşembe orucu, Cuma hatırlatmaları) |
+| `src/lib/vaktindeKilScheduler.ts` | `scheduleVaktindeKil()` artık `dil` parametresi alıyor |
+| `src/components/BannerReklam.tsx` | Reklam SDK çökme düzeltmesi (yukarı bkz.) |
+| `src/AppGovde.tsx` | Reklam SDK çökme düzeltmesi (yukarı bkz.) |
+| `src/screens/AcilisEkrani.tsx` | Cami-varyantlarında (`cami-siluet`, `cami-hilal`, `cami-altin`, `ufuk-cizgisi`) mizanpaj ters çevrildi: cami görseli artık üstte/ortada, "AzanAtlas" + slogan artık altta |
+| `src/screens/LocationPickerScreen.tsx` | Tüm çevre metinler `useCeviri()`'ye taşındı |
+| `src/screens/TesbihScreen.tsx` | Tüm çevre metinler + zikir anlamları (`anlamEn`) çevrildi |
+| `src/screens/TakipScreen.tsx` | Tüm çevre metinler + ay/gün adları çeviri sözlüğünden okunuyor |
+| `src/screens/TemaScreen.tsx` | Tüm çevre metinler + onay modalı çevrildi |
+| `src/screens/QiblaScreen.tsx` | Tüm çevre metinler (pusula rehberi, kartlar, K/D/G/B yön harfleri) çevrildi |
+| `src/theme.ts` | Her paletteki `PaletTanimi`ye `adEn`/`aciklamaEn` eklendi (10 palet) |
+| `src/components/SoundPickerModal.tsx` | "VAZGEÇ"/"TAMAM" butonları çevrildi |
+| `src/components/SimplePickerModal.tsx` | "KAPAT" butonu çevrildi |
 
-**Bu paket dışında değişen dosya yok** — `package.json`/`app.json` aynı,
-`npm install` gerekmiyor.
+Bu turdan ÖNCE zaten çevrilmiş olan ekranlar (önceki, bu devir dosyasına
+yansımamış bir oturumda yapılmış): `RemindersScreen.tsx`,
+`VaktindeKilScreen.tsx`, `ImsakiyeScreen.tsx`, `SettingsScreen.tsx`,
+`KazaScreen.tsx`, `KesfetScreen.tsx`, `EsmaulHusnaScreen.tsx`.
 
-### Sekme/Araç yer değişimi — Kıble ↔ Takip (Paket 6)
-
-Kullanıcı isteği: Kıble alt navigasyona (kalıcı sekme) taşınsın, Takip onun
-yerine hızlı-araç satırına (anasayfadaki araç kartı) geçsin — yani ikisi yer
-değiştirsin.
-
-**Yapılan yapısal değişiklik:**
-- `Tab` tipi: `'takip'` çıktı, `'qibla'` girdi → artık
-  `'home' | 'imsakiye' | 'kesfet' | 'qibla' | 'settings'`.
-- `SubScreen` tipi: `'qibla'` çıktı, `'takip'` girdi.
-- `SEKMELER` (alt nav dizisi) artık Kıble'yi listeliyor, Takip'i değil.
-- `HIZLI_ARACLAR` (anasayfa hızlı-araç kartları) artık Takip'i listeliyor,
-  Kıble'yi değil.
-- Keşfet ekranından yönlendirme (`kesfetYonlendir`) ters çevrildi: `'kible'`
-  artık `setTab('qibla')`'ya, `'takip'` artık `setSub('takip')`'e gidiyor.
-- Alt-ekran render dispatch'i: `sub === 'takip'` → `TakipScreen`
-  (eskiden `sub === 'qibla'` → `QiblaScreen`'di).
-- Sekme içeriği dispatch'i: `tab === 'qibla'` → `QiblaScreen` (eskiden
-  `tab === 'takip'` → `TakipScreen`'di).
-- Kaza sayısına bağlı bildirim noktası (kırmızı nokta), eskiden alt-nav
-  Takip ikonundaydı — artık hızlı-araç Takip ikonunda (yeni `hizliNokta`
-  stili). Eski `navNokta` stili tamamen silindi.
-
-**ÖNEMLİ — neden `TakipScreen.tsx`/`QiblaScreen.tsx`'in kendisi
-DEĞİŞMEDİ:** İkisi de zaten opsiyonel `onClose?: () => void` prop'u
-destekliyordu — `onClose` verilmezse (kalıcı sekme modu) `ScreenHeader`
-kapatma butonu yerine boş bir `sideBtn` placeholder çiziyor, verilirse
-(pushed sub-screen modu) kapatma butonu çiziyor. Bu yüzden hangi ekranın
-sekme, hangisinin araç olduğu SADECE `HomeScreen.tsx`'teki dispatch/tip
-tanımlarıyla belirleniyor — hedef ekranların içinde hiçbir değişiklik
-gerekmedi. Yeni bir sekme/araç yer değişimi istenirse aynı desen
-kullanılabilir: hedef ekranın `onClose` prop'u opsiyonel mi diye kontrol et,
-öyleyse sadece `HomeScreen.tsx`'i düzenle.
-
-### Paket 5'te değişen dosyalar
-
-| Dosya | Değişiklik |
-|---|---|
-| `screens/HomeScreen.tsx` | Üst şerit/hero/vakit satırları/hızlı araçlar tekrar sıkıştırıldı (Kıble/Tesbih/Esmâ/Kaza artık scroll'suz görünüyor — hesap notu §5'te); Sıradaki Vakit saati büyütüldü (19→26px, display font); İslam Tarihinde Bugün artık HER GÜN görünüyor (fallback mantığı) |
-| `data/tariheBugun.ts` | `getTariheEnYakinOlay()` eklendi — tam eşleşme yoksa takvimdeki en yakın gerçek olayı, kendi tarihiyle birlikte gösteriyor. Eski `getTariheBugun` geriye dönük uyumluluk için korundu (deprecated) |
-| `components/DoluIkon.tsx` | Keşfet ikonu "bozuk görünme" hatası KÖKTEN çözüldü — bkz. §5 |
-| `theme.ts` | 4 koyu tema paleti (Zümrüt Varak, Lila Tezhibi, Tuğra Bordosu, Kisve Siyahı) daha da koyulaştırıldı |
-| `screens/HomeScreen.tsx` (aynı dosya, ek değişiklik) | Alt navigasyon "Zümrüt Şerit" (Varyant C) olarak yeniden tasarlandı — bkz. aşağıdaki alt başlık |
-
-**Bu paket dışında değişen dosya yok** — `package.json`/`app.json` aynı,
-`npm install` gerekmiyor.
-
-### Alt navigasyon kararı — ÇÖZÜLDÜ
-
-3 varyant (Yumuşak Cam / Yükselen Nokta / Zümrüt Şerit) bir Artifact
-sayfasında sunuldu, kullanıcı **Zümrüt Şerit**'i onayladı: dolgulu pil
-daralıp dikdörtgene (58×32, `radius.sm`) dönüştü; dolgu rengi
-`primaryBright`'tan `copperLight`'a değişti; aktif sekmenin üstünde, o
-sekmenin payı kadar genişlikte ince bir `copperLight` şerit beliriyor
-(`styles.serit`/`seritPay`/`seritCizgi`). 10 paletin tamamında yeni renk
-kombinasyonu (DoluIkon'un G1/G2/BG/A1) çakışma testinden geçirildi.
-
-### Paket 4'te değişen/eklenen dosyalar
-
-| Dosya | Değişiklik |
-|---|---|
-| `theme.ts` | "Zümrüt & Varak" kaldırıldı (10 palet), 4 tema koyulaştırıldı |
-| `screens/HomeScreen.tsx` | Hero kavis kaldırıldı, vakit listesi sıkıştırıldı, reklam alanı yer tutucusu, renk/boyut düzeltmeleri, widget veri senkronu |
-| `screens/SettingsScreen.tsx` | Tamamen yeniden yazıldı — `ScreenHeader` + tema dili |
-| `screens/TemaScreen.tsx` | Otomatik yeniden başlatma (`expo-updates`) |
-| `screens/QiblaScreen.tsx` | Pusula ve Kâbe illüstrasyonu komple yenilendi |
-| `screens/AcilisEkrani.tsx` | 3 yeni cami-görselli varyant eklendi (6 varyant oldu) |
-| `components/SimplePickerModal.tsx` | Tema diline uyduruldu |
-| `components/SoundPickerModal.tsx` | Tema diline uyduruldu |
-| `lib/widgetVeriDeposu.ts` | YENİ — widget veri köprüsü |
-| `widget/AzanAtlasWidget.tsx` | YENİ — widget görünümü |
-| `widget/widgetTaskHandler.ts` | YENİ — widget görev yöneticisi |
-| `App.tsx` | Yorum güncellendi (6 varyant listesi) |
-| `index.ts` | Widget handler kaydı (try/catch) |
-| `package.json` | `expo-updates`, `react-native-android-widget` eklendi |
-| `app.json` | `expo-updates` + widget config plugin eklendi |
-
-Diğer tüm dosyalar (screens/TesbihScreen, EsmaulHusnaScreen, KazaScreen,
-KesfetScreen, data/, lib/diğerleri, components/Icon, DoluIkon,
-IslamicPattern, ScreenHeader) **değişmedi** — zaten tema-uyumluydu.
+**Sonuç: uygulamadaki 14 ekranın ve 2 paylaşımlı popup bileşeninin TAMAMI
+artık `useCeviri()` üzerinden çalışıyor.** Tüm dosyalar syntax + StyleSheet
+anahtar tutarlılığı açısından doğrulandı (sıfır eksik/kullanılmayan stil
+anahtarı, sıfır kalan literal Türkçe JSX metni — repo genelinde grep ile
+tarandı).
 
 ---
 
 ## 5. ÇÖZÜLEN KRİTİK HATALAR (tekrar bozma!)
 
-(Paket 3'e kadarki hatalar aynen geçerli — bkz. önceki devir dosyası içeriği,
-burada tekrar edilmiyor: Kıldım butonu, Kıble pusulası doğruluğu,
-Keşfet→Kıble eşlemesi, Android bildirim kanalı, Expo Go kırmızı hata ekranı,
-Kerahat ayarı parametre uyuşmazlığı.)
+(Önceki paket dönemlerindeki hatalar aynen geçerli: Kıldım butonu, Kıble
+pusulası doğruluğu — `trueHeading` vs `magHeading`, Keşfet→Kıble eşlemesi,
+Android bildirim kanalı, Expo Go kırmızı hata ekranı, Kerahat ayarı
+parametre uyuşmazlığı, "Keşfet ikonu bozuluyor" → `DoluIkon.tsx`'teki A1
+renk çakışması, "İslam Tarihinde Bugün seyrek veri" → `getTariheEnYakinOlay()`
+fallback'i, alt navigasyon "Zümrüt Şerit" kararı, Ayarlar/popup'ların tema
+diline uydurulması.)
 
-### "Keşfet ikonu tıklanınca bozuluyor" — Paket 4'teki çözüm YETERSİZDİ,
-### Paket 5'te KÖKTEN çözüldü
-**Paket 4'te yapılan (yetersiz kaldı):** `activeOpacity` eklendi ve alt
-navigasyonun KENDİ renk seçimleri ayarlandı — ama bu sorunu ekrana özel bir
-yamayla kapattı, bileşenin kendi içindeki asıl kusuru bırakmıştı.
+### YENİ (bu tur) — Reklam SDK çökmesi
+Yukarıda §3'te detaylandırıldı. Kök neden: `try/catch`'in yakalayamadığı
+senkron `TurboModuleRegistry.getEnforcing()` throw'u. Çözüm:
+`require()`'dan önce native modül varlığını kontrol et.
 
-**Gerçek kök neden (Paket 5'te bulundu):** `DoluIkon.tsx` içinde dördüncü
-bir vurgu rengi olan `A1`, `govde`/`vurgu`/`zemin` prop'larından bağımsız,
-SABİT olarak `colors.primaryBright` idi. Alt navigasyon aktif sekmede tam
-olarak `zemin={colors.primaryBright}` gönderiyor, pasif sekmede ise
-`vurgu={colors.primaryBright}` gönderiyor — yani HER İKİ durumda da A1,
-çağıranın gönderdiği başka bir renkle birebir çakışıyordu. Keşfet ikonu dört
-kutudan birini A1 ile dolduruyor; A1 çakıştığında o kutu zeminle/başka bir
-kutuyla görsel olarak birleşip ikon "eksik/bozuk" görünüyordu.
+### YENİ (bu tur) — Anasayfa veri kartları dil değişiminde değişmiyordu
+**Kök neden:** `ayetler.ts`/`tariheBugun.ts`'teki veri yalnızca Türkçe
+alanlar taşıyordu (`meal`/`kaynak`, `baslik`/`aciklama`); `HomeScreen.tsx`
+`dil` state'ini kontrol etmeden doğrudan bu Türkçe alanları render
+ediyordu. **Çözüm:** Her iki veri dosyasına `*En` alanları eklendi,
+`HomeScreen.tsx` artık `dil === 'en' ? x.fooEn : x.foo` deseniyle seçiyor —
+Ana Sayfa'daki bilingual DATA deseni ilk kez burada uygulandı (bkz. §8).
 
-**Kalıcı çözüm:** `A1` artık sabit değil — `govde`/`vurgu`/`zemin`'in
-HİÇBİRİYLE çakışmayan ilk adayı otomatik seçen bir liste
-(`primaryBright → primaryGlow → primaryLight → copperBright`) kullanıyor.
-Bu, DoluIkon'u kullanan HER ekran/bağlam için (bugün 3 çağrı noktası var:
-Keşfet ızgarası, Ana Sayfa hızlı araçlar, alt navigasyon) otomatik olarak
-çalışır — yeni bir ekrandan yeni renk kombinasyonuyla çağrılsa bile. 10
-paletin tamamında, gerçek 3 çağrı bağlamında (nav aktif, nav pasif,
-ızgara/hızlı-araç) Python scriptiyle doğrulandı: hiçbir çakışma yok.
-
-### "İslam Tarihinde Bugün ısrarla gösterilmiyor" — Paket 3-4'te "yapıldı"
-### denildi ama veri kapsamı yetersizdi
-**Kök neden:** Kart kodda gerçekten vardı ve doğru yerdeydi (Günün
-Ayeti'nden sonra) — ama `tariheBugun.ts`'deki veri seti yalnızca 12 kayıt
-içeriyordu (yılda ~353 gün için HİÇ kayıt yok). Kullanıcı hangi gün
-kontrol ederse etsin, büyük ihtimalle kart görünmüyordu — "yapmadın" izlenimi
-buradan geliyordu, kod hiç çalışmıyor değildi.
-**Çözüm:** `getTariheEnYakinOlay()` — tam eşleşme yoksa takvimdeki en yakın
-GERÇEK olayı, kendi gerçek tarihiyle ("Yıl dönümüne N gün var" gibi)
-gösteriyor. Böylece kart her gün dolu ama hiçbir olay uydurma bir "bugün"
-etiketiyle sunulmuyor — dosyanın kendi "doğruluk feda edilmesin" ilkesi
-korundu.
-
-### Anasayfa hâlâ scroll gerektiriyordu (Paket 4'teki sıkıştırma yetersizdi)
-**Çözüm:** Üst şerit, hero, vakit satırları ve hızlı araçlar kartı ayrı ayrı
-tekrar sıkıştırıldı (bkz. §4 dosya haritası). Kaba dp hesabıyla toplam
-yükseklik ~557dp'ye indi — tipik kullanılabilir ekran yüksekliği (~640-780dp)
-içinde rahat sığıyor. Gerçek cihazda doğrulama kullanıcıdan bekleniyor.
-
-### YENİ — Ayarlar ekranı ve popup'lar tema diline uymuyordu
-**Sebep:** `SettingsScreen` kendi başlığını yazıyordu, `ScreenHeader`
-(İslami doku) kullanmıyordu; `SimplePickerModal`/`SoundPickerModal` düz
-beyaz sheet'ti.
-**Çözüm:** Üçü de `ScreenHeader`/`IslamicPattern`/`elevation.card` ve ortak
-`radius`/`fontSize` ölçeğine geçirildi.
+### YENİ (bu tur) — Bildirimler dil değiştirince güncellenmiyordu
+**Kök neden:** `lib/*Scheduler.ts` dosyaları React bileşeni değil, hook
+çağıramıyor; bildirim metinleri doğrudan Türkçe literal string'di.
+**Çözüm:** `ceviriler.ts`'e `tDil(dil, anahtar, ...args)` / `vakitAdiDil(dil,
+kod)` yardımcı fonksiyonları eklendi (hook'suz, parametre olarak `dil`
+alan sürüm); üç scheduler dosyası ve `configureAndroidChannels()` artık
+`dil: DilKodu` parametresi alıyor; `HomeScreen.tsx`'teki çağrı yeri
+`useCeviri()`'den okuduğu `dil`'i geçiriyor ve bu değer `useEffect`
+bağımlılık dizisine eklendi — dil değişince zamanlama efekti yeniden
+çalışıp bildirimleri yeni dilde kuruyor.
 
 ---
 
-## 6. TASARIM SİSTEMİ KURALLARI (değişmedi, bkz. Paket 3 notları)
+## 6. TASARIM SİSTEMİ KURALLARI
 
-Palet kalibrasyon yöntemi, rol sözleşmesi, punto ölçeği, ikon kullanımı
-kuralları aynen geçerli. **Tek fark:** artık 10 palet var, 11 değil.
-
----
-
-## 7. PAKET 7 SONUÇLARI ve BEKLEYEN — PAKET 8
-
-### Paket 7'de yapılanlar (bu turun 3 doğrudan isteği)
-
-1. **Tema pop-up'ına "Vazgeç" eklendi** (`TemaScreen.tsx`). "Daha Sonra"dan
-   farkı: "Daha Sonra" yeni temayı KAYITLI bırakır (bir sonraki açılışta
-   uygulanacak), "Vazgeç" ise az önce yazılan seçimi geri alır — önceki
-   çalışan temayı (`calisan`) tekrar `temayiKaydet()` ile yazar, ekrandaki
-   seçili kartı da eskiye döndürür. Böylece kullanıcı hem "şimdi
-   uygulanmasın ama kayıtlı kalsın" (Daha Sonra) hem de "hiç
-   değişmemiş gibi olsun" (Vazgeç) arasında seçim yapabiliyor.
-2. **"Yeniden Başlat" çalışmıyor" sorusu — bu bir hata değil.**
-   `expo-updates`'in `Updates.reloadAsync()`'i Expo Go'da native modülü
-   bulamıyor, `TemaScreen.tsx`'teki `catch` bloğu bunu sessizce yutup
-   pop-up'ı kapatıyor (zaten kasıtlı olarak böyle tasarlanmıştı — Paket
-   4/6 notlarına bkz.). Gerçek testi `npx.cmd expo run:android`
-   (development build) gerektiriyor — bkz. §0 test komutları bloğu.
-3. **Üst yeşil blok artık kavisli.** `ustSerit` + `hero` birlikte tek bir
-   koyu blok gibi render ediliyordu (aralarında boşluk yok); yuvarlama
-   ustSerit'e değil, bloğun GERÇEKTEN bittiği `hero`'nun alt köşelerine
-   uygulandı (`borderBottomLeftRadius`/`borderBottomRightRadius:
-   radius.lg`) — `ScreenHeader.wrap`'teki değerle birebir aynı, uygulama
-   genelinde tutarlı bir "alt köşe kavisi" dili. Üst köşeler (status bar'a
-   bitişik) kasıtlı olarak düz kaldı.
-
-### Paket 6 teslimiyle gelen 10 maddelik listenin durumu
-
-Bu liste kod okuyarak VE cihazdaki güncel dosyalarla karşılaştırarak tek
-tek doğrulandı (§0'daki derse sadık kalınarak — "kodda var" ile "kullanıcı
-gördü" farkı). Sonuç:
-
-| # | Konu | Durum |
-|---|---|---|
-| 1 | Yatsı satırı kesiliyor, vakitler tam sığmalı | **Paket 7'de düzeltildi** — vakit listesi satır boşluğu daha da azaltıldı, özel gün/yaklaşan gün kartlarının iç boşluğu küçültüldü (yazı boyu DEĞİŞMEDİ) |
-| 2 | Üst şerit kare değil kavisli olsun | **Paket 7'de düzeltildi** — bkz. yukarıdaki madde 3 |
-| 3 | İslam Tarihinde Bugün gösterilmiyor | **Zaten çözülmüştü (Paket 5)** — `getTariheEnYakinOlay()` kodda aktif, cihazda doğrulandı. Ekran görüntüsü muhtemelen Paket 5 öncesine aitti |
-| 4 | Alt ekranlar tema diline uymuyor | **Zaten çözülmüştü (Paket 4-6)** — 13 ekranın TAMAMI artık `ScreenHeader` kullanıyor, cihazda doğrulandı |
-| 5 | Tema değişince otomatik yeniden başlasın | **KASITLI OLARAK YAPILMADI** — Paket 6'da kullanıcı açıkça onaylı pop-up istedi (otomatik değil), bu madde muhtemelen o değişiklik öncesi yazılmıştı. Yeni pop-up + "Vazgeç" davranışını dene, otomatik geri sayım GERÇEKTEN isteniyorsa ayrıca belirt |
-| 6 | Sıradaki Vakit saati küçük/görünmüyor | **Zaten çözülmüştü (Paket 5-6)** — saat 32px'e büyütüldü, `copperLight` rengi tüm 10 palette WCAG doğrulamasından geçirildi |
-| 7 | Keşfet ikonu tıklanınca bozuluyor | **Zaten kökten çözülmüştü (Paket 5)** — `DoluIkon.tsx`'teki A1 çakışma hatası — cihazda doğrulandı |
-| 8a | "Zümrüt Varak" iki kez var | **Zaten çözülmüştü (Paket 4)** — `theme.ts`'de tek kayıt var, cihazda doğrulandı |
-| 8b | 4 koyu tema hâlâ çok parlak | **Zaten çözülmüştü (Paket 5)** — WCAG AA doğrulamasıyla koyulaştırıldı. Kullanıcı ekranında HÂLÂ parlak görünüyorsa (gerçek cihazda, güncel build'de) tekrar bildirsin — bir tur daha koyulaştırılabilir |
-| 9 | Kıble pusulası/Kâbe görseli kötü | **AÇIK — Paket 8'e taşındı**, bkz. aşağı |
-| 10 | Widget adı konumu + 3 yeni açılış ekranı varyantı | **AÇIK — Paket 8'e taşındı**, bkz. aşağı |
-
-**Önemli not:** 3, 4, 6, 7, 8a maddeleri kodda gerçekten çözülmüş
-durumdaydı ama kullanıcı şikayeti tekrarladı — bu Paket 6 devir dosyasında
-zaten öngörülmüştü ("ekran görüntüleri Paket 5/6 öncesine ait olabilir").
-Eğer kullanıcı GÜNCEL build'i (Paket 7 sonrası) test edip bu maddelerden
-herhangi biri hâlâ görünüyorsa, bu ihtimal ekarte edilmiş demektir — o
-zaman gerçekten yeni bir kök neden aranmalı, "zaten yapılmıştı" diye
-kapatılmamalı.
-
-### Bekleyen — PAKET 8 (henüz hiç başlanmadı, yeni tasarım işi)
-
-**9. Kıble pusulası ve Kâbe görseli yenilenmeli.** Kullanıcı mevcut
-tasarımı (SVG tabanlı, `QiblaScreen.tsx` içinde `Circle`/`Polygon`/`Path`
-ile çizili) beğenmiyor, önceki tasarımların daha iyi olduğunu söylüyor;
-Kâbe illüzyonu anlaşılmıyor. Kullanıcı daha önce Muslim Pro ve benzeri
-uygulamalardan referans pusula görselleri PAYLAŞMIŞTI (bu oturumda tekrar
-anıldı ama görsellerin kendisi bu devir dosyasına dahil değil — kullanıcıdan
-tekrar istenmesi gerekebilir ya da önceki oturumun ekran görüntüleri
-kontrol edilmeli). **Öneri:** Alt navigasyon kararında olduğu gibi, birkaç
-pusula/Kâbe tasarım varyantı üretip Artifact ile sunup ONAY ALINDIKTAN
-SONRA uygulamaya işlenmeli — kullanıcı bu yöntemi daha önce net şekilde
-talep etmişti.
-
-**10. Widget ve açılış ekranı yeniden tasarımı.**
-- Widget: uygulama adı konumu Muslim Pro'daki gibi ÜST kısımda olmalı
-  (şu an alt taraflarda kalıyor). 3 yeni widget varyantı üretilmesi
-  isteniyor. **Expo Go'da test edilemez** — `npx expo run:android`
-  (development build) gerekiyor, kullanıcı bunu daha sonra deneyeceğini
-  söylemişti.
-- Açılış ekranı: "Ezan Vakti Pro" örneğindeki gibi ANİMASYONLU, mutlaka
-  cami görselli, 3 yeni varyant isteniyor (mevcut 6 varyanttan farklı/daha
-  iyi). `AcilisEkrani.tsx` şu an 6 varyant destekliyor (`girih`, `safak`,
-  `hatem`, `cami-siluet`, `cami-hilal`, `cami-altin`) — `App.tsx`'teki
-  `ACILIS_VARYANTI` hâlâ `'girih'` seçili, kullanıcı yeni varyantlar
-  üretilince topluca seçim yapabilir.
-- **Görsel/lisans kuralı hatırlatması:** kullanıcı bu turda TEKRAR
-  vurguladı — internetten kullanılacak her görsel/medya mutlaka ücretsiz
-  ve ticari hakkı olmayan kaynaklardan olmalı, izin istemeden araştırılıp
-  seçilebilir ama lisans MUTLAKA doğrulanmalı (bkz. §2 madde 6 — zaten
-  kalıcı kural, kullanıcı bunu her turda hatırlatıyor).
-
-**Paket 8'e başlarken izlenecek yöntem:** Hem pusula/Kâbe hem widget/açılış
-ekranı, kullanıcının "önce variant üret, onayımı al, SONRA uygula" kuralına
-tabi — ikisi de doğrudan koda yazılmadan önce görsel varyantlar (Artifact
-ile) sunulmalı.
+Palet kalibrasyon yöntemi (WCAG AA — büyük metin ≥3:1, gövde metni ≥4.5:1),
+rol sözleşmesi, punto ölçeği, ikon kullanımı kuralları aynen geçerli. 10
+palet var, 11 değil.
 
 ---
 
-## 7-ESKİ. (referans — Paket 6 teslimiyle gelen orijinal 10 maddelik liste, kullanıcının kendi ifadeleriyle)
+## 7. BEKLEYEN — YENİ 10 MADDELİK LİSTE (HENÜZ HİÇ BAŞLANMADI)
 
-1. Anasayfadaki vakitlerde yatsı tam çıkmıyor — özel gün eklenince aşağı
-   kaymış. Reklam alanını da hesaba katarak vakitleri tam sığdır. Ayrıca
-   Kıble/Tesbih/Esmâ/Kaza scroll'suz ilk görünsün — gerekirse ikon/emoji/
-   yazı küçült ama yazılar mutlaka okunaklı kalsın.
-2. Anasayfanın kavisli (curved) üst şerit yapısı beğenilmedi — düz/kavissiz
-   hale dönülsün, ama en üstteki bildirim/konum butonları kalsın.
-3. "Günün Ayeti"nden sonra İslam tarihinde o gün yaşanan önemli olaylar
-   gösterilsin demişti, hâlâ yapılmamış diyor. **DİKKAT:** bu muhtemelen
-   Paket 5'te eklenen `getTariheEnYakinOlay()` fallback'ini kapsıyor olabilir
-   — ekran görüntüleri Paket 5 öncesine mi ait kontrol et, ama yine de
-   kartın gerçekten göründüğünü cihazda doğrula.
-4. Ayarlar ekranı ve altındaki HİÇBİR ekranda temanın görünümü yansımıyor,
-   sadece renk değişiyor diyor — pop-up'lar dahil TÜM ekranlar anasayfanın
-   renk/ton/görsel diliyle tam uyumlu olmalı. **DİKKAT:** Paket 6'da
-   LocationPicker/VaktindeKil/Reminders zaten bu yöne taşındı — kullanıcının
-   ekran görüntüleri bu değişiklik öncesine mi ait kontrol et; ayrıca
-   SettingsScreen ve diğer araçları (Tesbih/Esmâ/Kaza/Kıble) da tara.
-5. Tema değişikliğinde bilgilendirme + birkaç saniye sonra KENDİLİĞİNDEN
-   yeniden başlama istiyor. **ÇELİŞKİ:** Paket 6'da kullanıcı onayı
-   gerektiren pop-up'a geçildi (otomatik değil). Bu madde muhtemelen Paket 6
-   öncesi yazılmış — kullanıcıya YENİ pop-up davranışını göster, otomatik
-   mi onaylı mı istediğini doğrulamadan karar değiştirme.
-6. Sıradaki Vakit saati küçük + tema renginden dolayı görünürlüğü az; aynı
-   yerdeki "şimdiki vakit"/"sonraki vakit" yazıları da tema renginden ötürü
-   belirgin değil — kullanıcı deneyimine ve tema uyumuna sadık kalarak farklı
-   bir renk önerilebilir. **DİKKAT:** Paket 6'da saat 32px'e büyütüldü —
-   ekran görüntüsü bu değişiklik öncesine mi ait kontrol et.
-7. Keşfet ikonu tıklanınca tema renginden dolayı ikon bozuluyor (ekran
-   görüntüsü var). **DİKKAT:** Paket 5'te DoluIkon kök neden çözümü
-   yapıldı — bu şikayet o düzeltme öncesine mi ait, cihazda tekrar doğrula.
-8. (İki kez "8" yazılmış, iki ayrı madde:)
-   - 8a. Temalarda "Zümrüt Varak" iki kez var, "Zümrüt&Varak" (ve işareti
-     olan) kaldırılsın. **DİKKAT:** devir dosyası bunun Paket 4'te zaten
-     kaldırıldığını, 10 palet olduğunu söylüyor — kullanıcının cihazındaki
-     gerçek palet listesini kontrol et, çelişki varsa cihaz hangi paket
-     sürümünde kaldıysa ona göre kök nedeni bul.
-   - 8b. Zümrüt Varak/Lila Tezhibi/Tuğra Bordosu/Kisve Siyahı temalarındaki
-     renkler hâlâ çok parlak/açık, göz yoruyor, ekrana bakılamıyor diyor —
-     daha da koyulaştır. **DİKKAT:** Paket 5'te bu 4 palet zaten
-     koyulaştırılmış ve WCAG doğrulaması yapılmıştı — kullanıcının ekran
-     görüntüsü Paket 5 öncesine mi ait kontrol et; yine de gerekirse bir tur
-     daha koyulaştır ve tekrar WCAG doğrula.
-9. Kıble pusulası kötü, önceki tasarımlar daha güzeldi; Kâbe görseli
-   anlaşılmıyor kadar kötü. Kullanıcı daha önce Muslim Pro ve benzeri
-   uygulamalardan pusula referans görselleri vermiş — bizimki onlar kadar
-   güzel olmalı. **YENİ İŞ — henüz hiç başlanmadı.**
-10. Widget: Expo'da şimdilik çalışmasın (development build'de test
-    edilecek) ama üretilen 3 varyant beğenilmedi — özellikle uygulama adı
-    çok aşağıda kalmış, Muslim Pro'daki gibi olmalı. Ayrıca "Ezan Vakti Pro"
-    örneğindeki gibi (ekte referans görsel var) animasyonlu, mutlaka cami
-    görselli bir AÇILIŞ EKRANI isteniyor — 3 yeni açılış ekranı varyantı
-    daha üretilmesi isteniyor. **YENİ İŞ — henüz hiç başlanmadı.**
+Kullanıcı bu turun sonunda aşağıdaki listeyi gönderdi, ardından "dur" dedi
+— hiçbiri işlenmedi, aynen bekliyor. Yeni bir oturumda buradan devam
+edilecek. **Görsel/tasarım gerektiren maddelerde (9, 10) önce varyant
+sunup onay almak gerekiyor (§2 madde 8).**
 
-**Ek kalıcı kural (kullanıcı bu turda tekrarladı, hafızaya zaten
-kaydedildi):** İnternetten kullanılacak HER görsel/medya mutlaka ücretsiz
-ve ticari hak sorunu olmayan kaynaklardan olmalı; izin istemeden araştırıp
-seçilebilir ama lisans MUTLAKA doğrulanmalı. Bu kural TÜM projelerde
-geçerli (bkz. §2 madde 6 — zaten oradaydı, kullanıcı bu turda tekrar
-vurguladı).
+1. **Anasayfa vakit listesi taşması.** Yatsı satırı tam çıkmıyor, özel gün
+   eklenince aşağı kaymış. Reklam alanını da hesaba katarak vakitleri tam
+   sığdır. Ayrıca Kıble, Tesbih, Esmâ, Kaza kısmı da **scroll yapılmadan**
+   ilk görünsün — gerekirse ikon/emoji/yazı küçültülebilir ama yazılar
+   MUTLAKA okunaklı kalmalı.
+2. **Kavisli üst şerit geri alınsın.** Anasayfanın üst yeşil bloğunun
+   kavisli (curved) yapısı beğenilmedi, düz/kavissiz hale dönülsün — ama
+   en üstteki bildirim ve konum değiştir butonları kalsın.
+3. **"Günün Ayeti"nden sonra İslam tarihinde o gün yaşanan önemli
+   olaylar gösterilsin demiştim, yapmamışsın diyor.** ⚠️ **DİKKAT — bu
+   madde artık ÇÖZÜLDÜ** (bu turda: `tariheBugun.ts` bilingual + kart
+   zaten Ana Sayfa'da "Günün Ayeti"nden hemen sonra render ediliyor,
+   `getTariheEnYakinOlay()` ile her gün dolu). Kullanıcının ekran
+   görüntüsü muhtemelen bu turdan ÖNCEye ait — yeni oturumda cihazdaki
+   GÜNCEL build'i kontrol edip kullanıcıya bunu göster, tekrar sıfırdan
+   yapmaya çalışma.
+4. **Ayarlar ekranı ve altındaki hiçbir ekranda temanın hali yansımamış,
+   sadece renk değişiyor diyor.** Pop-up'lar dahil TÜM sayfalar Ana
+   Sayfa'daki tema renk/ton/görsel diliyle tam uyumlu olmalı. Önceki
+   paketlerde büyük ölçüde işlendiği belgelenmiş (§5) — yeni oturumda
+   kullanıcının GÜNCEL ekran görüntüsüyle hangi ekran/pop-up'ın hâlâ
+   uyumsuz olduğunu netleştir, kökten çöz.
+5. **Tema değişikliklerinde bilgilendirme + birkaç saniye sonra
+   KENDİLİĞİNDEN yeniden başlama istiyor.** ⚠️ **ÇELİŞKİ:** Şu an
+   kullanıcı onaylı pop-up var ("Şimdi Yeniden Başlat" / "Daha Sonra" /
+   "Vazgeç") — otomatik DEĞİL. Bu madde muhtemelen o karardan önce
+   yazılmış. Yeni oturumda kullanıcıya güncel pop-up davranışını göster,
+   gerçekten otomatik geri sayım isteniyorsa AYRICA doğrulat, sessizce
+   pop-up'ı kaldırıp otomatiğe dönme.
+6. **Sıradaki Vakit saati küçük + tema renginden görünürlüğü az;** aynı
+   yerdeki "şimdiki vakit"/"sonraki vakit" yazıları da tema renginden
+   ötürü belirgin değil. Kullanıcı deneyimine ve tema uyumuna sadık
+   kalarak farklı bir renk denenebilir. Önceki paketlerde saat 32px'e
+   büyütülmüştü — cihazdaki güncel build'i kontrol et, gerçekten hâlâ
+   sorunluysa (özellikle koyu 4 palette) renk kontrastını tekrar ele al.
+7. **Keşfet ikonu tıklanınca tema renginden dolayı bozuluyor.**
+   `DoluIkon.tsx`'teki A1 renk çakışması kökten çözülmüştü (§5) — cihazdaki
+   güncel build'de tekrar doğrula, gerçekten hâlâ görülüyorsa yeni bir kök
+   neden aranmalı (örn. yeni eklenen bir renk kombinasyonu çakışıyor
+   olabilir).
+8. **"Zümrüt Varak"in iki kez listelendiği ("Zümrüt&Varak" adında bir
+   ikinci kayıt) + Zümrüt Varak/Lila Tezhibi/Tuğra Bordosu/Kisve Siyahı
+   temalarındaki renklerin hâlâ çok parlak/açık olduğu, göz yorduğu.**
+   Duplikasyon önceki paketlerde kaldırılmıştı (10 palet var, `theme.ts`'te
+   tek "Zümrüt Varak" kaydı) — cihazda doğrula. Parlaklık şikayeti WCAG AA
+   doğrulamasıyla bir kez ele alınmıştı; kullanıcı hâlâ şikayetçiyse bir
+   tur daha koyulaştır ve tekrar doğrula.
+9. **Kıble pusulası ve Kâbe görseli yenilenmeli.** Kullanıcı mevcut SVG
+   tabanlı tasarımı (`QiblaScreen.tsx`, `Circle`/`Polygon`/`Path` ile
+   çizili) beğenmiyor — önceki tasarımların daha iyi olduğunu söylüyor,
+   Kâbe illüzyonu anlaşılmıyor. Kullanıcı Muslim Pro ve "Ezan Vakti Pro"
+   gibi uygulamalardan referans görseller PAYLAŞTI (bu sohbette ekran
+   görüntüsü olarak geldi — yeni oturumda kullanıcıdan bu görselleri
+   TEKRAR istemek gerekebilir, konuşma geçmişinde saklı değiller).
+   **Yöntem:** birkaç pusula/Kâbe tasarım varyantı üret, Artifact ile sun,
+   ONAY ALDIKTAN SONRA koda işle.
+10. **Widget ve açılış ekranı yeniden tasarımı.**
+    - **Widget:** Uygulama adının konumu şu an çok altta — Muslim Pro'daki
+      gibi ÜST kısımda olmalı. Üretilen 3 varyant beğenilmedi, 3 YENİ
+      varyant isteniyor. Expo'da "şimdilik çalışmasın" — kullanıcı
+      development build alınca test edeceğini söyledi (`npx expo
+      run:android` gerekiyor, Expo Go'da widget hiç çalışmaz).
+    - **Açılış ekranı:** "Ezan Vakti Pro" örneğindeki gibi ANİMASYONLU,
+      MUTLAKA cami görselli, 3 YENİ varyant isteniyor (mevcut 6 varyanttan
+      — `girih`, `safak`, `hatem`, `cami-siluet`, `cami-hilal`,
+      `cami-altin`/`ufuk-cizgisi` — farklı/daha iyi olmalı).
+    - **Görsel/lisans kuralı hatırlatması:** kullanıcı bu maddeyle birlikte
+      görsel lisans kuralını TEKRAR vurguladı (bkz. §2 madde 6 — zaten
+      kalıcı kural, ama kullanıcı her büyük görsel işinde hatırlatıyor).
 
-**Paket 7'ye başlarken izlenecek yöntem:** Yukarıdaki "DİKKAT" notlarının
-çoğu, ekran görüntülerinin Paket 5/6 öncesine ait olabileceğine işaret
-ediyor (§0'daki "ÖNEMLİ ÖĞRENİLEN DERS" ile aynı risk). Kod okumakla
-yetinme — cihazdaki GÜNCEL build'i çalıştırıp/inceleyip her maddenin hâlâ
-geçerli olup olmadığını tek tek doğrula, sonra düzelt. Gerçekten hâlâ
-sorunluysa kök nedeni bul (yüzeysel yama değil) ve devir dosyasına aynı
-titizlikle işle.
+**Yeni oturuma başlarken izlenecek yöntem:** Önce 3, 4, 6, 7, 8 maddelerinin
+cihazdaki GÜNCEL build'de gerçekten hâlâ sorunlu olup olmadığını doğrula
+(yukarıdaki "DİKKAT" notları) — bunlar muhtemelen bu turdan önceki bir
+duruma ait ekran görüntüleriyle geldi. 1, 2, 5 gerçek/açık işler, doğrudan
+uygulanabilir. 9 ve 10 için önce varyant üretip Artifact ile sun, onay
+bekle, SONRA koda işle — kullanıcı bu yöntemi tercih ediyor.
 
 ---
 
-## 9. HENÜZ YAPILMAYANLAR / AÇIK KONULAR
+## 8. ÇOK DİLLİLİK (i18n) MİMARİSİ
 
-**Not:** Açılış ekranı ve widget maddeleri artık §7'deki "Bekleyen — Paket
-8" bölümünde daha güncel/ayrıntılı hâliyle yer alıyor (kullanıcı Paket 6
-teslimiyle bu ikisi için YENİ, daha spesifik talepler iletti — 3'er yeni
-varyant, animasyon, konum düzeltmesi). Aşağıdaki tablo genel durumu
-özetliyor, ayrıntı için §7'ye bakılmalı.
+### Genel yapı
+- `src/i18n/ceviriler.ts` — merkezi sözlük. Her ekran kendi bölümünde ayrı
+  bir nesne (`ortak`, `anaSayfa`, `ayarlar`, `kaza`, `kesfet`, `esma`,
+  `hatirlaticilarEkrani`, `vaktindeKilEkrani`, `imsakiyeEkrani`,
+  `gunAdlari`, `konumSecici`, `bildirimler`, `tesbih`, `takip`,
+  `temaEkrani`, `kibleEkrani`, `vakitAdlari`), sonunda hepsi `SOZLUK`'ta
+  birleştiriliyor. `CeviriAnahtari` tipi `keyof typeof SOZLUK['tr']`.
+- `src/i18n/dilDeposu.ts` — seçili dili `AsyncStorage`'da saklıyor (tema
+  sistemiyle aynı kalıp).
+- `src/i18n/DilContext.tsx` — `DilProvider` + `useCeviri()` hook'u.
+  `useCeviri()` şunları döndürür: `dil` (aktif dil kodu), `hazir`,
+  `diliDegistir(yeni)`, `t(anahtar, ...args)` (düz string veya parametreli
+  fonksiyon anahtarlarını otomatik ayırt eder), `vakitAdi(kod)` (vakit
+  adları ayrı tutuluyor çünkü alt-nesne).
+- **Dil değişikliği ANINDA uygulanır** (tema gibi yeniden başlatma
+  GEREKMEZ) — çünkü metinler `StyleSheet.create`'e kilitlenmiyor, her
+  render'da `t()` ile okunuyor. `DilProvider`, `AppGovde.tsx`'te en dış
+  sağlayıcı olarak sarmalı ki her ekran erişebilsin.
+
+### Hook çağıramayan dosyalar için (lib/*.ts)
+`notificationScheduler.ts`, `remindersScheduler.ts`, `vaktindeKilScheduler.ts`
+gibi React bileşeni olmayan dosyalar `useCeviri()` çağıramaz. Bunun için
+`ceviriler.ts`'te iki yardımcı fonksiyon var:
+```ts
+tDil(dil: DilKodu, anahtar: CeviriAnahtari, ...args: any[]): string
+vakitAdiDil(dil: DilKodu, kod: keyof typeof vakitAdlari['tr']): string
+```
+Çağıran taraf (genelde `HomeScreen.tsx`) `useCeviri()`'den okuduğu `dil`'i
+parametre olarak geçirir; bildirim PLANLANDIĞI ANDA hangi dil aktifse o
+dilde metin gömülür. Kullanıcı dili değiştirdiğinde `HomeScreen`'deki
+zamanlama `useEffect`'i (`dil`'i bağımlılık dizisinde tutarak) yeniden
+çalışıp bildirimleri yeni dille kurar.
+
+### Bileşen içi çeviri-anahtarı dolaylılığı (modül seviyesi sabit diziler için)
+Hook çağıramayan modül-seviyesi sabit dizilerde (React render'ı dışında
+tanımlı), doğrudan çevrilmiş metin yerine bir anahtar saklanır (örn.
+`adAnahtari`/`aciklamaAnahtari`/`baslikAnahtari`), render sırasında
+`t(...)` ile çözülür. HomeScreen, KesfetScreen, SettingsScreen, TakipScreen
+bu deseni kullanıyor.
+
+### Bilingual VERİ deseni (chrome/UI metninden farklı)
+Ekran çevre metinleri (başlık, buton, etiket) ile "veri içeriği" (ayet
+meali, tarihi olay açıklaması, zikir anlamı, tema adı/açıklaması) ayrı ele
+alınıyor. Veri içeriği için orijinal Türkçe alan korunuyor, yanına **ek**
+bir `*En` alanı ekleniyor — ekran `dil === 'en' ? x.fooEn : x.foo` ile
+seçiyor. Kullanılan yerler: `ayetler.ts` (`kaynakEn`/`mealEn`),
+`tariheBugun.ts` (`baslikEn`/`aciklamaEn`), `TesbihScreen.tsx`'teki
+`ZIKIRLER` (`anlamEn`), `theme.ts`'teki `PALETLER` (`adEn`/`aciklamaEn`).
+
+### Kasıtlı olarak ÇEVRİLMEYEN içerikler (veri, isim değil)
+- İl/ilçe adları (`turkeyLocations.ts`, `districtCoords.ts`) — yer adı
+  verisi, diğer uygulamalardaki gibi çevrilmiyor.
+- Hesaplama Yöntemi / Mezhep / Yüksek Açı seçeneklerinin etiketleri
+  (`CalculationSettingsContext.tsx`) — henüz i18n'e geçirilmedi, kapsamı
+  birden fazla ekran/bildirimi kapsıyor, ayrı bir tur gerektirir. **Bu,
+  §7'deki 10 maddelik listede YOK ama "eksik hiçbir şey bırakma" talimatı
+  hâlâ geçerliyse bir sonraki i18n turunda ele alınmalı.**
+- "Esmâü'l-Hüsnâ" gibi özel/dini terimler — Arapça kökenli evrensel
+  terminoloji, İngilizce'de de aynı kalıyor (Qibla, Ramadan gibi).
+
+### Kapsam durumu
+14 ekranın ve 2 paylaşımlı popup bileşeninin (`SimplePickerModal`,
+`SoundPickerModal`) TAMAMI artık `useCeviri()` üzerinden çalışıyor.
+Repo genelinde `grep` ile literal Türkçe JSX metni taraması SIFIR sonuç
+verdi (yer adı verisi ve yukarıdaki kasıtlı istisnalar hariç).
+
+---
+
+## 9. HENÜZ YAPILMAYANLAR / AÇIK KONULAR (özet — ayrıntı §7'de)
 
 | # | Madde | Durum |
 |---|---|---|
-| — | **Açılış varyantı** | 6 varyant hazır ama kullanıcı YENİ 3 varyant daha istiyor (animasyonlu, cami görselli) — bkz. §7 madde 10 |
-| — | **Widget** | Kod yazıldı, HİÇ test edilmedi (`expo run:android` gerekiyor); kullanıcı ayrıca 3 yeni tasarım varyantı istiyor — bkz. §7 madde 10 |
-| — | **`expo-updates` testi** | Paket 7'de netleşti: Expo Go'da native modül yok, `catch`'e düşüyor (beklenen) — development build ile test edilmeli |
-| — | **Reklam entegrasyonu** | HomeScreen'de yer ayrıldı (`reklamAlani`, 50dp) ama `react-native-google-mobile-ads` henüz entegre edilmedi |
-| — | **Bildirim sesleri testi** | Kullanıcı "sonra kontrol edeceğim" dedi |
-| — | **Kıble pusulası/Kâbe görseli** | Kullanıcı beğenmiyor, yenilenmesi isteniyor — bkz. §7 madde 9 |
+| — | **§7'deki 10 maddelik liste** | HİÇ BAŞLANMADI — kullanıcı "dur" dedi |
+| — | **Hesaplama Yöntemi/Mezhep/Yüksek Açı seçenek etiketleri (i18n)** | Henüz çevrilmedi — `CalculationSettingsContext.tsx` |
+| — | **Widget** | Kod yazıldı, HİÇ test edilmedi (`expo run:android` gerekiyor) |
+| — | **`expo-updates` gerçek reload testi** | Expo Go'da native modül yok (beklenen no-op) — development build ile test edilmeli |
+| — | **Gerçek AdMob ID'lerine geçiş** | Mağaza yayınından hemen önce yapılacak, şu an bilinçli olarak test ID'leri kullanılıyor |
+| — | **Bildirim sesleri testi** | Kullanıcı "sonra kontrol edeceğim" demişti |
+| — | **Kıble pusulası/Kâbe görseli** | Yenilenmesi isteniyor — bkz. §7 madde 9 |
 
 ### Bilinen sınırlar (kullanıcıya açıklandı)
 - Widget canlı geri sayım gösteremez (Android kısıtı, statik liste).
-- Expo Go: özel bildirim sesi çalmaz, killed-state "Kıldım" çalışmaz, widget
-  çalışmaz, `expo-updates` reload çalışmaz. Bunların hepsi `expo run:android`
-  gerektirir.
+- Expo Go: özel bildirim sesi çalmaz, killed-state "Kıldım" çalışmaz,
+  widget çalışmaz, `expo-updates` reload çalışmaz. Bunların hepsi `expo
+  run:android` (development build) gerektirir.
 
 ---
 
-## 10. GÖRSEL/MEDYA LİSANS KURALI (YENİ — Paket 4, kalıcı)
+## 10. GÖRSEL/MEDYA LİSANS KURALI (kalıcı, tüm projelerde geçerli)
 
 Kullanıcı: "internette free olarak kullanılacak her türlü görsel için
-gerekirse araştırma yap ve benden izin istemeden bu görselleri kullan. fakat
-lisans hakları, ticari kullanım hakkı gibi konulara dikkat et... bunu senin
-yaptığımız bütün projelerde dikkate al."
+gerekirse araştırma yap ve benden izin istemeden bu görselleri kullan.
+fakat lisans hakları, ticari kullanım hakkı gibi konulara dikkat et...
+bunu senin yaptığımız bütün projelerde dikkate al."
 
-**Paket 4'te uygulanışı:** Açılış ekranı için gerçek raster fotoğraf
+**Şimdiye kadarki uygulanışı:** Açılış ekranı için gerçek raster fotoğraf
 indirmek yerine, orijinal elle çizilmiş SVG cami silüeti tercih edildi —
-sıfır lisans riski, paket boyutuna etkisi yok (birkaç KB), tüm temalarla
-otomatik uyumlu, açılış süresine ek gecikme getirmiyor (aynı zamanlayıcı).
+sıfır lisans riski, paket boyutuna etkisi yok, tüm temalarla otomatik
+uyumlu. §7 madde 9/10'daki yeni pusula/Kâbe/widget/açılış ekranı işinde de
+aynı ilke geçerli: mümkünse orijinal SVG/vektör çizim tercih edilmeli;
+gerçek bir görsel/fotoğraf gerekiyorsa mutlaka ücretsiz + ticari kullanıma
+açık kaynak araştırılıp lisansı doğrulanmalı.
