@@ -849,6 +849,10 @@ const styles = StyleSheet.create({
   anaIcerik: { paddingBottom: spacing.lg },
 
   // ---------- ÜST ŞERİT (artık krem değil, temanın ana rengi) ----------
+  // Not: ustSerit + hero araya boşluk koymadan bitişik render edilip TEK
+  // koyu blok gibi görünüyor (bkz. hero'nun üstündeki yorum). Bu yüzden
+  // köşe yuvarlama ustSerit'te değil, bloğun GERÇEKTEN bittiği yer olan
+  // hero'nun altında uygulanıyor — bkz. aşağıdaki `hero` stili.
   ustSerit: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -888,14 +892,24 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  // ---------- HERO (düz koyu kart — kavis kaldırıldı) ----------
+  // ---------- HERO (koyu kart — alt köşeler kavisli) ----------
   // Madde 1 (ısrarla tekrar edilen şikayet): dikey boşluklar burada da
   // sıkıştırıldı — hero, Kıble/Tesbih/Esmâ/Kaza satırının scroll'suz
   // görünmesini engelleyen en büyük tek bloktu.
+  // Madde 2 (bu tur): kullanıcı üst yeşil bloğun tamamen kare/köşeli
+  // durmasından rahatsız oldu — "diğer bütün sayfalardaki gibi" alt sağ/sol
+  // köşelerin kavisli olmasını istedi. `ustSerit` + `hero` görsel olarak
+  // TEK blok okunduğu için (aralarında boşluk yok), yuvarlama bloğun asıl
+  // bittiği yer olan hero'nun ALT köşelerine uygulandı — ScreenHeader'daki
+  // (`borderBottomLeftRadius`/`borderBottomRightRadius: radius.lg`) ile
+  // birebir aynı değer, uygulama genelinde tutarlı bir "alt köşe kavisi"
+  // dili oluşsun diye.
   hero: {
     backgroundColor: colors.primary,
     overflow: 'hidden',
     paddingVertical: spacing.xs + 2,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
   },
   heroIc: { paddingHorizontal: spacing.lg },
 
@@ -1044,18 +1058,20 @@ const styles = StyleSheet.create({
   iftarSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: fontSize.small, color: colors.primaryDeep },
 
   // ---------- VAKİT LİSTESİ ----------
-  // Satır aralığı ve dikey iç boşluk daha da sıkıştırıldı: yedi vaktin
-  // TAMAMI (İmsak'tan Yatsı'ya) artı reklam alanı ve dört hızlı araç
-  // scroll YAPILMADAN ilk ekranda görünsün diye. Yazı boyu küçültülmedi —
-  // okunabilirlik korunuyor, kazanılan alan yalnızca boşluklardan geliyor.
-  vakitListe: { gap: 3 },
+  // Madde 1 (bu tur, tekrarlanan şikayet): Yatsı satırı hâlâ tam
+  // sığmıyordu — özel gün kartı eklenince liste bir miktar daha aşağı
+  // kaymıştı. Satır dikey iç boşluğu 4dp'den 3dp'ye indirildi, satırlar
+  // arası boşluk 3dp'den 2dp'ye indirildi (7 satırda toplam ~8dp daha
+  // kazanılıyor). Yazı boyu YİNE küçültülmedi — okunabilirlik kuralı
+  // korunuyor, kazanım yalnızca boşluklardan geliyor.
+  vakitListe: { gap: 2 },
   vakitSatir: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs + 2,
     backgroundColor: colors.white,
     borderRadius: radius.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.xs - 1,
     paddingHorizontal: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1173,17 +1189,21 @@ const styles = StyleSheet.create({
   },
 
   // ---------- DİNİ GÜN ----------
+  // Madde 1 (bu tur): özel gün/yaklaşan gün kartı, hero ile vakit listesi
+  // ARASINA giriyor — yalnızca bu kart göründüğü günlerde Yatsı satırı
+  // kesiliyordu. Dikey iç boşluk sm+2'ye indirildi (md idi); ikon/yazı
+  // boyutu DEĞİŞMEDİ, yalnızca kartın çevresindeki boşluk azaldı.
   diniGunKart: {
     backgroundColor: colors.primary,
     borderRadius: radius.md,
     overflow: 'hidden',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs + 2,
   },
   diniGunIc: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm + 2,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
   },
   diniGunMetin: { flex: 1 },
@@ -1204,9 +1224,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.copperSoft,
     borderRadius: radius.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs + 2,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs + 2,
   },
   yaklasanYazi: {
     flex: 1,

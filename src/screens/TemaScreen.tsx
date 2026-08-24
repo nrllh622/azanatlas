@@ -126,6 +126,23 @@ export default function TemaScreen({ onClose }: Props) {
     setOnayAcik(false);
   };
 
+  // Madde 3 (bu tur): "Vazgeç" — sadece pop-up'ı kapatan "Daha Sonra"nın
+  // aksine, kaydı da geri alır: az önce seçilen yeni tema AsyncStorage'a
+  // yazılmıştı, bu fonksiyon üzerine önceki (hâlâ çalışmakta olan) temayı
+  // tekrar yazarak seçimi tamamen iptal eder. Ekrandaki seçili kart da
+  // eski çalışan temaya döner — kullanıcı ekrana baktığında hiçbir şey
+  // değişmemiş gibi görünür.
+  const vazgec = async () => {
+    setOnayAcik(false);
+    setSecili(calisan);
+    try {
+      await temayiKaydet(calisan);
+    } catch {
+      // Geri alma kaydı başarısız olsa bile ekran zaten eski seçili temayı
+      // gösteriyor; bir sonraki başarılı kayıtta düzelir.
+    }
+  };
+
   const anahtarlar = Object.keys(PALETLER) as PaletAdi[];
 
   return (
@@ -244,6 +261,19 @@ export default function TemaScreen({ onClose }: Props) {
                 accessibilityRole="button"
               >
                 <Text style={styles.modalBtnIkincilYazi}>Daha Sonra</Text>
+              </TouchableOpacity>
+
+              {/* Madde 1 (bu tur): "Vazgeç" eklendi — "Daha Sonra"dan farkı,
+                  yeni seçilen temayı kaydedilmiş olarak BIRAKMAMASI; önceki
+                  çalışan temayı geri yazıp seçimi tamamen iptal ediyor. */}
+              <TouchableOpacity
+                style={styles.modalBtnVazgec}
+                onPress={vazgec}
+                disabled={yenidenBasliyor}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+              >
+                <Text style={styles.modalBtnVazgecYazi}>Vazgeç</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -425,5 +455,18 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyBold,
     fontSize: fontSize.body,
     color: colors.textMuted,
+  },
+  modalBtnVazgec: {
+    width: '100%',
+    borderRadius: radius.md,
+    paddingVertical: spacing.xs + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  modalBtnVazgecYazi: {
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.small,
+    color: colors.danger,
   },
 });

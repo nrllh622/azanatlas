@@ -4,12 +4,12 @@
 > devam edebilmesi için hazırlandı. **Yeni sohbete bu dosyayı ekle ve
 > "AzanAtlas'a devam ediyoruz, devir dosyasını oku" de.**
 >
-> Son güncelleme: 24 Ağustos 2026 · Paket 6 teslim edildi (üst şerit yeniden
-> renklendirme, Kalan Süre etiketi, tema değişikliği onay pop-up'ı, Kıble↔Takip
-> yer değişimi, 3 ekranın tema diline geçirilmesi). **NOT:** Kullanıcıdan
-> Paket 6 teslim edilirken YENİ bir 10 maddelik liste daha geldi (Paket 7
-> konusu) — bu liste henüz işlenmedi, sıradaki oturum bununla başlamalı
-> (bkz. §7 "Bekleyen — Paket 7").
+> Son güncelleme: 24 Ağustos 2026 · Paket 7 teslim edildi (tema pop-up'ına
+> "Vazgeç" eklendi, üst yeşil blok alt köşeleri kavisli yapıldı, vakit
+> listesi Yatsı tam sığacak şekilde daha da sıkıştırıldı). Paket 6'da
+> gelen 10 maddelik listenin BİR KISMI zaten çözülmüş çıktı (kod
+> doğrulamasıyla teyit edildi — §7'de detay), pusula/Kâbe görseli ve
+> widget/açılış ekranı varyantları HÂLÂ AÇIK (bkz. §7 "Bekleyen — Paket 8").
 
 ---
 
@@ -87,24 +87,33 @@ opening archive: Failed to open 'azanatlas-paketN.zip'` hatası alırsın —
 ```powershell
 cd C:\Users\nrllh\azanatlas
 
-tar -xf azanatlas-paket6.zip
-del azanatlas-paket6.zip
+tar -xf azanatlas-paket7.zip
+del azanatlas-paket7.zip
 
 git add .
-git commit -m "Paket 6: ust serit yeniden renklendirme, Kalan Sure etiketi, tema onay pop-up, Kible-Takip yer degisimi, 3 ekran tema gecisi"
+git commit -m "Paket 7: tema pop-up Vazgec secenegi, ust yesil blok kavisli alt kose, vakit listesi sikistirma (Yatsi sigdirma)"
 git push origin master:main
 
 npx.cmd expo start -c --go
 ```
 
-**Not:** Paket 6'da `package.json`/`app.json` DEĞİŞMEDİ — yeni bağımlılık
+**Not:** Paket 7'de `package.json`/`app.json` DEĞİŞMEDİ — yeni bağımlılık
 yok, bu yüzden `npm install` bu pakette gerekli değil.
 
-(Paket 5 komutları — arşiv olarak artık `paket5` değil `paket6`
-kullanılmalı, ama komut kalıbı aynı: `tar -xf azanatlas-paket5.zip` /
-`del azanatlas-paket5.zip` / commit mesajı "Paket 5: anasayfa sıkıştırma,
-tarih kartı fallback, kesfet ikonu kök çözüm, tema koyultma, alt nav
-Zümrüt Şerit" — sadece referans için burada bırakıldı.)
+**"Şimdi Yeniden Başlat" gerçekten yeniden başlatmıyor — bu bir hata
+değil, beklenen davranış:** `expo-updates`'in `Updates.reloadAsync()`
+fonksiyonu Expo Go'da native modülü BULAMAZ, `catch` bloğuna düşer ve
+sessizce pop-up'ı kapatır (uygulama çökmez ama yeniden de başlamaz). Bu
+özelliğin gerçekten çalıştığını görmek için **development build** şart:
+```powershell
+npx.cmd expo run:android
+```
+Bu, `expo-dev-client` kullanan tam native bir build üretir/kurar (EAS
+build hakkı harcamaz, tamamen yerel). Kurulumdan sonra tema
+değiştirdiğinde "Şimdi Yeniden Başlat" gerçekten uygulamayı kapatıp
+yeniden açacak. Expo Go'da bu her zaman aynı şekilde (sessiz no-op)
+kalacak — bu paketin veya önceki paketlerin bir eksiği değil, Expo Go'nun
+native modül kısıtı.
 
 **"running scripts is disabled on this system" hatası** (`npm install`
 veya `npm ...` çalıştırırken): PowerShell'in execution-policy kısıtlaması
@@ -373,12 +382,99 @@ kuralları aynen geçerli. **Tek fark:** artık 10 palet var, 11 değil.
 
 ---
 
-## 7. BEKLEYEN — PAKET 7 (kullanıcıdan yeni liste geldi, HENÜZ İŞLENMEDİ)
+## 7. PAKET 7 SONUÇLARI ve BEKLEYEN — PAKET 8
 
-Paket 6 teslim edilirken kullanıcıdan aşağıdaki 10 maddelik yeni liste
-geldi (2 ekran görüntüsü + widget/açılış ekranı referans görselleriyle
-birlikte). **Bu liste bu pakette işlenmedi** — bir sonraki oturumun ilk işi
-bu olmalı. Kullanıcının kendi ifadeleriyle, sırayla:
+### Paket 7'de yapılanlar (bu turun 3 doğrudan isteği)
+
+1. **Tema pop-up'ına "Vazgeç" eklendi** (`TemaScreen.tsx`). "Daha Sonra"dan
+   farkı: "Daha Sonra" yeni temayı KAYITLI bırakır (bir sonraki açılışta
+   uygulanacak), "Vazgeç" ise az önce yazılan seçimi geri alır — önceki
+   çalışan temayı (`calisan`) tekrar `temayiKaydet()` ile yazar, ekrandaki
+   seçili kartı da eskiye döndürür. Böylece kullanıcı hem "şimdi
+   uygulanmasın ama kayıtlı kalsın" (Daha Sonra) hem de "hiç
+   değişmemiş gibi olsun" (Vazgeç) arasında seçim yapabiliyor.
+2. **"Yeniden Başlat" çalışmıyor" sorusu — bu bir hata değil.**
+   `expo-updates`'in `Updates.reloadAsync()`'i Expo Go'da native modülü
+   bulamıyor, `TemaScreen.tsx`'teki `catch` bloğu bunu sessizce yutup
+   pop-up'ı kapatıyor (zaten kasıtlı olarak böyle tasarlanmıştı — Paket
+   4/6 notlarına bkz.). Gerçek testi `npx.cmd expo run:android`
+   (development build) gerektiriyor — bkz. §0 test komutları bloğu.
+3. **Üst yeşil blok artık kavisli.** `ustSerit` + `hero` birlikte tek bir
+   koyu blok gibi render ediliyordu (aralarında boşluk yok); yuvarlama
+   ustSerit'e değil, bloğun GERÇEKTEN bittiği `hero`'nun alt köşelerine
+   uygulandı (`borderBottomLeftRadius`/`borderBottomRightRadius:
+   radius.lg`) — `ScreenHeader.wrap`'teki değerle birebir aynı, uygulama
+   genelinde tutarlı bir "alt köşe kavisi" dili. Üst köşeler (status bar'a
+   bitişik) kasıtlı olarak düz kaldı.
+
+### Paket 6 teslimiyle gelen 10 maddelik listenin durumu
+
+Bu liste kod okuyarak VE cihazdaki güncel dosyalarla karşılaştırarak tek
+tek doğrulandı (§0'daki derse sadık kalınarak — "kodda var" ile "kullanıcı
+gördü" farkı). Sonuç:
+
+| # | Konu | Durum |
+|---|---|---|
+| 1 | Yatsı satırı kesiliyor, vakitler tam sığmalı | **Paket 7'de düzeltildi** — vakit listesi satır boşluğu daha da azaltıldı, özel gün/yaklaşan gün kartlarının iç boşluğu küçültüldü (yazı boyu DEĞİŞMEDİ) |
+| 2 | Üst şerit kare değil kavisli olsun | **Paket 7'de düzeltildi** — bkz. yukarıdaki madde 3 |
+| 3 | İslam Tarihinde Bugün gösterilmiyor | **Zaten çözülmüştü (Paket 5)** — `getTariheEnYakinOlay()` kodda aktif, cihazda doğrulandı. Ekran görüntüsü muhtemelen Paket 5 öncesine aitti |
+| 4 | Alt ekranlar tema diline uymuyor | **Zaten çözülmüştü (Paket 4-6)** — 13 ekranın TAMAMI artık `ScreenHeader` kullanıyor, cihazda doğrulandı |
+| 5 | Tema değişince otomatik yeniden başlasın | **KASITLI OLARAK YAPILMADI** — Paket 6'da kullanıcı açıkça onaylı pop-up istedi (otomatik değil), bu madde muhtemelen o değişiklik öncesi yazılmıştı. Yeni pop-up + "Vazgeç" davranışını dene, otomatik geri sayım GERÇEKTEN isteniyorsa ayrıca belirt |
+| 6 | Sıradaki Vakit saati küçük/görünmüyor | **Zaten çözülmüştü (Paket 5-6)** — saat 32px'e büyütüldü, `copperLight` rengi tüm 10 palette WCAG doğrulamasından geçirildi |
+| 7 | Keşfet ikonu tıklanınca bozuluyor | **Zaten kökten çözülmüştü (Paket 5)** — `DoluIkon.tsx`'teki A1 çakışma hatası — cihazda doğrulandı |
+| 8a | "Zümrüt Varak" iki kez var | **Zaten çözülmüştü (Paket 4)** — `theme.ts`'de tek kayıt var, cihazda doğrulandı |
+| 8b | 4 koyu tema hâlâ çok parlak | **Zaten çözülmüştü (Paket 5)** — WCAG AA doğrulamasıyla koyulaştırıldı. Kullanıcı ekranında HÂLÂ parlak görünüyorsa (gerçek cihazda, güncel build'de) tekrar bildirsin — bir tur daha koyulaştırılabilir |
+| 9 | Kıble pusulası/Kâbe görseli kötü | **AÇIK — Paket 8'e taşındı**, bkz. aşağı |
+| 10 | Widget adı konumu + 3 yeni açılış ekranı varyantı | **AÇIK — Paket 8'e taşındı**, bkz. aşağı |
+
+**Önemli not:** 3, 4, 6, 7, 8a maddeleri kodda gerçekten çözülmüş
+durumdaydı ama kullanıcı şikayeti tekrarladı — bu Paket 6 devir dosyasında
+zaten öngörülmüştü ("ekran görüntüleri Paket 5/6 öncesine ait olabilir").
+Eğer kullanıcı GÜNCEL build'i (Paket 7 sonrası) test edip bu maddelerden
+herhangi biri hâlâ görünüyorsa, bu ihtimal ekarte edilmiş demektir — o
+zaman gerçekten yeni bir kök neden aranmalı, "zaten yapılmıştı" diye
+kapatılmamalı.
+
+### Bekleyen — PAKET 8 (henüz hiç başlanmadı, yeni tasarım işi)
+
+**9. Kıble pusulası ve Kâbe görseli yenilenmeli.** Kullanıcı mevcut
+tasarımı (SVG tabanlı, `QiblaScreen.tsx` içinde `Circle`/`Polygon`/`Path`
+ile çizili) beğenmiyor, önceki tasarımların daha iyi olduğunu söylüyor;
+Kâbe illüzyonu anlaşılmıyor. Kullanıcı daha önce Muslim Pro ve benzeri
+uygulamalardan referans pusula görselleri PAYLAŞMIŞTI (bu oturumda tekrar
+anıldı ama görsellerin kendisi bu devir dosyasına dahil değil — kullanıcıdan
+tekrar istenmesi gerekebilir ya da önceki oturumun ekran görüntüleri
+kontrol edilmeli). **Öneri:** Alt navigasyon kararında olduğu gibi, birkaç
+pusula/Kâbe tasarım varyantı üretip Artifact ile sunup ONAY ALINDIKTAN
+SONRA uygulamaya işlenmeli — kullanıcı bu yöntemi daha önce net şekilde
+talep etmişti.
+
+**10. Widget ve açılış ekranı yeniden tasarımı.**
+- Widget: uygulama adı konumu Muslim Pro'daki gibi ÜST kısımda olmalı
+  (şu an alt taraflarda kalıyor). 3 yeni widget varyantı üretilmesi
+  isteniyor. **Expo Go'da test edilemez** — `npx expo run:android`
+  (development build) gerekiyor, kullanıcı bunu daha sonra deneyeceğini
+  söylemişti.
+- Açılış ekranı: "Ezan Vakti Pro" örneğindeki gibi ANİMASYONLU, mutlaka
+  cami görselli, 3 yeni varyant isteniyor (mevcut 6 varyanttan farklı/daha
+  iyi). `AcilisEkrani.tsx` şu an 6 varyant destekliyor (`girih`, `safak`,
+  `hatem`, `cami-siluet`, `cami-hilal`, `cami-altin`) — `App.tsx`'teki
+  `ACILIS_VARYANTI` hâlâ `'girih'` seçili, kullanıcı yeni varyantlar
+  üretilince topluca seçim yapabilir.
+- **Görsel/lisans kuralı hatırlatması:** kullanıcı bu turda TEKRAR
+  vurguladı — internetten kullanılacak her görsel/medya mutlaka ücretsiz
+  ve ticari hakkı olmayan kaynaklardan olmalı, izin istemeden araştırılıp
+  seçilebilir ama lisans MUTLAKA doğrulanmalı (bkz. §2 madde 6 — zaten
+  kalıcı kural, kullanıcı bunu her turda hatırlatıyor).
+
+**Paket 8'e başlarken izlenecek yöntem:** Hem pusula/Kâbe hem widget/açılış
+ekranı, kullanıcının "önce variant üret, onayımı al, SONRA uygula" kuralına
+tabi — ikisi de doğrudan koda yazılmadan önce görsel varyantlar (Artifact
+ile) sunulmalı.
+
+---
+
+## 7-ESKİ. (referans — Paket 6 teslimiyle gelen orijinal 10 maddelik liste, kullanıcının kendi ifadeleriyle)
 
 1. Anasayfadaki vakitlerde yatsı tam çıkmıyor — özel gün eklenince aşağı
    kaymış. Reklam alanını da hesaba katarak vakitleri tam sığdır. Ayrıca
@@ -450,15 +546,22 @@ titizlikle işle.
 
 ---
 
-## 7. HENÜZ YAPILMAYANLAR / AÇIK KONULAR
+## 9. HENÜZ YAPILMAYANLAR / AÇIK KONULAR
+
+**Not:** Açılış ekranı ve widget maddeleri artık §7'deki "Bekleyen — Paket
+8" bölümünde daha güncel/ayrıntılı hâliyle yer alıyor (kullanıcı Paket 6
+teslimiyle bu ikisi için YENİ, daha spesifik talepler iletti — 3'er yeni
+varyant, animasyon, konum düzeltmesi). Aşağıdaki tablo genel durumu
+özetliyor, ayrıntı için §7'ye bakılmalı.
 
 | # | Madde | Durum |
 |---|---|---|
-| — | **Açılış varyantı seçimi** | 6 varyant hazır (3 eski + 3 yeni cami), `App.tsx`'te hâlâ `'girih'` aktif — kullanıcı yeni varyantları görüp seçmeli |
-| — | **Widget testi** | Kod yazıldı, HİÇ test edilmedi — `expo run:android` gerekiyor |
-| — | **`expo-updates` testi** | Tema değişince gerçek reload davranışı henüz doğrulanmadı |
+| — | **Açılış varyantı** | 6 varyant hazır ama kullanıcı YENİ 3 varyant daha istiyor (animasyonlu, cami görselli) — bkz. §7 madde 10 |
+| — | **Widget** | Kod yazıldı, HİÇ test edilmedi (`expo run:android` gerekiyor); kullanıcı ayrıca 3 yeni tasarım varyantı istiyor — bkz. §7 madde 10 |
+| — | **`expo-updates` testi** | Paket 7'de netleşti: Expo Go'da native modül yok, `catch`'e düşüyor (beklenen) — development build ile test edilmeli |
 | — | **Reklam entegrasyonu** | HomeScreen'de yer ayrıldı (`reklamAlani`, 50dp) ama `react-native-google-mobile-ads` henüz entegre edilmedi |
 | — | **Bildirim sesleri testi** | Kullanıcı "sonra kontrol edeceğim" dedi |
+| — | **Kıble pusulası/Kâbe görseli** | Kullanıcı beğenmiyor, yenilenmesi isteniyor — bkz. §7 madde 9 |
 
 ### Bilinen sınırlar (kullanıcıya açıklandı)
 - Widget canlı geri sayım gösteremez (Android kısıtı, statik liste).
@@ -468,7 +571,7 @@ titizlikle işle.
 
 ---
 
-## 8. GÖRSEL/MEDYA LİSANS KURALI (YENİ — Paket 4, kalıcı)
+## 10. GÖRSEL/MEDYA LİSANS KURALI (YENİ — Paket 4, kalıcı)
 
 Kullanıcı: "internette free olarak kullanılacak her türlü görsel için
 gerekirse araştırma yap ve benden izin istemeden bu görselleri kullan. fakat
