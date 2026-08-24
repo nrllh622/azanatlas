@@ -23,6 +23,7 @@
 
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { NativeModules } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './screens/HomeScreen';
 import { LocationProvider } from './context/LocationContext';
@@ -36,19 +37,26 @@ import { IbadetTakibiProvider } from './context/IbadetTakibiContext';
 import { DilProvider } from './i18n/DilContext';
 
 /**
- * Reklam SDK'sını uygulama açılışında BİR KEZ başlatır. `require` ile
- * korumalı çağrılıyor — Expo Go'da bu native modül bulunamaz, `catch`
- * bloğu sessizce yutar (bkz. `components/BannerReklam.tsx`'teki aynı
- * desen). `initialize()` çağrılmadan `<BannerAd>` reklamı yüklemez, bu
- * yüzden bu adım BannerReklam ile birlikte, ayrı bir dosyada tutuldu.
+ * Reklam SDK'sını uygulama açılışında BİR KEZ başlatır.
+ *
+ * ÖNEMLİ: yalnızca `try/catch` YETMEDİĞİ gerçek cihazda görüldü — paket
+ * modül yüklenirken native tarafı senkron `invariant()` ile arıyor ve bu,
+ * try/catch'in her zaman yakalayabildiği bir noktada olmuyor ("Uncaught
+ * Error: TurboModuleRegistry.getEnforcing(...): 'RNGoogleMobileAdsModule'
+ * could not be found"). Bu yüzden paketi hiç `require` ETMEDEN önce
+ * native modülün gerçekten bağlı olup olmadığı `NativeModules` üzerinden
+ * kontrol ediliyor — aynı korunma `components/BannerReklam.tsx`'te de var,
+ * iki dosya birbirinden bağımsız aynı kontrolü yapıyor.
  */
 function reklamSdkBaslat() {
+  const nativeReklamModuluBagli = !!(NativeModules as any)?.RNGoogleMobileAdsModule;
+  if (!nativeReklamModuluBagli) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mobileAds = require('react-native-google-mobile-ads').default;
     mobileAds().initialize();
   } catch {
-    // Expo Go'da veya modül henüz kurulmadıysa sessizce atlanır.
+    // Ekstra güvenlik ağı — beklenmeyen bir hata olursa sessizce atlanır.
   }
 }
 

@@ -16,6 +16,7 @@ import Icon from '../components/Icon';
 import { TURKEY_PROVINCES, Province } from '../data/turkeyLocations';
 import { DISTRICT_COORDS } from '../data/districtCoords';
 import { useLocationContext } from '../context/LocationContext';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onDone: () => void;
@@ -48,6 +49,7 @@ type Mode = 'list' | 'province' | 'district';
 export default function LocationPickerScreen({ onDone }: Props) {
   const insets = useSafeAreaInsets();
   const { locations, activeId, setActiveId, addLocation, removeLocation } = useLocationContext();
+  const { t } = useCeviri();
   const [mode, setMode] = useState<Mode>('list');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -68,7 +70,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
       addLocation({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        il: place?.region || place?.city || 'GPS Konumu',
+        il: place?.region || place?.city || t('gpsKonumu'),
         ilce: place?.subregion || place?.district || place?.city || '',
         countryCode: place?.isoCountryCode || 'TR',
         isGps: true,
@@ -84,7 +86,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
   if (mode === 'list') {
     return (
       <View style={styles.wrap}>
-        <ScreenHeader title="Şehri Değiştir" icon="konum" onClose={onDone} />
+        <ScreenHeader title={t('sehriDegistir')} icon="konum" onClose={onDone} />
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listIcerik}
@@ -107,7 +109,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
               </View>
               {locations.length > 1 && (
                 <TouchableOpacity onPress={() => removeLocation(item.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Text style={styles.deleteText}>Sil</Text>
+                  <Text style={styles.deleteText}>{t('sil')}</Text>
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
@@ -117,11 +119,11 @@ export default function LocationPickerScreen({ onDone }: Props) {
           <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading} activeOpacity={0.85}>
             <View style={styles.actionBtnInner}>
               <Icon name="konum" size={16} color={colors.textOnDark} />
-              <Text style={styles.actionBtnText}>{gpsLoading ? 'Konum alınıyor…' : 'GPS ile Ekle'}</Text>
+              <Text style={styles.actionBtnText}>{gpsLoading ? t('konumAliniyor') : t('gpsIleEkle')}</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtnIkincil} onPress={() => setMode('province')} activeOpacity={0.75}>
-            <Text style={styles.actionBtnIkincilText}>+ İl/İlçe Seçerek Ekle</Text>
+            <Text style={styles.actionBtnIkincilText}>{t('ilIlceSecerekEkle')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -131,7 +133,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
   if (mode === 'province') {
     return (
       <View style={styles.wrap}>
-        <ScreenHeader title="İl Seç" icon="konum" onClose={() => setMode('list')} />
+        <ScreenHeader title={t('ilSec')} icon="konum" onClose={() => setMode('list')} />
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listIcerik}
@@ -157,7 +159,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="İlçe Seç"
+        title={t('ilceSec')}
         subtitle={selectedProvince?.name}
         icon="konum"
         onClose={() => setMode('province')}

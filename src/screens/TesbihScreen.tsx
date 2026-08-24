@@ -27,17 +27,20 @@ import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
+import { useCeviri } from '../i18n/DilContext';
 
 const STORAGE_KEY = 'azanatlas_tesbih_v1';
 
-/** Namaz sonrası tesbihatta okunan zikirler ve alışılmış sayıları. */
+/** Namaz sonrası tesbihatta okunan zikirler ve alışılmış sayıları.
+    `anlam`/`anlamEn`: Arapça/Latin yazılış DEĞİŞMEZ (her dilde aynı), yalnızca
+    kısa anlam açıklaması aktif dile göre seçiliyor. */
 const ZIKIRLER = [
-  { id: 'subhanallah', arabic: 'سُبْحَانَ اللّٰه', latin: 'Sübhânallâh', anlam: 'Allah her türlü eksiklikten uzaktır', hedef: 33 },
-  { id: 'elhamdulillah', arabic: 'اَلْحَمْدُ لِلّٰه', latin: 'Elhamdülillâh', anlam: 'Hamd Allah’a mahsustur', hedef: 33 },
-  { id: 'allahuekber', arabic: 'اَللّٰهُ اَكْبَر', latin: 'Allâhü ekber', anlam: 'Allah en büyüktür', hedef: 33 },
-  { id: 'lailahe', arabic: 'لَا إِلٰهَ إِلَّا اللّٰه', latin: 'Lâ ilâhe illallâh', anlam: 'Allah’tan başka ilah yoktur', hedef: 100 },
-  { id: 'istigfar', arabic: 'أَسْتَغْفِرُ اللّٰه', latin: 'Estağfirullâh', anlam: 'Allah’tan bağışlanma dilerim', hedef: 100 },
-  { id: 'salavat', arabic: 'اَللّٰهُمَّ صَلِّ عَلٰى مُحَمَّد', latin: 'Allâhümme salli alâ Muhammed', anlam: 'Peygamber’e salât ü selam', hedef: 100 },
+  { id: 'subhanallah', arabic: 'سُبْحَانَ اللّٰه', latin: 'Sübhânallâh', anlam: 'Allah her türlü eksiklikten uzaktır', anlamEn: 'Glory be to Allah, free from all imperfection', hedef: 33 },
+  { id: 'elhamdulillah', arabic: 'اَلْحَمْدُ لِلّٰه', latin: 'Elhamdülillâh', anlam: 'Hamd Allah’a mahsustur', anlamEn: 'All praise belongs to Allah', hedef: 33 },
+  { id: 'allahuekber', arabic: 'اَللّٰهُ اَكْبَر', latin: 'Allâhü ekber', anlam: 'Allah en büyüktür', anlamEn: 'Allah is the greatest', hedef: 33 },
+  { id: 'lailahe', arabic: 'لَا إِلٰهَ إِلَّا اللّٰه', latin: 'Lâ ilâhe illallâh', anlam: 'Allah’tan başka ilah yoktur', anlamEn: 'There is no god but Allah', hedef: 100 },
+  { id: 'istigfar', arabic: 'أَسْتَغْفِرُ اللّٰه', latin: 'Estağfirullâh', anlam: 'Allah’tan bağışlanma dilerim', anlamEn: 'I seek forgiveness from Allah', hedef: 100 },
+  { id: 'salavat', arabic: 'اَللّٰهُمَّ صَلِّ عَلٰى مُحَمَّد', latin: 'Allâhümme salli alâ Muhammed', anlam: 'Peygamber’e salât ü selam', anlamEn: 'O Allah, send blessings upon Muhammad', hedef: 100 },
 ];
 
 interface Props {
@@ -81,6 +84,7 @@ function IlerlemeHalkasi({ oran, boyut = 208 }: { oran: number; boyut?: number }
 export default function TesbihScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { vibrationEnabled } = useGeneralSettings();
+  const { t, dil } = useCeviri();
   const [zikirId, setZikirId] = useState(ZIKIRLER[0].id);
   const [sayac, setSayac] = useState(0);
   const [tur, setTur] = useState(0);
@@ -147,8 +151,8 @@ export default function TesbihScreen({ onClose }: Props) {
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="Tesbih"
-        subtitle="Zikirmatik"
+        title={t('aracTesbih')}
+        subtitle={t('aciklamaZikirmatik')}
         icon="tesbih"
         onClose={onClose}
       />
@@ -189,7 +193,7 @@ export default function TesbihScreen({ onClose }: Props) {
         <View style={styles.zikirKart}>
           <Text style={styles.zikirArapca}>{zikir.arabic}</Text>
           <Text style={styles.zikirLatin}>{zikir.latin}</Text>
-          <Text style={styles.zikirAnlam}>{zikir.anlam}</Text>
+          <Text style={styles.zikirAnlam}>{dil === 'en' ? zikir.anlamEn : zikir.anlam}</Text>
         </View>
 
         {/* Sayaç — ekranın büyük bölümü dokunma alanı */}
@@ -197,7 +201,7 @@ export default function TesbihScreen({ onClose }: Props) {
           onPress={artir}
           style={({ pressed }) => [styles.sayacAlan, pressed && styles.sayacAlanBasili]}
           accessibilityRole="button"
-          accessibilityLabel={`Sayacı artır. Şu an ${sayac}, hedef ${zikir.hedef}`}
+          accessibilityLabel={t('sayaciArtirEtiketi', sayac, zikir.hedef)}
         >
           <View style={styles.halkaKap}>
             <IlerlemeHalkasi oran={sayac / zikir.hedef} />
@@ -206,13 +210,13 @@ export default function TesbihScreen({ onClose }: Props) {
               <Text style={styles.sayacHedef}>/ {zikir.hedef}</Text>
             </View>
           </View>
-          <Text style={styles.dokunIpucu}>Saymak için dokunun</Text>
+          <Text style={styles.dokunIpucu}>{t('dokunSaymakIcin')}</Text>
         </Pressable>
 
         {/* Tur sayacı */}
         <View style={styles.turKart}>
           <Icon name="yildiz" size={20} color={colors.copper} />
-          <Text style={styles.turEtiket}>Tamamlanan tur</Text>
+          <Text style={styles.turEtiket}>{t('tamamlananTur')}</Text>
           <Text style={styles.turDeger}>{tur}</Text>
         </View>
 
@@ -230,20 +234,20 @@ export default function TesbihScreen({ onClose }: Props) {
             style={styles.geriAlBtn}
             onPress={azalt}
             accessibilityRole="button"
-            accessibilityLabel="Son sayımı geri al"
+            accessibilityLabel={t('sonSayimiGeriAlEtiketi')}
           >
             <Icon name="eksi" size={24} color={colors.primaryDark} />
-            <Text style={styles.geriAlYazi}>Geri Al</Text>
+            <Text style={styles.geriAlYazi}>{t('geriAl')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.sifirlaBtn}
             onPress={sifirla}
             accessibilityRole="button"
-            accessibilityLabel="Sayacı ve turları sıfırla"
+            accessibilityLabel={t('sayaciSifirlaEtiketi')}
           >
             <Icon name="yenile" size={24} color={colors.white} />
-            <Text style={styles.sifirlaYazi}>Sıfırla</Text>
+            <Text style={styles.sifirlaYazi}>{t('sifirla')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

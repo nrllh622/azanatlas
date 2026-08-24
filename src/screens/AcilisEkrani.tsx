@@ -483,8 +483,16 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
       // camiyi arkadan aydınlatarak belirmesi — "gün doğumu" hissi.
       // ═══════════════════════════════════════════════════════════════════
       case 'ufuk-cizgisi':
+        // Madde 4 (bu paket): dış `camiSahne` artık DİKEY ORTALANIYOR (cami
+        // ekranın kenarına yapışmasın diye) — ama bu varyantın kendi iç
+        // kompozisyonu (gökyüzü üstte, ufuk çizgisi + cami tam bu kutunun
+        // ALTINDA) hâlâ birbirine göre sabit kalmalı. Bu yüzden kendi
+        // pozisyon bağlamını taşıyan ayrı bir sarmalayıcı kutu kullanılıyor;
+        // bu kutu camiSahne'nin ortasında durur, içeriği ise KENDİ İÇİNDE
+        // alta yaslanır — mosque + ufuk çizgisi ilişkisi bozulmadan tüm
+        // sahne yukarı taşınmış olur.
         return (
-          <>
+          <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
             {/* Gökyüzü — koyudan aydınlığa geçiş hissi veren sabit gradyan
                 zemin, sıcak tonun opaklığı animasyonla artıyor */}
             <Svg
@@ -562,7 +570,7 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
                 <Path d={CAMI_KAPI_YOL} fill={C.deep} />
               </Svg>
             </Animated.View>
-          </>
+          </View>
         );
 
       // ═══════════════════════════════════════════════════════════════════
@@ -622,10 +630,14 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
     }
   })();
 
-  // Cami varyantlarında uygulama adı ÜSTTE ve belirgin duruyor (Muslim
-  // Pro'daki gibi) — cami silueti alt yarıda, ad üst üçte birde. Girih/
-  // şafak/hatem varyantlarında ise motif ortada, ad altta kalmaya devam
-  // ediyor (bu üçü zaten "motif + alt yazı" mantığıyla tasarlandı).
+  // Madde 4 (bu paket — ısrarla tekrar edilen şikayet): cami önceki
+  // düzende ekranın en altına, kenara yapışık duruyordu ("çok altta
+  // kalmış") ve ad/slogan üstteydi. Kullanıcı isteği üzerine SIRA
+  // DEĞİŞTİRİLDİ: cami artık ekranın ÜST/ORTA bölgesinde, kenara
+  // yapışmadan, daha fazla nefes payıyla duruyor; AzanAtlas adı ve
+  // sloganı ise camiden SONRA, ekranın alt kısmında gösteriliyor. Girih/
+  // şafak/hatem varyantlarında (aşağıdaki `else` dalı) motif zaten
+  // ortada, ad altta kalmaya devam ediyor — bu üçü değişmedi.
   const camiVaryanti =
     varyant === 'cami-siluet' || varyant === 'cami-hilal' || varyant === 'cami-altin' || varyant === 'ufuk-cizgisi';
 
@@ -633,13 +645,15 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
     <Animated.View style={[styles.wrap, { opacity: genel, backgroundColor: C.deep }]}>
       {camiVaryanti ? (
         <View style={styles.camiDuzen}>
+          <View style={styles.camiSahne}>{govde}</View>
+
           <Animated.View
             style={[
-              styles.yaziBlokUst,
+              styles.yaziBlokAlt,
               {
-                opacity: a1,
+                opacity: a3,
                 transform: [
-                  { translateY: a1.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) },
+                  { translateY: a3.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
                 ],
               },
             ]}
@@ -647,8 +661,6 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
             <Text style={[styles.adBuyuk, { color: C.cream }]}>AzanAtlas</Text>
             <Text style={[styles.slogan, { color: C.glow }]}>Namaz vakitleri, her yerde</Text>
           </Animated.View>
-
-          <View style={styles.camiSahne}>{govde}</View>
         </View>
       ) : (
         <>
@@ -700,26 +712,29 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 
-  // ---------- CAMİ VARYANTLARI: ad üstte, cami altta ----------
+  // ---------- CAMİ VARYANTLARI: cami üstte/ortada, ad ve slogan altta ----------
+  // Madde 4 (bu paket): sıra değişti — cami artık kenara yapışık değil,
+  // kendi alanında DİKEY OLARAK ORTALANIYOR (justifyContent: 'center'),
+  // ad/slogan bloğu ekranın alt kısmında ayrı bir sabit yükseklikte duruyor.
   camiDuzen: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: spacing.xxl + spacing.xl,
-  },
-  yaziBlokUst: { alignItems: 'center' },
-  adBuyuk: {
-    fontFamily: typography.displayFamily,
-    fontSize: 40,
-    letterSpacing: 0.6,
+    justifyContent: 'space-between',
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl + spacing.lg,
   },
   camiSahne: {
     flex: 1,
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     overflow: 'hidden',
-    paddingBottom: spacing.xl,
+  },
+  yaziBlokAlt: { alignItems: 'center' },
+  adBuyuk: {
+    fontFamily: typography.displayFamily,
+    fontSize: 40,
+    letterSpacing: 0.6,
   },
 });

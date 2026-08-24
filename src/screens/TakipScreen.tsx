@@ -22,22 +22,23 @@ import { colors, spacing, radius, typography, elevation } from '../theme';
 import { useIbadetTakibi } from '../context/IbadetTakibiContext';
 import {
   TAKIP_VAKITLERI,
-  TAKIP_ETIKETLERI,
   TakipVakti,
   gunAnahtari,
   sonGunlerdeKilinan,
 } from '../lib/ibadetTakibi';
+import { useCeviri } from '../i18n/DilContext';
+import { AY_ANAHTARLARI, GUN_ANAHTARLARI } from '../i18n/ceviriler';
 
 interface Props {
   /** Tam ekran açıldığında geri dönüş. Sekme olarak kullanıldığında verilmez. */
   onClose?: () => void;
 }
 
-const GUN_KISALTMA = ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pa'];
-const AY_ADLARI = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
+// NOT: `TAKIP_ETIKETLERI` (lib/ibadetTakibi.ts) artık kullanılmıyor —
+// vakit adları için diğer ekranlarla aynı `vakitAdi()` çevirisi kullanılıyor.
+// Gün kısaltmaları (Pt/Sa/Ça...) haftanın günü İZGARA BAŞLIĞI olduğu için
+// GUN_ANAHTARLARI'ndan üretiliyor (kısaltma için `t(...).slice(0,2)`).
+const GUN_KISALTMA_INDEKS = [1, 2, 3, 4, 5, 6, 0]; // Pazartesi..Pazar -> GUN_ANAHTARLARI indeksleri
 
 /** Pazartesi'yi haftanın ilk günü kabul ederek, verilen günün hafta başını verir. */
 function haftaBasi(d: Date): Date {
@@ -52,6 +53,8 @@ function haftaBasi(d: Date): Date {
 export default function TakipScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { kayitlar, seri, isaretiDegistir, gunuGetir } = useIbadetTakibi();
+  const { t, vakitAdi } = useCeviri();
+  const GUN_KISALTMA = GUN_KISALTMA_INDEKS.map((i) => t(GUN_ANAHTARLARI[i]).slice(0, 2));
   const [bugun] = useState(() => new Date());
   const [secilenGun, setSecilenGun] = useState<Date>(() => new Date());
 
@@ -85,7 +88,7 @@ export default function TakipScreen({ onClose }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <ScreenHeader title="İbadet Takibi" subtitle="Beş vakit namaz" icon="takip" onClose={onClose} />
+      <ScreenHeader title={t('adIbadetTakibi')} subtitle={t('besVaktiNamaz')} icon="takip" onClose={onClose} />
 
       <ScrollView
         contentContainerStyle={[styles.icerik, { paddingBottom: insets.bottom + spacing.xl }]}
@@ -96,20 +99,18 @@ export default function TakipScreen({ onClose }: Props) {
           <IslamicPattern color={colors.cream} opacity={0.07} tile={40} />
           <View style={styles.seriIcerik}>
             <View style={styles.seriSol}>
-              <Text style={styles.seriEtiket}>Kesintisiz seri</Text>
+              <Text style={styles.seriEtiket}>{t('kesintisizSeri')}</Text>
               <View style={styles.seriRakamSatir}>
                 <Text style={styles.seriRakam}>{seri}</Text>
-                <Text style={styles.seriBirim}>gün</Text>
+                <Text style={styles.seriBirim}>{t('gun')}</Text>
               </View>
               <Text style={styles.seriAciklama}>
-                {seri === 0
-                  ? 'Beş vakti tamamladığın gün seri başlar.'
-                  : 'Beş vakti de tamamladığın kesintisiz gün sayısı.'}
+                {seri === 0 ? t('seriBaslarSonrasi') : t('seriDevamAciklama')}
               </Text>
             </View>
             <View style={styles.seriSag}>
               <Text style={styles.seriIkinciDeger}>{son28}</Text>
-              <Text style={styles.seriIkinciEtiket}>son 28 günde{'\n'}kılınan vakit</Text>
+              <Text style={styles.seriIkinciEtiket}>{t('son28GundeKilinanVakit')}</Text>
             </View>
           </View>
         </View>
@@ -118,8 +119,8 @@ export default function TakipScreen({ onClose }: Props) {
         <View style={styles.bolumBaslikSatir}>
           <Text style={styles.bolumBaslik}>
             {bugunMu
-              ? 'Bugün'
-              : `${secilenGun.getDate()} ${AY_ADLARI[secilenGun.getMonth()]}`}
+              ? t('bugun')
+              : `${secilenGun.getDate()} ${t(AY_ANAHTARLARI[secilenGun.getMonth()])}`}
           </Text>
           {!bugunMu && (
             <TouchableOpacity
@@ -127,7 +128,7 @@ export default function TakipScreen({ onClose }: Props) {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
             >
-              <Text style={styles.bugunDon}>Bugüne dön</Text>
+              <Text style={styles.bugunDon}>{t('bugüneDon')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -135,6 +136,7 @@ export default function TakipScreen({ onClose }: Props) {
         <View style={styles.vakitListe}>
           {TAKIP_VAKITLERI.map((vakit) => {
             const kilindi = vakitDurumu(vakit);
+            const ad = vakitAdi(vakit);
             return (
               <TouchableOpacity
                 key={vakit}
@@ -144,7 +146,7 @@ export default function TakipScreen({ onClose }: Props) {
                 activeOpacity={0.7}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: kilindi, disabled: gelecekMi }}
-                accessibilityLabel={`${TAKIP_ETIKETLERI[vakit]} namazı`}
+                accessibilityLabel={t('namaziEtiketi', ad)}
               >
                 <View style={[styles.vakitIkonKap, kilindi && styles.vakitIkonKapKilindi]}>
                   <Icon
@@ -154,7 +156,7 @@ export default function TakipScreen({ onClose }: Props) {
                   />
                 </View>
                 <Text style={[styles.vakitAd, kilindi && styles.vakitAdKilindi]}>
-                  {TAKIP_ETIKETLERI[vakit]}
+                  {ad}
                 </Text>
                 <Icon
                   name={kilindi ? 'onay' : 'daire'}
@@ -169,12 +171,12 @@ export default function TakipScreen({ onClose }: Props) {
         {gelecekMi && (
           <View style={styles.uyariSatir}>
             <Icon name="bilgi" size={15} color={colors.textMuted} />
-            <Text style={styles.uyariYazi}>Gelecek bir gün işaretlenemez.</Text>
+            <Text style={styles.uyariYazi}>{t('gelecekGunUyarisi')}</Text>
           </View>
         )}
 
         {/* --- SON 4 HAFTA IZGARASI --- */}
-        <Text style={[styles.bolumBaslik, { marginTop: spacing.lg }]}>Son 4 hafta</Text>
+        <Text style={[styles.bolumBaslik, { marginTop: spacing.lg }]}>{t('son4Hafta')}</Text>
         <View style={styles.izgaraKart}>
           <View style={styles.izgaraBaslikSatir}>
             {GUN_KISALTMA.map((g) => (
@@ -205,7 +207,7 @@ export default function TakipScreen({ onClose }: Props) {
                     onPress={() => !ileride && setSecilenGun(gun)}
                     disabled={ileride}
                     accessibilityRole="button"
-                    accessibilityLabel={`${gun.getDate()} ${AY_ADLARI[gun.getMonth()]}, ${kilinan} vakit kılındı`}
+                    accessibilityLabel={t('gunVakitKilindiEtiketi', gun.getDate(), t(AY_ANAHTARLARI[gun.getMonth()]), kilinan)}
                   >
                     <Text
                       style={[
@@ -226,25 +228,22 @@ export default function TakipScreen({ onClose }: Props) {
           <View style={styles.aciklamaSatir}>
             <View style={styles.aciklamaOge}>
               <View style={[styles.aciklamaKutu, styles.izgaraHucreTam]} />
-              <Text style={styles.aciklamaYazi}>Beş vakit tam</Text>
+              <Text style={styles.aciklamaYazi}>{t('besVaktiTam')}</Text>
             </View>
             <View style={styles.aciklamaOge}>
               <View style={[styles.aciklamaKutu, styles.izgaraHucreKismi]} />
-              <Text style={styles.aciklamaYazi}>Kısmen</Text>
+              <Text style={styles.aciklamaYazi}>{t('kismen')}</Text>
             </View>
             <View style={styles.aciklamaOge}>
               <View style={[styles.aciklamaKutu, { backgroundColor: colors.creamDeep, borderColor: colors.border, borderWidth: 1 }]} />
-              <Text style={styles.aciklamaYazi}>Kayıt yok</Text>
+              <Text style={styles.aciklamaYazi}>{t('kayitYok')}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.notKap}>
           <Icon name="bilgi" size={14} color={colors.textMuted} />
-          <Text style={styles.notYazi}>
-            Kayıtlar yalnızca bu cihazda tutulur; hiçbir sunucuya gönderilmez.
-            Bildirimdeki “Kıldım” butonuna bastığında da o vakit burada işaretlenir.
-          </Text>
+          <Text style={styles.notYazi}>{t('takipNotu')}</Text>
         </View>
       </ScrollView>
     </View>

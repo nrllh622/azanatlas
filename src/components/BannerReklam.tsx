@@ -20,32 +20,45 @@
 // `androidAppId`/`iosAppId` alanlarında güncellenmeli.
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// NEDEN AYRI BİR BİLEŞEN?
+// NEDEN AYRI BİR BİLEŞEN? — VE NEDEN SADECE try/catch YETMEDİ
 //
-// `react-native-google-mobile-ads` NATIVE bir modüldür — Expo Go'da
-// çalışmaz (development build/`expo run:android` gerekir). Bu bileşen
-// import edildiğinde Expo Go'da modül bulunamazsa uygulamayı ÇÖKERTMEMESİ
-// için `try/require` deseniyle korumalı yüklendi; bulunamazsa yerine boş
-// bir View render edilir (reklamAlani'nın ayrılmış 50dp'lik alanı
-// bozulmaz, yalnızca reklam görünmez).
+// `react-native-google-mobile-ads` NATIVE bir modüldür — Expo Go'da ve
+// paketin native tarafı henüz derlenmemiş bir development build'de
+// çalışmaz. İLK sürümde yalnızca `try { require(...) } catch {}` ile
+// korunmuştu, ama gerçek cihazda "Uncaught Error:
+// TurboModuleRegistry.getEnforcing(...): 'RNGoogleMobileAdsModule' could
+// not be found" hatasıyla ÇÖKTÜ — paketin kendi iç dosyaları
+// (MobileAds.ts → GoogleMobileAdsModule.ts) modül YÜKLENİRKEN native
+// modülü SENKRON olarak `invariant()` ile arıyor; bu belirli RN/Expo
+// sürüm kombinasyonunda `require()` çağrısını saran try/catch'in dışına
+// taşan bir noktada patlıyor.
+//
+// Çözüm: paketi hiç `require` ETMEDEN önce, native tarafın gerçekten
+// bağlı olup olmadığını `NativeModules` üzerinden DOĞRUDAN kontrol
+// ediyoruz. Native modül kayıtlı değilse (Expo Go / eski development
+// build) paketin JS dosyalarına hiç girilmiyor — çökme ihtimali kalmıyor.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { View, StyleSheet, ViewStyle, StyleProp, NativeModules } from 'react-native';
 
 let BannerAd: any = null;
 let BannerAdSize: any = null;
 let TestIds: any = null;
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mobileAds = require('react-native-google-mobile-ads');
-  BannerAd = mobileAds.BannerAd;
-  BannerAdSize = mobileAds.BannerAdSize;
-  TestIds = mobileAds.TestIds;
-} catch {
-  // Expo Go'da veya modül henüz kurulmadıysa (npm install eksikse) burası
-  // sessizce atlanır — BannerAd null kalır, aşağıda boş View render edilir.
+const nativeReklamModuluBagli = !!(NativeModules as any)?.RNGoogleMobileAdsModule;
+
+if (nativeReklamModuluBagli) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mobileAds = require('react-native-google-mobile-ads');
+    BannerAd = mobileAds.BannerAd;
+    BannerAdSize = mobileAds.BannerAdSize;
+    TestIds = mobileAds.TestIds;
+  } catch {
+    // Ekstra güvenlik ağı: native modül kayıtlı görünse bile herhangi bir
+    // beklenmeyen hata olursa sessizce atlanır — BannerAd null kalır.
+  }
 }
 
 // Gerçek kimlik alındığında bu satır güncellenecek:

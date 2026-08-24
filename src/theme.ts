@@ -40,6 +40,10 @@
 export interface PaletTanimi {
   ad: string;
   aciklama: string;
+  /** i18n paketi: TemaScreen artık aktif dile göre `ad`/`aciklama` ya da
+      `adEn`/`aciklamaEn` gösteriyor — bkz. TemaScreen.tsx. */
+  adEn: string;
+  aciklamaEn: string;
   renkler: Record<string, string>;
 }
 
@@ -47,6 +51,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   sirliParlaklik: {
     ad: 'İznik Turkuazı',
     aciklama: 'Osmanlı çinisinin turkuazı ve mercan sırı',
+    adEn: 'Iznik Turquoise',
+    aciklamaEn: 'Ottoman tilework turquoise and coral glaze',
     renkler: {
       primary: '#074A47',
       primaryDark: '#073634',
@@ -82,6 +88,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   sedefLacivert: {
     ad: 'Sedef Lacivert',
     aciklama: 'Hat levhası laciverdi ve tezhip altını',
+    adEn: 'Mother-of-Pearl Navy',
+    aciklamaEn: 'Calligraphy-panel navy and illumination gold',
     renkler: {
       primary: '#011A4B',
       primaryDark: '#011337',
@@ -117,6 +125,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   avluFerahligi: {
     ad: 'Avlu Ferahlığı',
     aciklama: 'Şadırvan turkuazı ve avlu bakırı',
+    adEn: 'Courtyard Freshness',
+    aciklamaEn: 'Fountain turquoise and courtyard copper',
     renkler: {
       primary: '#06494B',
       primaryDark: '#053638',
@@ -152,6 +162,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   yesimBahcesi: {
     ad: 'Yeşim Bahçesi',
     aciklama: 'Bahçe yeşili ve amber',
+    adEn: 'Jade Garden',
+    aciklamaEn: 'Garden green and amber',
     renkler: {
       primary: '#064B34',
       primaryDark: '#063727',
@@ -187,6 +199,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   gokFiruzesi: {
     ad: 'Gök Firuzesi',
     aciklama: 'Kubbe firuzesi ve bakır',
+    adEn: 'Sky Turquoise',
+    aciklamaEn: 'Dome turquoise and copper',
     renkler: {
       primary: '#013B50',
       primaryDark: '#012C3C',
@@ -222,6 +236,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   naneSedef: {
     ad: 'Nane ve Sedef',
     aciklama: 'Nane yeşili ve sedef moru',
+    adEn: 'Mint & Pearl',
+    aciklamaEn: 'Mint green and pearl violet',
     renkler: {
       primary: '#074A3D',
       primaryDark: '#06372D',
@@ -257,6 +273,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   lilaTezhibi: {
     ad: 'Lila Tezhibi',
     aciklama: 'Tezhip laciverdi ve firuze',
+    adEn: 'Lilac Illumination',
+    aciklamaEn: 'Illumination navy and turquoise',
     renkler: {
       primary: '#0D0138',
       primaryDark: '#0A012A',
@@ -298,6 +316,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   zumrutVarak: {
     ad: 'Zümrüt Varak',
     aciklama: 'Derin zümrüt ve altın',
+    adEn: 'Emerald Leaf',
+    aciklamaEn: 'Deep emerald and gold',
     renkler: {
       primary: '#043A1B',
       primaryDark: '#032B14',
@@ -334,6 +354,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   kisveSiyahi: {
     ad: 'Kisve Siyahı',
     aciklama: 'Kâbe örtüsü tonu ve altın sırma',
+    adEn: 'Kiswa Black',
+    aciklamaEn: 'Kaaba-covering tone and gold thread',
     renkler: {
       primary: '#2E1801',
       primaryDark: '#211101',
@@ -370,6 +392,8 @@ export const PALETLER: Record<string, PaletTanimi> = {
   tugraBordosu: {
     ad: 'Tuğra Bordosu',
     aciklama: 'Tuğra bordosu ve altın tezhip',
+    adEn: 'Tughra Maroon',
+    aciklamaEn: 'Imperial-seal maroon and gold illumination',
     renkler: {
       primary: '#33010E',
       primaryDark: '#26010A',

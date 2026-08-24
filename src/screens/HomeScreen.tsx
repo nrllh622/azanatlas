@@ -146,7 +146,7 @@ function geriSayimBicimle(ms: number): string {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { t, vakitAdi } = useCeviri();
+  const { t, vakitAdi, dil } = useCeviri();
   const { location, locations, activeId, setActiveId } = useLocationContext();
   const { settings, setOnTime } = useNotificationSettings();
   const {
@@ -311,28 +311,29 @@ export default function HomeScreen() {
     (async () => {
       const izin = await requestNotificationPermission();
       if (!izin) return;
-      await configureAndroidChannels();
-      await scheduleAllNotifications(vakitler, settings, kerahatMinutes, vibrationEnabled);
+      await configureAndroidChannels(dil);
+      await scheduleAllNotifications(vakitler, settings, kerahatMinutes, vibrationEnabled, dil);
       if (vaktindeKil.enabled) {
         await scheduleVaktindeKil(
           current, next,
           vaktindeKil.firstDelayMinutes,
           vaktindeKil.repeatIntervalMinutes,
           vaktindeKil.sound,
-          vibrationEnabled
+          vibrationEnabled,
+          dil
         );
       }
       await scheduleReminders(
         location.latitude, location.longitude, location.countryCode,
         location.il, location.ilce, autoMethod, methodId, madhab, highLatRule,
-        reminderSettings, vibrationEnabled
+        reminderSettings, vibrationEnabled, dil
       );
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     location.latitude, location.longitude, autoMethod, methodId, madhab, highLatRule,
     settings, kerahatMinutes, vibrationEnabled, vaktindeKil, reminderSettings,
-    current.key, next.key,
+    current.key, next.key, dil,
   ]);
 
   const konumDegistir = (yon: 1 | -1) => {
@@ -750,8 +751,8 @@ export default function HomeScreen() {
               <Icon name="ayet" size={16} color={colors.copperLight} />
               <Text style={styles.ayetBaslik}>{t('gununAyeti')}</Text>
             </View>
-            <Text style={styles.ayetMetin}>{ayet.meal}</Text>
-            <Text style={styles.ayetKaynak}>{ayet.kaynak}</Text>
+            <Text style={styles.ayetMetin}>{dil === 'en' ? ayet.mealEn : ayet.meal}</Text>
+            <Text style={styles.ayetKaynak}>{dil === 'en' ? ayet.kaynakEn : ayet.kaynak}</Text>
           </View>
 
           {/* ── İSLAM TARİHİNDE BUGÜN ──
@@ -770,8 +771,8 @@ export default function HomeScreen() {
             <View style={styles.tarihIcerik}>
               <Text style={styles.tarihYil}>{tarihOlayi.olay.yil}</Text>
               <View style={styles.tarihMetin}>
-                <Text style={styles.tarihOlayBaslik}>{tarihOlayi.olay.baslik}</Text>
-                <Text style={styles.tarihAciklama}>{tarihOlayi.olay.aciklama}</Text>
+                <Text style={styles.tarihOlayBaslik}>{dil === 'en' ? tarihOlayi.olay.baslikEn : tarihOlayi.olay.baslik}</Text>
+                <Text style={styles.tarihAciklama}>{dil === 'en' ? tarihOlayi.olay.aciklamaEn : tarihOlayi.olay.aciklama}</Text>
                 {!tarihOlayi.bugunMu && (
                   <Text style={styles.tarihGoreceli}>
                     {tarihOlayi.gunFarki > 0

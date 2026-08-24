@@ -36,58 +36,88 @@ export interface TarihOlayi {
   baslik: string;
   /** Bir-iki cümlelik açıklama */
   aciklama: string;
+  /** İngilizce başlık — dil İngilizce iken gösterilir */
+  baslikEn: string;
+  /** İngilizce açıklama — dil İngilizce iken gösterilir */
+  aciklamaEn: string;
 }
 
 export const TARIH_OLAYLARI: TarihOlayi[] = [
   // ── OCAK ──
   { ay: 1, gun: 3, yil: 1871, baslik: 'Mehmet Akif Ersoy… (doğum)',
-    aciklama: 'İstiklal Marşı’nın şairi ve Kur’an mütercimi Mehmet Akif Ersoy’un doğum tarihi olarak kabul edilen gün.' },
+    aciklama: 'İstiklal Marşı’nın şairi ve Kur’an mütercimi Mehmet Akif Ersoy’un doğum tarihi olarak kabul edilen gün.',
+    baslikEn: 'Mehmet Akif Ersoy (born)',
+    aciklamaEn: 'The date traditionally accepted as the birth of Mehmet Akif Ersoy, poet of the Turkish National Anthem and translator of the Quran.' },
 
   // ── ŞUBAT ──
   { ay: 2, gun: 3, yil: 1451, baslik: 'Fatih Sultan Mehmed tahta çıktı',
-    aciklama: 'II. Mehmed ikinci kez Osmanlı tahtına geçti; iki yıl sonra İstanbul’u fethedecekti.' },
+    aciklama: 'II. Mehmed ikinci kez Osmanlı tahtına geçti; iki yıl sonra İstanbul’u fethedecekti.',
+    baslikEn: 'Mehmed the Conqueror ascends the throne',
+    aciklamaEn: 'Mehmed II took the Ottoman throne for the second time; two years later he would conquer Constantinople.' },
   { ay: 2, gun: 22, yil: 632, baslik: 'Veda Hutbesi (yaklaşık)',
-    aciklama: 'Peygamber Efendimizin Veda Haccı sırasında Arafat’ta irad ettiği hutbe. Hicri 9 Zilhicce 10’a denk gelir.' },
+    aciklama: 'Peygamber Efendimizin Veda Haccı sırasında Arafat’ta irad ettiği hutbe. Hicri 9 Zilhicce 10’a denk gelir.',
+    baslikEn: 'The Farewell Sermon (approx.)',
+    aciklamaEn: 'The sermon delivered by the Prophet on Mount Arafat during his Farewell Pilgrimage, corresponding to 9 Dhul-Hijjah, 10 AH.' },
 
   // ── MART ──
   { ay: 3, gun: 12, yil: 1921, baslik: 'İstiklal Marşı kabul edildi',
-    aciklama: 'Mehmet Akif Ersoy’un yazdığı İstiklal Marşı, TBMM tarafından milli marş olarak kabul edildi.' },
+    aciklama: 'Mehmet Akif Ersoy’un yazdığı İstiklal Marşı, TBMM tarafından milli marş olarak kabul edildi.',
+    baslikEn: 'The Turkish National Anthem is adopted',
+    aciklamaEn: "The İstiklal Marşı, written by Mehmet Akif Ersoy, was adopted as the national anthem by Turkey's Grand National Assembly." },
 
   // ── NİSAN ──
   { ay: 4, gun: 6, yil: 1453, baslik: 'İstanbul kuşatması başladı',
-    aciklama: 'Fatih Sultan Mehmed komutasındaki Osmanlı ordusu İstanbul’u kuşatmaya başladı.' },
+    aciklama: 'Fatih Sultan Mehmed komutasındaki Osmanlı ordusu İstanbul’u kuşatmaya başladı.',
+    baslikEn: 'The Siege of Constantinople begins',
+    aciklamaEn: 'The Ottoman army under Mehmed the Conqueror began the siege of Constantinople.' },
 
   // ── MAYIS ──
   { ay: 5, gun: 29, yil: 1453, baslik: 'İstanbul’un Fethi',
-    aciklama: 'Fatih Sultan Mehmed İstanbul’u fethetti; Orta Çağ’ın kapanışı sayılan olay.' },
+    aciklama: 'Fatih Sultan Mehmed İstanbul’u fethetti; Orta Çağ’ın kapanışı sayılan olay.',
+    baslikEn: 'The Conquest of Constantinople',
+    aciklamaEn: 'Mehmed the Conqueror conquered Constantinople, an event considered to mark the end of the Middle Ages.' },
 
   // ── HAZİRAN ──
   { ay: 6, gun: 8, yil: 632, baslik: 'Peygamber Efendimizin vefatı (yaklaşık)',
-    aciklama: 'Hz. Muhammed (s.a.v.) Medine’de vefat etti. Hicri 12 Rebiülevvel 11’e denk gelir.' },
+    aciklama: 'Hz. Muhammed (s.a.v.) Medine’de vefat etti. Hicri 12 Rebiülevvel 11’e denk gelir.',
+    baslikEn: 'The passing of the Prophet Muhammad (approx.)',
+    aciklamaEn: 'Prophet Muhammad (peace be upon him) passed away in Medina, corresponding to 12 Rabi al-Awwal, 11 AH.' },
 
   // ── TEMMUZ ──
   { ay: 7, gun: 16, yil: 622, baslik: 'Hicri takvimin başlangıcı',
-    aciklama: 'Hicri takvimin birinci yılının ilk günü olarak kabul edilen tarih.' },
+    aciklama: 'Hicri takvimin birinci yılının ilk günü olarak kabul edilen tarih.',
+    baslikEn: 'The start of the Hijri calendar',
+    aciklamaEn: 'The date accepted as the first day of year one of the Hijri calendar.' },
 
   // ── AĞUSTOS ──
   { ay: 8, gun: 26, yil: 1071, baslik: 'Malazgirt Meydan Muharebesi',
-    aciklama: 'Sultan Alparslan komutasındaki Selçuklu ordusu Bizans’ı yendi; Anadolu’nun kapıları açıldı.' },
+    aciklama: 'Sultan Alparslan komutasındaki Selçuklu ordusu Bizans’ı yendi; Anadolu’nun kapıları açıldı.',
+    baslikEn: 'The Battle of Manzikert',
+    aciklamaEn: 'The Seljuk army under Sultan Alp Arslan defeated the Byzantines, opening the gates of Anatolia to Turkish settlement.' },
 
   // ── EYLÜL ──
   { ay: 9, gun: 24, yil: 622, baslik: 'Hicret tamamlandı (yaklaşık)',
-    aciklama: 'Peygamber Efendimiz Mekke’den Medine’ye hicretini tamamladı; Kuba’ya varış olarak anılır.' },
+    aciklama: 'Peygamber Efendimiz Mekke’den Medine’ye hicretini tamamladı; Kuba’ya varış olarak anılır.',
+    baslikEn: 'The Hijra is completed (approx.)',
+    aciklamaEn: "The Prophet completed his migration from Mecca to Medina, marked by his arrival at Quba." },
 
   // ── EKİM ──
   { ay: 10, gun: 7, yil: 1571, baslik: 'İnebahtı Deniz Savaşı',
-    aciklama: 'Osmanlı donanması ile Haçlı donanması arasındaki büyük deniz muharebesi.' },
+    aciklama: 'Osmanlı donanması ile Haçlı donanması arasındaki büyük deniz muharebesi.',
+    baslikEn: 'The Battle of Lepanto',
+    aciklamaEn: 'A major naval battle between the Ottoman fleet and the fleet of the Holy League.' },
 
   // ── KASIM ──
   { ay: 11, gun: 20, yil: 1187, baslik: 'Selahaddin Eyyubi Kudüs’ü aldı (yaklaşık)',
-    aciklama: 'Hıttîn Zaferi’nin ardından Selahaddin Eyyubi Kudüs’ü teslim aldı.' },
+    aciklama: 'Hıttîn Zaferi’nin ardından Selahaddin Eyyubi Kudüs’ü teslim aldı.',
+    baslikEn: 'Saladin retakes Jerusalem (approx.)',
+    aciklamaEn: 'Following the victory at the Battle of Hattin, Saladin received the surrender of Jerusalem.' },
 
   // ── ARALIK ──
   { ay: 12, gun: 17, yil: 1273, baslik: 'Mevlânâ Celâleddîn Rûmî’nin vefatı',
-    aciklama: 'Şeb-i Arûs olarak anılan gün; Mevlânâ Konya’da vefat etti.' },
+    aciklama: 'Şeb-i Arûs olarak anılan gün; Mevlânâ Konya’da vefat etti.',
+    baslikEn: 'The passing of Rumi',
+    aciklamaEn: "Known as Şeb-i Arus (the Night of Union), the day Rumi passed away in Konya." },
 ];
 
 /**

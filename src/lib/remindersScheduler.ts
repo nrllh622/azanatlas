@@ -4,6 +4,7 @@ import { getVakitlerWithDiyanetFallback } from './prayerCalculator';
 import { RemindersSettings } from '../context/RemindersContext';
 import { getSoundById } from '../data/soundCatalog';
 import { getChannelForSound } from './notificationScheduler';
+import { DilKodu, VARSAYILAN_DIL, tDil } from '../i18n/ceviriler';
 
 // targetDay: 0=Pazar,1=Pazartesi,2=Salı,3=Çarşamba,4=Perşembe,5=Cuma,6=Cumartesi
 // Bugün o günse bugünü, değilse bu haftanın/gelecek haftanın o gününü döndürür
@@ -25,7 +26,8 @@ export async function scheduleReminders(
   madhab: 'Shafi' | 'Hanafi',
   highLatRule: 'AngleBased' | 'MiddleOfTheNight' | 'SeventhOfTheNight' | 'None',
   settings: RemindersSettings,
-  vibrationEnabled: boolean
+  vibrationEnabled: boolean,
+  dil: DilKodu = VARSAYILAN_DIL
 ) {
   const now = new Date();
 
@@ -41,8 +43,8 @@ export async function scheduleReminders(
       if (sound.id !== 'none') {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Sahur Uyarısı',
-            body: `İmsak vaktine ${settings.sahur.minutesBefore} dakika kaldı.`,
+            title: tDil(dil, 'sahurUyarisiBaslik'),
+            body: tDil(dil, 'sahurUyarisiGovde', settings.sahur.minutesBefore),
             sound: `${sound.id}.wav`,
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId: getChannelForSound(sound.id, vibrationEnabled) },
@@ -58,8 +60,8 @@ export async function scheduleReminders(
       if (sound.id !== 'none') {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Teheccüt Uyandırma',
-            body: 'Teheccüt namazı için uyanma vakti.',
+            title: tDil(dil, 'teheccutBaslik'),
+            body: tDil(dil, 'teheccutGovde'),
             sound: `${sound.id}.wav`,
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId: getChannelForSound(sound.id, vibrationEnabled) },
@@ -82,8 +84,8 @@ export async function scheduleReminders(
         if (sound.id !== 'none') {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: 'Pazartesi/Perşembe Orucu',
-              body: 'Niyet etmeyi ve sahuru unutma.',
+              title: tDil(dil, 'pazartesiPersembeBaslik'),
+              body: tDil(dil, 'pazartesiPersembeGovde'),
               sound: `${sound.id}.wav`,
             },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId: getChannelForSound(sound.id, vibrationEnabled) },
@@ -95,7 +97,7 @@ export async function scheduleReminders(
         const dayBefore = new Date(triggerDate.getTime() - 24 * 60 * 60 * 1000);
         if (dayBefore.getTime() > now.getTime()) {
           await Notifications.scheduleNotificationAsync({
-            content: { title: 'Yarın Oruç Günü', body: 'Yarın Pazartesi/Perşembe orucu — unutma.', sound: 'default' },
+            content: { title: tDil(dil, 'yarinOrucGunuBaslik'), body: tDil(dil, 'yarinOrucGunuGovde'), sound: 'default' },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: dayBefore, channelId: vibrationEnabled ? 'vibrate-on' : 'vibrate-off' },
           });
         }
@@ -116,8 +118,8 @@ export async function scheduleReminders(
       if (sound.id !== 'none') {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'Cuma Namazı Hatırlatma',
-            body: 'Cuma namazına hazırlan.',
+            title: tDil(dil, 'cumaBaslik'),
+            body: tDil(dil, 'cumaGovde'),
             sound: `${sound.id}.wav`,
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId: getChannelForSound(sound.id, vibrationEnabled) },

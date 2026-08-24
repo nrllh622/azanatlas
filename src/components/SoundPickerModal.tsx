@@ -11,6 +11,7 @@ import { colors, spacing, typography, radius, fontSize } from '../theme';
 import Icon from './Icon';
 import IslamicPattern from './IslamicPattern';
 import { SOUND_CATALOG, SoundOption } from '../data/soundCatalog';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   visible: boolean;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function SoundPickerModal({ visible, title, selectedId, onSelect, onClose }: Props) {
+  const { t } = useCeviri();
   if (!visible) return null;
 
   const playPreview = async (sound: SoundOption) => {
@@ -69,10 +71,10 @@ export default function SoundPickerModal({ visible, title, selectedId, onSelect,
         />
         <View style={styles.footer}>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.footerBtn}>VAZGEÇ</Text>
+            <Text style={styles.footerBtn}>{t('vazgecBuyuk')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={[styles.footerBtn, styles.footerBtnPrimary]}>TAMAM</Text>
+            <Text style={[styles.footerBtn, styles.footerBtnPrimary]}>{t('tamamBuyuk')}</Text>
           </TouchableOpacity>
         </View>
       </View>

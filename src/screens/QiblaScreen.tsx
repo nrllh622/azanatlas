@@ -36,6 +36,7 @@ import { colors, spacing, radius, typography, elevation } from '../theme';
 import { calculateQiblaBearing, calculateDistanceKm, calculateQiblaTime } from '../lib/qibla';
 import { useLocationContext } from '../context/LocationContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose?: () => void;
@@ -78,6 +79,7 @@ export default function QiblaScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
   const { distanceUnit } = useCalculationSettings();
+  const { t } = useCeviri();
 
   const [heading, setHeading] = useState<number | null>(null);
   const [gercekKuzey, setGercekKuzey] = useState(true);
@@ -98,7 +100,7 @@ export default function QiblaScreen({ onClose }: Props) {
   );
 
   const mesafe =
-    distanceUnit === 'mi' ? `${Math.round(distanceKm * 0.621371)} mil` : `${distanceKm} km`;
+    distanceUnit === 'mi' ? `${Math.round(distanceKm * 0.621371)} ${t('mil')}` : `${distanceKm} km`;
 
   useEffect(() => {
     // Tip adı expo-location sürümleri arasında değiştiği için gevşek bırakıldı;
@@ -120,7 +122,7 @@ export default function QiblaScreen({ onClose }: Props) {
           }
         });
       } catch {
-        if (!iptal) setSensorHatasi('Pusula sensörüne erişilemedi.');
+        if (!iptal) setSensorHatasi(t('pusulaSensorunaErisilemedi'));
       }
     })();
 
@@ -136,18 +138,18 @@ export default function QiblaScreen({ onClose }: Props) {
   const sapma = ((qiblaBearing - h + 540) % 360) - 180;
   const hizali = hazir && Math.abs(sapma) < HIZA_TOLERANSI;
   const ipucu = !hazir
-    ? 'Pusula hazırlanıyor…'
+    ? t('pusulaHazirlaniyor')
     : hizali
-    ? 'Kıble yönündesiniz'
+    ? t('kibleYonundesiniz')
     : sapma > 0
-    ? 'Sağa dönün'
-    : 'Sola dönün';
+    ? t('sagaDonun')
+    : t('solaDonun');
 
   const yonler = [
-    { etiket: 'K', aci: 0, renk: colors.copperVivid },
-    { etiket: 'D', aci: 90, renk: colors.textOnDarkMuted },
-    { etiket: 'G', aci: 180, renk: colors.textOnDarkMuted },
-    { etiket: 'B', aci: 270, renk: colors.textOnDarkMuted },
+    { etiket: t('yonKuzey'), aci: 0, renk: colors.copperVivid },
+    { etiket: t('yonDogu'), aci: 90, renk: colors.textOnDarkMuted },
+    { etiket: t('yonGuney'), aci: 180, renk: colors.textOnDarkMuted },
+    { etiket: t('yonBati'), aci: 270, renk: colors.textOnDarkMuted },
   ];
 
   const kaabaRad = ((qiblaBearing - 90) * Math.PI) / 180;
@@ -190,17 +192,16 @@ export default function QiblaScreen({ onClose }: Props) {
   if (rehberAcik) {
     return (
       <View style={styles.wrap}>
-        <ScreenHeader title="Pusula Doğruluğu" icon="kible" onClose={() => setRehberAcik(false)} />
+        <ScreenHeader title={t('pusulaDogrulugu')} icon="kible" onClose={() => setRehberAcik(false)} />
         <ScrollView contentContainerStyle={[styles.rehberIcerik, { paddingBottom: insets.bottom + spacing.xl }]}>
           <Text style={styles.rehberGiris}>
-            Pusulanın doğruluğu tamamen telefonunuzun manyetik sensörüne bağlıdır.
-            Aşağıdaki adımlar çoğu telefonda doğruluğu belirgin şekilde artırır.
+            {t('pusulaDogruluguGiris')}
           </Text>
           {[
-            'Telefonu mıknatıs, hoparlör ve metal yüzeylerden uzaklaştırın. Mıknatıslı kılıflar pusulayı en çok bozan etkendir.',
-            'Telefonu düz tutarak havada sekiz (8) çizer gibi birkaç kez çevirin. Bu, cihazın sensörü yeniden kalibre etmesini sağlar.',
-            'Mümkünse açık alanda kullanın. Bina içi, asansör ve otopark manyetik alanı bozar.',
-            'Telefonu yere paralel (masaya koyar gibi) tutun. Eğik tutmak okumayı kaydırır.',
+            t('pusulaAdim1'),
+            t('pusulaAdim2'),
+            t('pusulaAdim3'),
+            t('pusulaAdim4'),
           ].map((metin, i) => (
             <View key={i} style={styles.rehberAdim}>
               <View style={styles.rehberNo}>
@@ -217,7 +218,7 @@ export default function QiblaScreen({ onClose }: Props) {
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="Kıble"
+        title={t('kible')}
         subtitle={`${location.il} · ${location.ilce}`}
         icon="kible"
         onClose={onClose}
@@ -343,7 +344,7 @@ export default function QiblaScreen({ onClose }: Props) {
                 const rad = ((y.aci - 90) * Math.PI) / 180;
                 const mx = CENTER + (RADIUS - 33) * Math.cos(rad);
                 const my = CENTER + (RADIUS - 33) * Math.sin(rad);
-                const ana = y.etiket === 'K';
+                const ana = y.aci === 0;
                 return (
                   <G key={y.etiket}>
                     {/* Ana yön etiketleri (özellikle Kuzey) küçük bir
@@ -450,21 +451,21 @@ export default function QiblaScreen({ onClose }: Props) {
 
         <View style={styles.dereceKap}>
           <Text style={styles.dereceDeger}>{Math.round(qiblaBearing)}°</Text>
-          <Text style={styles.dereceEtiket}>Kıble açısı</Text>
+          <Text style={styles.dereceEtiket}>{t('kibleAcisi')}</Text>
         </View>
 
         <View style={styles.kartlar}>
           <View style={styles.kart}>
             <Icon name="kabe" size={20} color={colors.primary} />
             <View style={styles.kartMetin}>
-              <Text style={styles.kartEtiket}>Kâbe'ye uzaklık</Text>
+              <Text style={styles.kartEtiket}>{t('kabeyeUzaklik')}</Text>
               <Text style={styles.kartDeger}>{mesafe}</Text>
             </View>
           </View>
           <View style={styles.kart}>
             <Icon name="gunes" size={20} color={colors.primary} />
             <View style={styles.kartMetin}>
-              <Text style={styles.kartEtiket}>Güneşle kıble anı</Text>
+              <Text style={styles.kartEtiket}>{t('gunesleKibleAni')}</Text>
               <Text style={styles.kartDeger}>
                 {String(qiblaTime.getHours()).padStart(2, '0')}:
                 {String(qiblaTime.getMinutes()).padStart(2, '0')}
@@ -482,22 +483,21 @@ export default function QiblaScreen({ onClose }: Props) {
           <View style={styles.bilgiKart}>
             <Icon name="bilgi" size={18} color={colors.textMuted} />
             <Text style={styles.bilgiYazi}>
-              Pusula okuması bekleniyor. Telefonu düz tutup hafifçe çevirin.
+              {t('pusulaOkumasiBekleniyor')}
             </Text>
           </View>
         ) : !gercekKuzey ? (
           <View style={styles.bilgiKart}>
             <Icon name="bilgi" size={18} color={colors.textMuted} />
             <Text style={styles.bilgiYazi}>
-              Manyetik kuzeye göre gösteriliyor. Konum izni verilirse gerçek
-              kuzeye göre daha isabetli olur.
+              {t('manyetikKuzeyeGoreGosteriliyor')}
             </Text>
           </View>
         ) : null}
 
         <TouchableOpacity style={styles.rehberBtn} onPress={() => setRehberAcik(true)}>
           <Icon name="bilgi" size={18} color={colors.primaryDark} />
-          <Text style={styles.rehberBtnYazi}>Pusula doğru göstermiyor mu?</Text>
+          <Text style={styles.rehberBtnYazi}>{t('pusulaDogruGostermiyorMu')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

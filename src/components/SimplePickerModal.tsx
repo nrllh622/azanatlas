@@ -10,6 +10,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native
 import { colors, spacing, typography, radius, fontSize, elevation } from '../theme';
 import Icon from './Icon';
 import IslamicPattern from './IslamicPattern';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Option {
   id: string;
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export default function SimplePickerModal({ visible, title, options, selectedId, onSelect, onClose }: Props) {
+  const { t } = useCeviri();
   if (!visible) return null;
   return (
     <View style={styles.overlay}>
@@ -58,7 +60,7 @@ export default function SimplePickerModal({ visible, title, options, selectedId,
         />
         <View style={styles.footer}>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.footerBtn}>KAPAT</Text>
+            <Text style={styles.footerBtn}>{t('kapatBuyuk')}</Text>
           </TouchableOpacity>
         </View>
       </View>

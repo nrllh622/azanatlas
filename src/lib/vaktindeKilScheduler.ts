@@ -5,6 +5,7 @@ import { VaktindeKilSound } from '../context/VaktindeKilContext';
 import { VAKTINDE_KIL_CATEGORY } from './vaktindeKilActions';
 import { getChannelForSound } from './notificationScheduler';
 import { kayitlariYukle, gununVakitleri, takipEdilebilir, TakipVakti } from './ibadetTakibi';
+import { DilKodu, VARSAYILAN_DIL, tDil, vakitAdiDil } from '../i18n/ceviriler';
 
 // Yeniden planlamadan önce, SADECE Vaktinde Kıl'a ait daha önce kurulmuş
 // bildirimleri iptal eder (diğer bildirim türlerine dokunmaz). Bu olmadan,
@@ -64,7 +65,8 @@ export async function scheduleVaktindeKil(
   firstDelayMinutes: number,
   repeatIntervalMinutes: number,
   sound: VaktindeKilSound,
-  vibrationEnabled: boolean
+  vibrationEnabled: boolean,
+  dil: DilKodu = VARSAYILAN_DIL
 ) {
   await cancelExistingVaktindeKilNotifications();
 
@@ -79,12 +81,14 @@ export async function scheduleVaktindeKil(
   const soundFile = `${sound}.wav`;
   const vakitDateISO = current.date.toISOString();
 
+  const vakitAdi = vakitAdiDil(dil, current.key as any);
+
   while (t.getTime() < end.getTime() && count < 20) {
     if (t.getTime() > Date.now()) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `${current.label} Namazı`,
-          body: `${current.label} namazını henüz kılmadıysan vaktinde kılmayı unutma.`,
+          title: tDil(dil, 'vaktindeKilBaslik', vakitAdi),
+          body: tDil(dil, 'vaktindeKilGovde', vakitAdi),
           sound: soundFile,
           categoryIdentifier: VAKTINDE_KIL_CATEGORY,
           data: { type: 'vaktindekil', vakitKey: current.key, vakitDateISO },

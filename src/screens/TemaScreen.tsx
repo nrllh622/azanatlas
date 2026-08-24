@@ -44,6 +44,7 @@ import {
   PALETLER, PaletAdi, aktifPaletAdi,
 } from '../theme';
 import { temayiKaydet, kayitliTemayiOku } from '../lib/temaDeposu';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose?: () => void;
@@ -80,6 +81,7 @@ function Onizleme({ renkler }: { renkler: Record<string, string> }) {
 }
 
 export default function TemaScreen({ onClose }: Props) {
+  const { t, dil } = useCeviri();
   const [secili, setSecili] = useState<PaletAdi>(aktifPaletAdi());
   const [calisan] = useState<PaletAdi>(aktifPaletAdi());
   // Onay pop-up'ının açık olup olmadığı. Kaydetme başarılı olur olmaz true
@@ -165,12 +167,14 @@ export default function TemaScreen({ onClose }: Props) {
   };
 
   const anahtarlar = Object.keys(PALETLER) as PaletAdi[];
+  const paletAdi = (p: (typeof PALETLER)[PaletAdi]) => (dil === 'en' ? p.adEn : p.ad);
+  const paletAciklama = (p: (typeof PALETLER)[PaletAdi]) => (dil === 'en' ? p.aciklamaEn : p.aciklama);
 
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="Tema"
-        subtitle={`${anahtarlar.length} renk düzeni`}
+        title={t('adTema')}
+        subtitle={t('renkDuzeni', anahtarlar.length)}
         icon="tema"
         onClose={onClose}
       />
@@ -182,22 +186,17 @@ export default function TemaScreen({ onClose }: Props) {
         {degisiklikVar && !onayAcik && (
           <View style={styles.uyariKart}>
             <Icon name="bilgi" size={20} color={colors.copperVivid} />
-            <Text style={styles.uyariYazi}>
-              Seçiminiz kaydedildi. Yeni tema, uygulamayı kapatıp açtığınızda
-              uygulanacak.
-            </Text>
+            <Text style={styles.uyariYazi}>{t('seciminizKaydedildi')}</Text>
           </View>
         )}
 
-        <Text style={styles.aciklama}>
-          Tüm temalar İslami sanat geleneğinden türetildi. Her birinin metin
-          okunabilirliği ayrı ayrı ölçüldü — hangisini seçerseniz seçin
-          yazılar net kalır.
-        </Text>
+        <Text style={styles.aciklama}>{t('temaAciklamaParagrafi')}</Text>
 
         {anahtarlar.map((ad) => {
           const palet = PALETLER[ad];
           const aktif = ad === secili;
+          const palAd = paletAdi(palet);
+          const palAciklama = paletAciklama(palet);
           return (
             <TouchableOpacity
               key={ad}
@@ -206,16 +205,16 @@ export default function TemaScreen({ onClose }: Props) {
               activeOpacity={0.85}
               accessibilityRole="radio"
               accessibilityState={{ selected: aktif }}
-              accessibilityLabel={`${palet.ad} teması. ${palet.aciklama}`}
+              accessibilityLabel={t('temaEtiketi', palAd, palAciklama)}
             >
               <Onizleme renkler={palet.renkler} />
 
               <View style={styles.kartMetin}>
-                <Text style={styles.kartAd}>{palet.ad}</Text>
-                <Text style={styles.kartAciklama}>{palet.aciklama}</Text>
+                <Text style={styles.kartAd}>{palAd}</Text>
+                <Text style={styles.kartAciklama}>{palAciklama}</Text>
                 {ad === calisan && (
                   <View style={styles.kullanimdaCip}>
-                    <Text style={styles.kullanimdaYazi}>Şu an kullanımda</Text>
+                    <Text style={styles.kullanimdaYazi}>{t('suAnKullanimda')}</Text>
                   </View>
                 )}
               </View>
@@ -231,11 +230,7 @@ export default function TemaScreen({ onClose }: Props) {
 
         <View style={styles.notKap}>
           <Icon name="bilgi" size={16} color={colors.textMuted} />
-          <Text style={styles.notYazi}>
-            Tema seçtiğinizde bir onay penceresi açılır. Hemen yeniden
-            başlatmak istemezseniz uygulama olduğu gibi açık kalır, yeni tema
-            bir sonraki normal açılışta uygulanır.
-          </Text>
+          <Text style={styles.notYazi}>{t('temaNotu')}</Text>
         </View>
       </ScrollView>
 
@@ -256,10 +251,9 @@ export default function TemaScreen({ onClose }: Props) {
               <View style={styles.modalIkonKap}>
                 <Icon name="onay" size={26} color={colors.success} />
               </View>
-              <Text style={styles.modalBaslik}>Tema değişti</Text>
+              <Text style={styles.modalBaslik}>{t('temaDegisti')}</Text>
               <Text style={styles.modalYazi}>
-                {PALETLER[secili].ad} teması kaydedildi. Değişikliğin
-                uygulanması için uygulamanın yeniden başlaması gerekiyor.
+                {t('temaKaydedildiYeniden', dil === 'en' ? PALETLER[secili].adEn : PALETLER[secili].ad)}
               </Text>
 
               <TouchableOpacity
@@ -270,7 +264,7 @@ export default function TemaScreen({ onClose }: Props) {
                 accessibilityRole="button"
               >
                 <Text style={styles.modalBtnBirincilYazi}>
-                  {yenidenBasliyor ? 'Yeniden başlatılıyor…' : 'Şimdi Yeniden Başlat'}
+                  {yenidenBasliyor ? t('yenidenBaslatiliyor') : t('simdiYenidenBaslat')}
                 </Text>
               </TouchableOpacity>
 
@@ -281,7 +275,7 @@ export default function TemaScreen({ onClose }: Props) {
                 activeOpacity={0.7}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalBtnIkincilYazi}>Daha Sonra</Text>
+                <Text style={styles.modalBtnIkincilYazi}>{t('dahaSonraBtn')}</Text>
               </TouchableOpacity>
 
               {/* Madde 1 (bu tur): "Vazgeç" eklendi — "Daha Sonra"dan farkı,
@@ -294,7 +288,7 @@ export default function TemaScreen({ onClose }: Props) {
                 activeOpacity={0.6}
                 accessibilityRole="button"
               >
-                <Text style={styles.modalBtnVazgecYazi}>Vazgeç</Text>
+                <Text style={styles.modalBtnVazgecYazi}>{t('iptal')}</Text>
               </TouchableOpacity>
             </View>
           </View>

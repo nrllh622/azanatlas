@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { VakitEntry } from './prayerCalculator';
 import { NotificationSettings } from '../context/NotificationSettingsContext';
 import { getSoundById, SOUND_CATALOG } from '../data/soundCatalog';
+import { DilKodu, VARSAYILAN_DIL, tDil, vakitAdiDil } from '../i18n/ceviriler';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -36,19 +37,22 @@ function channelIdFor(soundId: string, vibrationEnabled: boolean) {
 
 const VAKTINDE_KIL_SOUND_IDS = ['bip', 'dong'] as const;
 
-export async function configureAndroidChannels() {
+export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
+  const titresimliEtiket = tDil(dil, 'titresimli');
+  const titresimsizEtiket = tDil(dil, 'titresimsiz');
+
   // Genel bildirim sesleri kataloğu (Melodi, Uyandırma, Essalatu Hayrun, vb.)
   for (const s of SOUND_CATALOG) {
     if (s.id === 'none') continue;
     const soundFile = `${s.id}.wav`;
     await Notifications.setNotificationChannelAsync(channelIdFor(s.id, true), {
-      name: `AzanAtlas — ${s.label} (Titreşimli)`,
+      name: `AzanAtlas — ${s.label} (${titresimliEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       sound: soundFile,
     });
     await Notifications.setNotificationChannelAsync(channelIdFor(s.id, false), {
-      name: `AzanAtlas — ${s.label} (Titreşimsiz)`,
+      name: `AzanAtlas — ${s.label} (${titresimsizEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0],
       sound: soundFile,
@@ -58,14 +62,15 @@ export async function configureAndroidChannels() {
   // Vaktinde Kıl — Bip / Dong
   for (const soundId of VAKTINDE_KIL_SOUND_IDS) {
     const soundFile = `${soundId}.wav`;
+    const soundEtiket = soundId === 'bip' ? tDil(dil, 'bip') : tDil(dil, 'dong');
     await Notifications.setNotificationChannelAsync(channelIdFor(soundId, true), {
-      name: `AzanAtlas — Vaktinde Kıl ${soundId === 'bip' ? 'Bip' : 'Dong'} (Titreşimli)`,
+      name: `AzanAtlas — Vaktinde Kıl ${soundEtiket} (${titresimliEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       sound: soundFile,
     });
     await Notifications.setNotificationChannelAsync(channelIdFor(soundId, false), {
-      name: `AzanAtlas — Vaktinde Kıl ${soundId === 'bip' ? 'Bip' : 'Dong'} (Titreşimsiz)`,
+      name: `AzanAtlas — Vaktinde Kıl ${soundEtiket} (${titresimsizEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0],
       sound: soundFile,
@@ -74,13 +79,13 @@ export async function configureAndroidChannels() {
 
   // Ses seçilmemiş (varsayılan sistem sesi) durumlar için genel kanal
   await Notifications.setNotificationChannelAsync('vibrate-on', {
-    name: 'AzanAtlas Bildirimleri (Titreşimli)',
+    name: tDil(dil, 'bildirimleriTitresimli'),
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     sound: 'default',
   });
   await Notifications.setNotificationChannelAsync('vibrate-off', {
-    name: 'AzanAtlas Bildirimleri (Titreşimsiz)',
+    name: tDil(dil, 'bildirimleriTitresimsiz'),
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0],
     sound: 'default',
@@ -105,7 +110,8 @@ export async function scheduleAllNotifications(
   vakitler: VakitEntry[],
   settings: NotificationSettings,
   kerahatMinutes: number,
-  vibrationEnabled: boolean
+  vibrationEnabled: boolean,
+  dil: DilKodu = VARSAYILAN_DIL
 ) {
   await Notifications.cancelAllScheduledNotificationsAsync();
   const defaultChannelId = getChannelId(vibrationEnabled);
@@ -125,10 +131,11 @@ export async function scheduleAllNotifications(
       if (triggerDate.getTime() > Date.now()) {
         const sound = getSoundById(onTime.soundId);
         const channelId = getChannelForSound(sound.id, vibrationEnabled);
+        const vakitAdi = vakitAdiDil(dil, vakit.key as any);
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: `${vakit.label} Vakti`,
-            body: settings.ezanDuasiEnabled ? EZAN_DUASI : `${vakit.label} vakti girdi.`,
+            title: tDil(dil, 'bildirimVaktiBaslik', vakitAdi),
+            body: settings.ezanDuasiEnabled ? EZAN_DUASI : tDil(dil, 'bildirimVaktiGirdiGovde', vakitAdi),
             sound: `${sound.id}.wav`,
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId },
@@ -142,10 +149,11 @@ export async function scheduleAllNotifications(
       if (alertDate.getTime() > Date.now()) {
         const sound = getSoundById(preAlert.soundId);
         const channelId = getChannelForSound(sound.id, vibrationEnabled);
+        const vakitAdi = vakitAdiDil(dil, vakit.key as any);
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: `${vakit.label} Vaktine ${preAlert.minutesBefore} Dakika`,
-            body: `${vakit.label} vaktine az kaldı.`,
+            title: tDil(dil, 'bildirimOnUyariBaslik', vakitAdi, preAlert.minutesBefore),
+            body: tDil(dil, 'bildirimOnUyariGovde', vakitAdi),
             sound: `${sound.id}.wav`,
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alertDate, channelId },
@@ -157,7 +165,7 @@ export async function scheduleAllNotifications(
   if (settings.kerahatNotifyEnabled) {
     if (gunes && gunes.date.getTime() > Date.now()) {
       await Notifications.scheduleNotificationAsync({
-        content: { title: 'Kerahat Vakti', body: 'Güneş doğarken namaz kılınması mekruhtur.', sound: 'default' },
+        content: { title: tDil(dil, 'kerahatVaktiBaslik'), body: tDil(dil, 'kerahatGunesDoarken'), sound: 'default' },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: gunes.date, channelId: defaultChannelId },
       });
     }
@@ -165,7 +173,7 @@ export async function scheduleAllNotifications(
       const d = new Date(aksam.date.getTime() - kerahatMinutes * 60 * 1000);
       if (d.getTime() > Date.now()) {
         await Notifications.scheduleNotificationAsync({
-          content: { title: 'Kerahat Vakti', body: 'Güneş batarken namaz kılınması mekruhtur.', sound: 'default' },
+          content: { title: tDil(dil, 'kerahatVaktiBaslik'), body: tDil(dil, 'kerahatGunesBatarken'), sound: 'default' },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId: defaultChannelId },
         });
       }
@@ -174,7 +182,7 @@ export async function scheduleAllNotifications(
       const d = new Date(ogle.date.getTime() - 10 * 60 * 1000);
       if (d.getTime() > Date.now()) {
         await Notifications.scheduleNotificationAsync({
-          content: { title: 'Kerahat Vakti', body: 'Zeval vakti — namaz kılınması mekruhtur.', sound: 'default' },
+          content: { title: tDil(dil, 'kerahatVaktiBaslik'), body: tDil(dil, 'kerahatZeval'), sound: 'default' },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId: defaultChannelId },
         });
       }
