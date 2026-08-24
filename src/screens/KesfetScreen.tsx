@@ -19,6 +19,8 @@ import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import { useKaza } from '../context/KazaContext';
 import { useIbadetTakibi } from '../context/IbadetTakibiContext';
+import { useCeviri } from '../i18n/DilContext';
+import { CeviriAnahtari } from '../i18n/ceviriler';
 
 export type KesfetHedef =
   | 'kible'
@@ -33,43 +35,47 @@ export type KesfetHedef =
   | 'settings'
   | 'tema';
 
+// NOT: ad/aciklama artık düz metin değil ÇEVİRİ ANAHTARI — bu dizi modül
+// yüklenirken bir kez oluşturulduğu için React hook'u (useCeviri)
+// çağıramaz, gerçek metin render sırasında t(anahtar) ile çözülüyor
+// (HomeScreen'deki SEKMELER/HIZLI_ARACLAR ile aynı desen).
 interface Arac {
   hedef: KesfetHedef;
-  ad: string;
-  aciklama: string;
+  adAnahtari: CeviriAnahtari;
+  aciklamaAnahtari: CeviriAnahtari;
   ikon: DoluIkonAdi;
 }
 
 interface Grup {
-  baslik: string;
+  baslikAnahtari: CeviriAnahtari;
   araclar: Arac[];
 }
 
 const GRUPLAR: Grup[] = [
   {
-    baslik: 'İbadet',
+    baslikAnahtari: 'grupIbadet',
     araclar: [
-      { hedef: 'kible', ad: 'Kıble', aciklama: 'Yön bul', ikon: 'kible' },
-      { hedef: 'tesbih', ad: 'Tesbih', aciklama: 'Zikirmatik', ikon: 'tesbih' },
-      { hedef: 'esma', ad: 'Esmâü’l-Hüsnâ', aciklama: '99 güzel isim', ikon: 'esma' },
-      { hedef: 'imsakiye', ad: 'İmsakiye', aciklama: 'Aylık takvim', ikon: 'imsakiye' },
+      { hedef: 'kible', adAnahtari: 'sekmeKible', aciklamaAnahtari: 'aciklamaYonBul', ikon: 'kible' },
+      { hedef: 'tesbih', adAnahtari: 'aracTesbih', aciklamaAnahtari: 'aciklamaZikirmatik', ikon: 'tesbih' },
+      { hedef: 'esma', adAnahtari: 'adEsmaulHusna', aciklamaAnahtari: 'aciklama99GuzelIsim', ikon: 'esma' },
+      { hedef: 'imsakiye', adAnahtari: 'sekmeImsakiye', aciklamaAnahtari: 'aciklamaAylikTakvim', ikon: 'imsakiye' },
     ],
   },
   {
-    baslik: 'Takip',
+    baslikAnahtari: 'aracTakip',
     araclar: [
-      { hedef: 'takip', ad: 'İbadet Takibi', aciklama: 'Günlük seri', ikon: 'takip' },
-      { hedef: 'kaza', ad: 'Kaza Takibi', aciklama: 'Borç sayacı', ikon: 'kaza' },
+      { hedef: 'takip', adAnahtari: 'adIbadetTakibi', aciklamaAnahtari: 'aciklamaGunlukSeri', ikon: 'takip' },
+      { hedef: 'kaza', adAnahtari: 'kazaTakibi', aciklamaAnahtari: 'aciklamaBorcSayaci', ikon: 'kaza' },
     ],
   },
   {
-    baslik: 'Hatırlatma ve Ayarlar',
+    baslikAnahtari: 'grupHatirlatmaAyarlar',
     araclar: [
-      { hedef: 'vaktindekil', ad: 'Vaktinde Kıl', aciklama: 'Tekrarlı uyarı', ikon: 'vaktindekil' },
-      { hedef: 'reminders', ad: 'Hatırlatıcılar', aciklama: 'Özel uyarılar', ikon: 'hatirlatici' },
-      { hedef: 'tema', ad: 'Tema', aciklama: '11 renk düzeni', ikon: 'tema' },
-      { hedef: 'location', ad: 'Konum', aciklama: 'Şehir seç', ikon: 'konum' },
-      { hedef: 'settings', ad: 'Ayarlar', aciklama: 'Tüm ayarlar', ikon: 'ayarlar' },
+      { hedef: 'vaktindekil', adAnahtari: 'vaktindeKil', aciklamaAnahtari: 'aciklamaTekrarliUyari', ikon: 'vaktindekil' },
+      { hedef: 'reminders', adAnahtari: 'hatirlaticilar', aciklamaAnahtari: 'aciklamaOzelUyarilar', ikon: 'hatirlatici' },
+      { hedef: 'tema', adAnahtari: 'adTema', aciklamaAnahtari: 'aciklamaRenkDuzeni', ikon: 'tema' },
+      { hedef: 'location', adAnahtari: 'adKonum', aciklamaAnahtari: 'aciklamaSehirSec', ikon: 'konum' },
+      { hedef: 'settings', adAnahtari: 'ayarlar', aciklamaAnahtari: 'aciklamaTumAyarlar', ikon: 'ayarlar' },
     ],
   },
 ];
@@ -84,28 +90,31 @@ export default function KesfetScreen({ onClose, onNavigate }: Props) {
   const insets = useSafeAreaInsets();
   const { totalCount: kazaTotal } = useKaza();
   const { seri } = useIbadetTakibi();
+  const { t } = useCeviri();
 
   /** Bazı kutularda sağ üstte küçük bir bilgi rozeti gösteriliyor. */
   const rozet = (hedef: KesfetHedef): string | null => {
     if (hedef === 'kaza' && kazaTotal > 0) return String(kazaTotal);
-    if (hedef === 'takip' && seri > 0) return `${seri}g`;
+    if (hedef === 'takip' && seri > 0) return t('kesfetSeriRozeti', seri);
     return null;
   };
 
   return (
     <View style={styles.wrap}>
-      <ScreenHeader title="Keşfet" subtitle="Tüm araçlar" icon="kesfet" onClose={onClose} />
+      <ScreenHeader title={t('sekmeKesfet')} subtitle={t('kesfetAltBaslik')} icon="kesfet" onClose={onClose} />
 
       <ScrollView
         contentContainerStyle={[styles.icerik, { paddingBottom: insets.bottom + spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
         {GRUPLAR.map((grup) => (
-          <View key={grup.baslik} style={styles.grup}>
-            <Text style={styles.grupBaslik}>{grup.baslik}</Text>
+          <View key={grup.baslikAnahtari} style={styles.grup}>
+            <Text style={styles.grupBaslik}>{t(grup.baslikAnahtari)}</Text>
             <View style={styles.izgara}>
               {grup.araclar.map((arac) => {
                 const r = rozet(arac.hedef);
+                const ad = t(arac.adAnahtari);
+                const aciklama = t(arac.aciklamaAnahtari);
                 return (
                   <TouchableOpacity
                     key={arac.hedef}
@@ -113,7 +122,7 @@ export default function KesfetScreen({ onClose, onNavigate }: Props) {
                     onPress={() => onNavigate(arac.hedef)}
                     activeOpacity={0.8}
                     accessibilityRole="button"
-                    accessibilityLabel={`${arac.ad}. ${arac.aciklama}`}
+                    accessibilityLabel={`${ad}. ${aciklama}`}
                   >
                     <View style={styles.ikonKap}>
                       <DoluIkon ad={arac.ikon} boyut={34} zemin={colors.primarySoft} />
@@ -124,10 +133,10 @@ export default function KesfetScreen({ onClose, onNavigate }: Props) {
                       </View>
                     )}
                     <Text style={styles.kutuAd} numberOfLines={1}>
-                      {arac.ad}
+                      {ad}
                     </Text>
                     <Text style={styles.kutuAciklama} numberOfLines={1}>
-                      {arac.aciklama}
+                      {aciklama}
                     </Text>
                   </TouchableOpacity>
                 );

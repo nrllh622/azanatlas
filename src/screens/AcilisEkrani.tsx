@@ -1,6 +1,10 @@
 // src/screens/AcilisEkrani.tsx
 //
-// AÇILIŞ EKRANI — 6 VARYANT
+// AÇILIŞ EKRANI — 7 VARYANT
+//
+// 7. VARYANT EKLENDİ: 'ufuk-cizgisi' — kullanıcının 3 yeni öneri arasından
+// seçtiği varyant, artık VARSAYILAN olarak da bu ayarlandı (bkz. Props
+// varsayılanı ve App.tsx/AppGovde.tsx'te kullanılan değer).
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // TASARIM KARARI
@@ -43,7 +47,8 @@ import { colors, typography, fontSize, spacing } from '../theme';
 
 export type AcilisVaryanti =
   | 'girih' | 'safak' | 'hatem'
-  | 'cami-siluet' | 'cami-hilal' | 'cami-altin';
+  | 'cami-siluet' | 'cami-hilal' | 'cami-altin'
+  | 'ufuk-cizgisi';
 
 interface Props {
   varyant?: AcilisVaryanti;
@@ -469,6 +474,98 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
         );
 
       // ═══════════════════════════════════════════════════════════════════
+      // VARYANT 7 — UFUK ÇİZGİSİ
+      // Kullanıcının seçtiği yeni açılış varyantı. Cami ufuk çizgisinin
+      // üzerinde bir siluet olarak durur; arkasından bir ışık (doğan
+      // güneş/hilal ışığı) yükselir ve ufuk çizgisi iki yana açılır. Diğer
+      // cami varyantlarından farkı: gökyüzü DOĞUYORMUŞ gibi koyudan
+      // aydınlığa geçen bir gradyan taşıması ve ışığın camiden önce,
+      // camiyi arkadan aydınlatarak belirmesi — "gün doğumu" hissi.
+      // ═══════════════════════════════════════════════════════════════════
+      case 'ufuk-cizgisi':
+        return (
+          <>
+            {/* Gökyüzü — koyudan aydınlığa geçiş hissi veren sabit gradyan
+                zemin, sıcak tonun opaklığı animasyonla artıyor */}
+            <Svg
+              width={EKRAN_G}
+              height={Math.min(EKRAN_G, 420)}
+              viewBox="0 0 100 100"
+              style={{ position: 'absolute', top: 0 }}
+            >
+              <Defs>
+                <LinearGradient id="ufukGokyuzu" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={C.deep} />
+                  <Stop offset="1" stopColor={C.bright} stopOpacity={0.35} />
+                </LinearGradient>
+              </Defs>
+              <Rect width="100" height="100" fill="url(#ufukGokyuzu)" />
+            </Svg>
+
+            {/* Doğan ışık — cami siluetinin arkasından yükselen, büyüyen hale */}
+            <Animated.View
+              style={{
+                position: 'absolute',
+                opacity: a1,
+                transform: [
+                  {
+                    translateY: a1.interpolate({ inputRange: [0, 1], outputRange: [46, 6] }),
+                  },
+                  { scale: a1.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.08] }) },
+                ],
+              }}
+            >
+              <Svg width={300} height={300} viewBox="0 0 100 100">
+                <Defs>
+                  <RadialGradient id="ufukIsik" cx="50%" cy="55%" r="55%">
+                    <Stop offset="0" stopColor={C.coral} stopOpacity={0.55} />
+                    <Stop offset="0.5" stopColor={C.glow} stopOpacity={0.22} />
+                    <Stop offset="1" stopColor={C.glow} stopOpacity={0} />
+                  </RadialGradient>
+                </Defs>
+                <Circle cx="50" cy="55" r="46" fill="url(#ufukIsik)" />
+              </Svg>
+            </Animated.View>
+
+            {/* Ufuk çizgisi — cami tabanı hizasında iki yana açılır */}
+            <Animated.View
+              style={{
+                position: 'absolute',
+                bottom: spacing.xl + 2,
+                height: 2,
+                backgroundColor: C.coral,
+                width: a2.interpolate({ inputRange: [0, 1], outputRange: [0, EKRAN_G * 0.86] }),
+                opacity: a2,
+              }}
+            />
+
+            {/* Cami silueti — ufuk çizgisinin üzerinde koyu bir siluet
+                olarak alttan yükselir */}
+            <Animated.View
+              style={{
+                opacity: a2,
+                transform: [
+                  { translateY: a2.interpolate({ inputRange: [0, 1], outputRange: [26, 0] }) },
+                ],
+              }}
+            >
+              <Svg width={Math.min(EKRAN_G * 0.82, 300)} height={Math.min(EKRAN_G * 0.82, 300) * (200 / 300)} viewBox="0 0 300 200">
+                <G fill={C.deep} stroke={C.deep} strokeWidth={1} strokeLinejoin="round">
+                  <Path d={CAMI_SOL_MINARE} />
+                  <Path d={CAMI_SAG_MINARE} />
+                  <Path d={CAMI_GOVDE_YOL} />
+                  <Path d={CAMI_YAN_KUBBE_SOL} />
+                  <Path d={CAMI_YAN_KUBBE_SAG} />
+                  <Path d={CAMI_KUBBE_YOL} />
+                </G>
+                <Path d={CAMI_KUBBE_ALEM} fill="none" stroke={C.deep} strokeWidth={2.4} strokeLinecap="round" />
+                <Path d={CAMI_KAPI_YOL} fill={C.deep} />
+              </Svg>
+            </Animated.View>
+          </>
+        );
+
+      // ═══════════════════════════════════════════════════════════════════
       // VARYANT 3 — HATEM
       // Sekiz köşeli yıldız kendi ekseninde dönerek büyür; çevresinde ince
       // bir halka çizilir. En sade ve en hızlı algılanan varyant.
@@ -529,7 +626,8 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
   // Pro'daki gibi) — cami silueti alt yarıda, ad üst üçte birde. Girih/
   // şafak/hatem varyantlarında ise motif ortada, ad altta kalmaya devam
   // ediyor (bu üçü zaten "motif + alt yazı" mantığıyla tasarlandı).
-  const camiVaryanti = varyant === 'cami-siluet' || varyant === 'cami-hilal' || varyant === 'cami-altin';
+  const camiVaryanti =
+    varyant === 'cami-siluet' || varyant === 'cami-hilal' || varyant === 'cami-altin' || varyant === 'ufuk-cizgisi';
 
   return (
     <Animated.View style={[styles.wrap, { opacity: genel, backgroundColor: C.deep }]}>

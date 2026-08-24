@@ -12,6 +12,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { useVaktindeKil, VaktindeKilSound } from '../context/VaktindeKilContext';
 import SimplePickerModal from '../components/SimplePickerModal';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose: () => void;
@@ -53,11 +54,12 @@ export default function VaktindeKilScreen({ onClose }: Props) {
   const [delayPickerVisible, setDelayPickerVisible] = useState(false);
   const [intervalPickerVisible, setIntervalPickerVisible] = useState(false);
   const [infoVisible, setInfoVisible] = useState(false);
+  const { t } = useCeviri();
 
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="Vaktinde Kıl"
+        title={t('vaktindeKil')}
         icon="vaktindekil"
         onClose={onClose}
         rightIcon="bilgi"
@@ -66,12 +68,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {infoVisible && (
           <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              Vaktinde Kıl açıkken, bir namaz vakti girdikten belirlediğin gecikme süresi kadar sonra, eğer o vakti
-              henüz kılmadıysan sana hatırlatma bildirimi gönderir. Bir sonraki vakit girene kadar, belirlediğin
-              sıklıkla bu hatırlatma tekrarlanır. Bildirimdeki "Kıldım" butonuna dokunursan, o vakit için kalan
-              hatırlatmalar durur.
-            </Text>
+            <Text style={styles.infoText}>{t('vaktindeKilBilgi')}</Text>
           </View>
         )}
 
@@ -85,7 +82,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
 
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Text style={styles.cardLabelInline}>Vaktinde Kıl</Text>
+            <Text style={styles.cardLabelInline}>{t('vaktindeKil')}</Text>
             <Switch
               value={enabled}
               onValueChange={setEnabled}
@@ -95,17 +92,17 @@ export default function VaktindeKilScreen({ onClose }: Props) {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>İlk Uyarı Gecikmesi</Text>
+        <Text style={styles.sectionTitle}>{t('ilkUyariGecikmesi')}</Text>
         <TouchableOpacity style={styles.card} onPress={() => setDelayPickerVisible(true)} activeOpacity={0.75}>
-          <Text style={styles.cardSubtext}>{firstDelayMinutes} dakika</Text>
+          <Text style={styles.cardSubtext}>{t('dakika', firstDelayMinutes)}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Uyarı Sıklığı</Text>
+        <Text style={styles.sectionTitle}>{t('uyariSikligi')}</Text>
         <TouchableOpacity style={styles.card} onPress={() => setIntervalPickerVisible(true)} activeOpacity={0.75}>
-          <Text style={styles.cardSubtext}>{repeatIntervalMinutes} dakikada bir</Text>
+          <Text style={styles.cardSubtext}>{t('dakikadaBir', repeatIntervalMinutes)}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Uyarı Sesi</Text>
+        <Text style={styles.sectionTitle}>{t('uyariSesiBaslik')}</Text>
         <View style={styles.soundRow}>
           <TouchableOpacity
             style={styles.soundOption}
@@ -118,7 +115,7 @@ export default function VaktindeKilScreen({ onClose }: Props) {
             <View style={[styles.checkbox, sound === 'bip' && styles.checkboxActive]}>
               {sound === 'bip' && <Icon name="onay" size={16} color={colors.white} />}
             </View>
-            <Text style={styles.soundLabel}>Bip</Text>
+            <Text style={styles.soundLabel}>{t('bip')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.soundOption}
@@ -131,23 +128,23 @@ export default function VaktindeKilScreen({ onClose }: Props) {
             <View style={[styles.checkbox, sound === 'dong' && styles.checkboxActive]}>
               {sound === 'dong' && <Icon name="onay" size={16} color={colors.white} />}
             </View>
-            <Text style={styles.soundLabel}>Dong</Text>
+            <Text style={styles.soundLabel}>{t('dong')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       <SimplePickerModal
         visible={delayPickerVisible}
-        title="İlk Uyarı Gecikmesi"
-        options={DELAY_OPTIONS.map((m) => ({ id: String(m), label: `${m} dakika` }))}
+        title={t('ilkUyariGecikmesi')}
+        options={DELAY_OPTIONS.map((m) => ({ id: String(m), label: t('dakika', m) }))}
         selectedId={String(firstDelayMinutes)}
         onSelect={(id) => setFirstDelayMinutes(Number(id))}
         onClose={() => setDelayPickerVisible(false)}
       />
       <SimplePickerModal
         visible={intervalPickerVisible}
-        title="Uyarı Sıklığı"
-        options={INTERVAL_OPTIONS.map((m) => ({ id: String(m), label: `${m} dakikada bir` }))}
+        title={t('uyariSikligi')}
+        options={INTERVAL_OPTIONS.map((m) => ({ id: String(m), label: t('dakikadaBir', m) }))}
         selectedId={String(repeatIntervalMinutes)}
         onSelect={(id) => setRepeatIntervalMinutes(Number(id))}
         onClose={() => setIntervalPickerVisible(false)}

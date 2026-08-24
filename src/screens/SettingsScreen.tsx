@@ -36,21 +36,25 @@ import SimplePickerModal from '../components/SimplePickerModal';
 import { useCeviri } from '../i18n/DilContext';
 import { DilKodu, DIL_ADLARI } from '../i18n/ceviriler';
 
-const PRE_ALERT_LABELS: { key: PreAlertVakitKey; label: string }[] = [
-  { key: 'imsak', label: 'İmsaktan' },
-  { key: 'gunes', label: 'Güneşten' },
-  { key: 'ogle', label: 'Öğleden' },
-  { key: 'ikindi', label: 'İkindiden' },
-  { key: 'aksam', label: 'Akşamdan' },
-  { key: 'yatsi', label: 'Yatsıdan' },
+// NOT: bu iki liste artık düz metin değil ÇEVİRİ ANAHTARI tutuyor — aynı
+// HomeScreen'deki SEKMELER/HIZLI_ARACLAR deseninde: modül yüklenirken bir
+// kez oluşturulan sabit diziler React hook'u (useCeviri) çağıramaz, bu
+// yüzden gerçek metin render sırasında t(anahtar) ile çözülüyor.
+const PRE_ALERT_LABELS: { key: PreAlertVakitKey; anahtar: 'fromImsak' | 'fromGunes' | 'fromOgle' | 'fromIkindi' | 'fromAksam' | 'fromYatsi' }[] = [
+  { key: 'imsak', anahtar: 'fromImsak' },
+  { key: 'gunes', anahtar: 'fromGunes' },
+  { key: 'ogle', anahtar: 'fromOgle' },
+  { key: 'ikindi', anahtar: 'fromIkindi' },
+  { key: 'aksam', anahtar: 'fromAksam' },
+  { key: 'yatsi', anahtar: 'fromYatsi' },
 ];
 
-const ON_TIME_LABELS: { key: OnTimeVakitKey; label: string }[] = [
-  { key: 'sabah', label: 'Sabah Ezanı' },
-  { key: 'ogle', label: 'Öğle Ezanı' },
-  { key: 'ikindi', label: 'İkindi Ezanı' },
-  { key: 'aksam', label: 'Akşam Ezanı' },
-  { key: 'yatsi', label: 'Yatsı Ezanı' },
+const ON_TIME_LABELS: { key: OnTimeVakitKey; anahtar: 'ezanSabah' | 'ezanOgle' | 'ezanIkindi' | 'ezanAksam' | 'ezanYatsi' }[] = [
+  { key: 'sabah', anahtar: 'ezanSabah' },
+  { key: 'ogle', anahtar: 'ezanOgle' },
+  { key: 'ikindi', anahtar: 'ezanIkindi' },
+  { key: 'aksam', anahtar: 'ezanAksam' },
+  { key: 'yatsi', anahtar: 'ezanYatsi' },
 ];
 
 interface Props {
@@ -62,13 +66,14 @@ interface Props {
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
 export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenReminders }: Props) {
-  // i18n paketi: dil seçici, ekranın en üstünde ("Vaktinde Kıl" linkinden
-  // önce) — kullanıcının en çok arayacağı yer, uygulamayı ilk açtığında
-  // görmesi gereken bir tercih. Diğer tüm ayarlar bölümleri henüz i18n'e
-  // geçirilmedi (bu paketin kapsamı yalnızca Ana Sayfa + dil seçici),
-  // bu yüzden hâlâ Türkçe metin kullanıyor — yalnızca bu yeni bölüm
-  // çevrildi.
-  const { dil, diliDegistir } = useCeviri();
+  // i18n paketi: dil seçici ekranın en üstünde ("Vaktinde Kıl" linkinden
+  // önce) — kullanıcının en çok arayacağı yer. Bu turda ekranın GERİ
+  // KALANI da (hesaplama yöntemi, kişiselleştirme, genel, uyarılar
+  // bölümleri) çevrildi — yalnızca Hesaplama Yöntemi/Mezhep/Yüksek Açı/
+  // Ölçü Birimi SEÇENEKLERİNİN etiketleri (paylaşılan
+  // CalculationSettingsContext.tsx'ten geliyor) hâlâ Türkçe, ayrı bir
+  // dosya olduğu için bir sonraki turda ele alınacak.
+  const { dil, diliDegistir, t } = useCeviri();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
     autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
@@ -95,11 +100,11 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   if (pickerFor && pickerFor.type === 'pre') {
     currentSelectedId = settings.preAlerts[pickerFor.key].soundId;
     const found = PRE_ALERT_LABELS.find((x) => x.key === pickerFor.key);
-    pickerTitle = (found ? found.label : '') + ' Uyarı Sesi';
+    pickerTitle = t('uyariSesi', found ? t(found.anahtar) : '');
   } else if (pickerFor && pickerFor.type === 'onTime') {
     currentSelectedId = settings.onTimeAlerts[pickerFor.key].soundId;
     const found = ON_TIME_LABELS.find((x) => x.key === pickerFor.key);
-    pickerTitle = (found ? found.label : '') + ' Uyarı Sesi';
+    pickerTitle = t('uyariSesi', found ? t(found.anahtar) : '');
   }
 
   const methodLabel = CALC_METHODS.find((m) => m.id === methodId)?.label ?? '';
@@ -117,7 +122,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setAutoMethod(false);
-        setGpsStatus('Konum izni verilmedi. Telefon Ayarları > Uygulamalar > AzanAtlas > İzinler üzerinden konum iznini elle açabilirsin.');
+        setGpsStatus(t('konumIzniVerilmedi'));
         setGpsLoading(false);
         return;
       }
@@ -129,16 +134,16 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       addLocation({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        il: place?.region || place?.city || 'GPS Konumu',
+        il: place?.region || place?.city || t('gpsKonumu'),
         ilce: place?.subregion || place?.district || place?.city || '',
         countryCode: place?.isoCountryCode || 'TR',
         isGps: true,
       });
       setAutoMethod(true);
-      setGpsStatus('Konum başarıyla alındı — Otomatik mod aktif.');
+      setGpsStatus(t('konumBasariylaAlindi'));
     } catch (e) {
       setAutoMethod(false);
-      setGpsStatus('Konum alınamadı. GPS açık mı ve konum servisleri etkin mi kontrol et.');
+      setGpsStatus(t('konumAlinamadi'));
     } finally {
       setGpsLoading(false);
     }
@@ -146,7 +151,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
   return (
     <View style={styles.wrap}>
-      <ScreenHeader title="Ayarlar" subtitle="Tüm tercihler tek yerde" icon="ayarlar" onClose={onClose} />
+      <ScreenHeader title={t('ayarlar')} subtitle={t('ayarlarAltBaslik')} icon="ayarlar" onClose={onClose} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* ── DİL / LANGUAGE ──
@@ -176,15 +181,15 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         </View>
 
         <TouchableOpacity style={styles.linkCard} onPress={onOpenVaktindeKil} activeOpacity={0.85}>
-          <Text style={styles.cardLabel}>Vaktinde Kıl</Text>
+          <Text style={styles.cardLabel}>{t('vaktindeKil')}</Text>
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkCard} onPress={onOpenReminders} activeOpacity={0.85}>
-          <Text style={styles.cardLabel}>Hatırlatıcılar</Text>
+          <Text style={styles.cardLabel}>{t('hatirlaticilar')}</Text>
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Hesaplama Yöntemi</Text>
+        <Text style={styles.sectionTitle}>{t('hesaplamaYontemiBaslik')}</Text>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch
@@ -201,14 +206,14 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
               trackColor={{ true: colors.primaryBright, false: undefined }}
               thumbColor={colors.white}
             />
-            <Text style={styles.cardLabelInline}>Otomatik</Text>
+            <Text style={styles.cardLabelInline}>{t('otomatik')}</Text>
           </View>
         </View>
-        {gpsLoading && <Text style={styles.gpsHint}>Konum alınıyor…</Text>}
+        {gpsLoading && <Text style={styles.gpsHint}>{t('konumAliniyor')}</Text>}
         {!gpsLoading && gpsStatus && <Text style={styles.gpsStatusText}>{gpsStatus}</Text>}
         {!gpsLoading && !autoMethod && gpsStatus && (
           <TouchableOpacity onPress={attemptEnableAuto}>
-            <Text style={styles.retryLink}>Konumu tekrar dene</Text>
+            <Text style={styles.retryLink}>{t('konumTekrarDene')}</Text>
           </TouchableOpacity>
         )}
 
@@ -218,8 +223,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           disabled={autoMethod}
           activeOpacity={0.85}
         >
-          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>Hesaplama Yöntemi</Text>
-          <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{autoMethod ? 'Konuma göre' : methodLabel}</Text>
+          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>{t('hesaplamaYontemiBaslik')}</Text>
+          <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{autoMethod ? t('konumaGore') : methodLabel}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.card, autoMethod && styles.cardDisabled]}
@@ -227,7 +232,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           disabled={autoMethod}
           activeOpacity={0.85}
         >
-          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>İkindi Hesabı</Text>
+          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>{t('ikindiHesabi')}</Text>
           <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{madhabLabel}</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -236,24 +241,24 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           disabled={autoMethod}
           activeOpacity={0.85}
         >
-          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>Yüksek Açı Hesabı</Text>
+          <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>{t('yuksekAciHesabi')}</Text>
           <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{highLatLabel}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.card} onPress={() => setKerahatPickerVisible(true)} activeOpacity={0.85}>
-          <Text style={styles.cardLabel}>Kerahat Vakti Süresi</Text>
-          <Text style={styles.cardSubtext}>{kerahatMinutes} dk</Text>
+          <Text style={styles.cardLabel}>{t('kerahatVaktiSuresi')}</Text>
+          <Text style={styles.cardSubtext}>{t('dk', kerahatMinutes)}</Text>
         </TouchableOpacity>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={settings.kerahatNotifyEnabled} onValueChange={(v) => setFlag('kerahatNotifyEnabled', v)} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Kerahat Vaktinde Uyar</Text>
+            <Text style={styles.cardLabelInline}>{t('kerahatVaktindeUyar')}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Kişiselleştirme</Text>
+        <Text style={styles.sectionTitle}>{t('kisisellestirmeBaslik')}</Text>
         <View style={styles.stepperCard}>
-          <Text style={styles.cardLabel}>Hicri Gün Düzeltme</Text>
+          <Text style={styles.cardLabel}>{t('hicriGunDuzeltme')}</Text>
           <View style={styles.stepperRow}>
             <TouchableOpacity style={styles.stepperBtn} onPress={() => setHijriAdjustmentDays(hijriAdjustmentDays - 1)}>
               <Text style={styles.stepperBtnText}>−</Text>
@@ -267,74 +272,74 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={hijriSwitchAtMaghrib} onValueChange={setHijriSwitchAtMaghrib} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Hicri Gün Değişimini Akşam Vaktinde Yap</Text>
+            <Text style={styles.cardLabelInline}>{t('hicriGunDegisimiAksam')}</Text>
           </View>
         </View>
         <TouchableOpacity style={styles.card} onPress={() => setDistanceUnitPickerVisible(true)} activeOpacity={0.85}>
-          <Text style={styles.cardLabel}>Ölçü Birimleri</Text>
+          <Text style={styles.cardLabel}>{t('olcuBirimleri')}</Text>
           <Text style={styles.cardSubtext}>{distanceUnitLabel}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Genel</Text>
+        <Text style={styles.sectionTitle}>{t('genelBaslik')}</Text>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Titreşim</Text>
+            <Text style={styles.cardLabelInline}>{t('titresim')}</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={faceDownSilenceEnabled} onValueChange={setFaceDownSilenceEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Cihazı Yüzüstü Çevirdiğinde Sesi Kapat</Text>
+            <Text style={styles.cardLabelInline}>{t('yuzustuSesKapat')}</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={notificationBarWidgetEnabled} onValueChange={setNotificationBarWidgetEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Bildirim Çubuğu Widgeti</Text>
+            <Text style={styles.cardLabelInline}>{t('bildirimCubuguWidgeti')}</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={settings.ezanDuasiEnabled} onValueChange={(v) => setFlag('ezanDuasiEnabled', v)} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Ezan Duası</Text>
+            <Text style={styles.cardLabelInline}>{t('ezanDuasi')}</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={settings.sabahAtImsakVaktinde} onValueChange={(v) => setFlag('sabahAtImsakVaktinde', v)} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-            <Text style={styles.cardLabelInline}>Sabah Ezanı İmsak Vaktinde Oku</Text>
+            <Text style={styles.cardLabelInline}>{t('sabahEzaniImsakVaktinde')}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Vakitlerden Önce Uyarılar</Text>
-        {PRE_ALERT_LABELS.map(({ key, label }) => {
+        <Text style={styles.sectionTitle}>{t('vakitlerdenOnceUyarilar')}</Text>
+        {PRE_ALERT_LABELS.map(({ key, anahtar }) => {
           const s = settings.preAlerts[key];
           return (
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
                 <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-                <Text style={styles.cardLabelInline}>{label}</Text>
+                <Text style={styles.cardLabelInline}>{t(anahtar)}</Text>
               </View>
-              <Text style={styles.offsetLine}>{s.minutesBefore} dakika önce</Text>
+              <Text style={styles.offsetLine}>{t('dakikaOnce', s.minutesBefore)}</Text>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
-                <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
+                <Text style={styles.soundLink}>{t('sesiDegistir', getSoundById(s.soundId).label)}</Text>
               </TouchableOpacity>
             </View>
           );
         })}
 
-        <Text style={styles.sectionTitle}>Vakit Zamanında Uyarılar</Text>
-        {ON_TIME_LABELS.map(({ key, label }) => {
+        <Text style={styles.sectionTitle}>{t('vakitZamanindaUyarilar')}</Text>
+        {ON_TIME_LABELS.map(({ key, anahtar }) => {
           const s = settings.onTimeAlerts[key];
           return (
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
                 <Switch value={s.enabled} onValueChange={(val) => setOnTime(key, { enabled: val })} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
-                <Text style={styles.cardLabelInline}>{label}</Text>
+                <Text style={styles.cardLabelInline}>{t(anahtar)}</Text>
               </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
-                <Text style={styles.soundLink}>Sesi Değiştir · {getSoundById(s.soundId).label}</Text>
+                <Text style={styles.soundLink}>{t('sesiDegistir', getSoundById(s.soundId).label)}</Text>
               </TouchableOpacity>
             </View>
           );
@@ -354,7 +359,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
       <SimplePickerModal
         visible={methodPickerVisible}
-        title="Hesaplama Yöntemi"
+        title={t('hesaplamaYontemiBaslik')}
         options={CALC_METHODS}
         selectedId={methodId}
         onSelect={(id) => setMethodId(id as any)}
@@ -363,7 +368,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
       <SimplePickerModal
         visible={madhabPickerVisible}
-        title="İkindi Hesabı"
+        title={t('ikindiHesabi')}
         options={MADHAB_OPTIONS}
         selectedId={madhab}
         onSelect={(id) => setMadhab(id as any)}
@@ -372,7 +377,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
       <SimplePickerModal
         visible={highLatPickerVisible}
-        title="Yüksek Açı Hesabı"
+        title={t('yuksekAciHesabi')}
         options={HIGH_LAT_OPTIONS}
         selectedId={highLatRule}
         onSelect={(id) => setHighLatRule(id as any)}
@@ -381,8 +386,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
       <SimplePickerModal
         visible={kerahatPickerVisible}
-        title="Kerahat Vakti (dakika)"
-        options={KERAHAT_OPTIONS.map((m) => ({ id: String(m), label: `${m} dakika` }))}
+        title={t('kerahatVaktiDakika')}
+        options={KERAHAT_OPTIONS.map((m) => ({ id: String(m), label: t('dakika', m) }))}
         selectedId={String(kerahatMinutes)}
         onSelect={(id) => setKerahatMinutes(Number(id))}
         onClose={() => setKerahatPickerVisible(false)}
@@ -390,7 +395,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 
       <SimplePickerModal
         visible={distanceUnitPickerVisible}
-        title="Ölçü Birimleri"
+        title={t('olcuBirimleri')}
         options={DISTANCE_UNIT_OPTIONS}
         selectedId={distanceUnit}
         onSelect={(id) => setDistanceUnit(id as any)}

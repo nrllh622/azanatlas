@@ -12,6 +12,7 @@ import Icon from '../components/Icon';
 import { useReminders, ReminderTypeSetting } from '../context/RemindersContext';
 import SoundPickerModal from '../components/SoundPickerModal';
 import SimplePickerModal from '../components/SimplePickerModal';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose: () => void;
@@ -25,6 +26,7 @@ export default function RemindersScreen({ onClose }: Props) {
   const { settings, setSahur, setTeheccut, setOruc, setCuma } = useReminders();
   const [minutePickerFor, setMinutePickerFor] = useState<ReminderKey | null>(null);
   const [soundPickerFor, setSoundPickerFor] = useState<ReminderKey | null>(null);
+  const { t } = useCeviri();
 
   const setters: Record<ReminderKey, (patch: Partial<ReminderTypeSetting>) => void> = {
     sahur: setSahur,
@@ -48,7 +50,7 @@ export default function RemindersScreen({ onClose }: Props) {
             />
             <Text style={styles.baseLabel}>{baseLabel}</Text>
             <TouchableOpacity onPress={() => setMinutePickerFor(key)}>
-              <Text style={styles.minutesLink}>{s.minutesBefore} dk. önce</Text>
+              <Text style={styles.minutesLink}>{t('dkOnce', s.minutesBefore)}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setSoundPickerFor(key)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Icon name="bildirimAcik" size={17} color={colors.copper} />
@@ -63,7 +65,7 @@ export default function RemindersScreen({ onClose }: Props) {
               <View style={[styles.checkbox, settings.pazartesiPersembeOrucu.remindDayBefore && styles.checkboxActive]}>
                 {settings.pazartesiPersembeOrucu.remindDayBefore && <Icon name="onay" size={16} color={colors.white} />}
               </View>
-              <Text style={styles.checkboxLabel}>Bir gün önce hatırlat</Text>
+              <Text style={styles.checkboxLabel}>{t('birGunOnceHatirlat')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -76,18 +78,18 @@ export default function RemindersScreen({ onClose }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <ScreenHeader title="Hatırlatıcılar" icon="hatirlatici" onClose={onClose} />
+      <ScreenHeader title={t('hatirlaticilar')} icon="hatirlatici" onClose={onClose} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {renderRow('sahur', 'Sahur Uyarısı', 'İmsaktan')}
-        {renderRow('teheccut', 'Teheccüt Uyandırma', 'İmsaktan')}
-        {renderRow('pazartesiPersembeOrucu', 'Pazartesi/Perşembe Orucu', 'İmsaktan')}
-        {renderRow('cumaNamazi', 'Cuma Namazı Hatırlatma', 'Öğleden')}
+        {renderRow('sahur', t('sahurUyarisi'), t('fromImsak'))}
+        {renderRow('teheccut', t('teheccutUyandirma'), t('fromImsak'))}
+        {renderRow('pazartesiPersembeOrucu', t('pazartesiPersembeOrucuBaslik'), t('fromImsak'))}
+        {renderRow('cumaNamazi', t('cumaNamaziHatirlatma'), t('fromOgle'))}
       </ScrollView>
 
       <SimplePickerModal
         visible={minutePickerFor !== null}
-        title="Kaç Dakika Önce"
-        options={MINUTE_OPTIONS.map((m) => ({ id: String(m), label: `${m} dakika` }))}
+        title={t('kacDakikaOnce')}
+        options={MINUTE_OPTIONS.map((m) => ({ id: String(m), label: t('dakika', m) }))}
         selectedId={activeMinutePicker ? String(activeMinutePicker.minutesBefore) : ''}
         onSelect={(id) => {
           if (minutePickerFor) setters[minutePickerFor]({ minutesBefore: Number(id) });
@@ -97,7 +99,7 @@ export default function RemindersScreen({ onClose }: Props) {
 
       <SoundPickerModal
         visible={soundPickerFor !== null}
-        title="Uyarı Sesi"
+        title={t('uyariSesiBaslik')}
         selectedId={activeSoundPicker ? activeSoundPicker.soundId : 'none'}
         onSelect={(id) => {
           if (soundPickerFor) setters[soundPickerFor]({ soundId: id });

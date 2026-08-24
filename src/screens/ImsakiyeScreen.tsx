@@ -21,6 +21,8 @@ import { colors, spacing, radius, typography, elevation } from '../theme';
 import { calculateVakitler, getVakitlerWithDiyanetFallback } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useCeviri } from '../i18n/DilContext';
+import { AY_ANAHTARLARI, GUN_ANAHTARLARI } from '../i18n/ceviriler';
 
 interface Props {
   /** Tam ekran açıldığında geri dönüş. Sekme olarak kullanıldığında verilmez. */
@@ -32,8 +34,8 @@ interface GunSatiri {
   vakitler: { key: string; label: string; time: string }[];
 }
 
-const GUN_ADLARI = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-const AY_ADLARI = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+// NOT: gün/ay adları artık AY_ANAHTARLARI/GUN_ANAHTARLARI üzerinden t()
+// ile çözülüyor — bkz. ceviriler.ts.
 const GUN_SAYISI = 30;
 
 function saatBicimle(d: Date): string {
@@ -53,6 +55,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
   const { location } = useLocationContext();
   const { autoMethod, methodId, madhab, highLatRule } = useCalculationSettings();
   const [bugun] = useState(() => new Date());
+  const { t, vakitAdi } = useCeviri();
 
   const yerelGunler = useMemo((): GunSatiri[] => {
     const sonuc: GunSatiri[] = [];
@@ -64,7 +67,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
         autoMethod, methodId, madhab, highLatRule
       )
         .filter((v) => v.key !== 'sabah')
-        .map((v) => ({ key: v.key, label: v.label, time: saatBicimle(v.date) }));
+        .map((v) => ({ key: v.key, label: vakitAdi(v.key as any), time: saatBicimle(v.date) }));
       sonuc.push({ date: d, vakitler });
     }
     return sonuc;
@@ -91,7 +94,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
               date: d,
               vakitler: s.vakitler
                 .filter((v) => v.key !== 'sabah')
-                .map((v) => ({ key: v.key, label: v.label, time: saatBicimle(v.date) })),
+                .map((v) => ({ key: v.key, label: vakitAdi(v.key as any), time: saatBicimle(v.date) })),
             } as GunSatiri,
             kaynak: s.kaynak,
           }));
@@ -115,7 +118,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="İmsakiye"
+        title={t('sekmeImsakiye')}
         subtitle={`${location.il} · ${location.ilce}`}
         icon="imsakiye"
         onClose={onClose}
@@ -135,8 +138,8 @@ export default function ImsakiyeScreen({ onClose }: Props) {
             />
             <Text style={styles.kaynakCipYazi}>
               {kaynak === 'diyanet'
-                ? 'Diyanet Takvimi verisi'
-                : 'Yerel hesaplama (Diyanet verisine ulaşılamadı)'}
+                ? t('diyanetTakvimiVerisi')
+                : t('yerelHesaplamaUlasilamadi')}
             </Text>
           </View>
         }
@@ -146,14 +149,14 @@ export default function ImsakiyeScreen({ onClose }: Props) {
             <View style={[styles.gunKart, bugunMu && styles.gunKartBugun]}>
               <View style={styles.gunBaslikSatir}>
                 <Text style={[styles.gunBaslik, bugunMu && styles.gunBaslikBugun]}>
-                  {item.date.getDate()} {AY_ADLARI[item.date.getMonth()]}
+                  {item.date.getDate()} {t(AY_ANAHTARLARI[item.date.getMonth()])}
                 </Text>
                 <Text style={[styles.gunAdi, bugunMu && styles.gunAdiBugun]}>
-                  {GUN_ADLARI[item.date.getDay()]}
+                  {t(GUN_ANAHTARLARI[item.date.getDay()])}
                 </Text>
                 {bugunMu && (
                   <View style={styles.bugunRozet}>
-                    <Text style={styles.bugunRozetYazi}>Bugün</Text>
+                    <Text style={styles.bugunRozetYazi}>{t('bugun')}</Text>
                   </View>
                 )}
               </View>

@@ -17,24 +17,35 @@ import Icon, { IconName } from '../components/Icon';
 import { colors, spacing, radius, typography, elevation } from '../theme';
 import { useKaza } from '../context/KazaContext';
 import { KazaCategory } from '../lib/kazaStorage';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose?: () => void;
 }
 
-const KATEGORILER: { key: KazaCategory; label: string; ikon: IconName; grup: 'namaz' | 'oruc' }[] = [
-  { key: 'sabah', label: 'Sabah', ikon: 'sabah', grup: 'namaz' },
-  { key: 'ogle', label: 'Öğle', ikon: 'ogle', grup: 'namaz' },
-  { key: 'ikindi', label: 'İkindi', ikon: 'ikindi', grup: 'namaz' },
-  { key: 'aksam', label: 'Akşam', ikon: 'aksam', grup: 'namaz' },
-  { key: 'yatsi', label: 'Yatsı', ikon: 'yatsi', grup: 'namaz' },
-  { key: 'vitr', label: 'Vitir', ikon: 'hilal', grup: 'namaz' },
-  { key: 'oruc', label: 'Oruç', ikon: 'imsak', grup: 'oruc' },
+// NOT: etiket artık düz metin değil — beş vakit için ortak `vakitAdi()`
+// çevirisi kullanılıyor (Ayarlar/Ana Sayfa ile aynı sözlük), Vitir ve Oruç
+// için ise bu ekrana özel `vitir`/`oruc` anahtarları var.
+const KATEGORILER: { key: KazaCategory; ikon: IconName; grup: 'namaz' | 'oruc' }[] = [
+  { key: 'sabah', ikon: 'sabah', grup: 'namaz' },
+  { key: 'ogle', ikon: 'ogle', grup: 'namaz' },
+  { key: 'ikindi', ikon: 'ikindi', grup: 'namaz' },
+  { key: 'aksam', ikon: 'aksam', grup: 'namaz' },
+  { key: 'yatsi', ikon: 'yatsi', grup: 'namaz' },
+  { key: 'vitr', ikon: 'hilal', grup: 'namaz' },
+  { key: 'oruc', ikon: 'imsak', grup: 'oruc' },
 ];
 
 export default function KazaScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { counts, totalCount, increment, decrement } = useKaza();
+  const { t, vakitAdi } = useCeviri();
+
+  const kategoriEtiketi = (key: KazaCategory) => {
+    if (key === 'vitr') return t('vitir');
+    if (key === 'oruc') return t('oruc');
+    return vakitAdi(key as any);
+  };
 
   const namazlar = KATEGORILER.filter((k) => k.grup === 'namaz');
   const oruclar = KATEGORILER.filter((k) => k.grup === 'oruc');
@@ -42,12 +53,13 @@ export default function KazaScreen({ onClose }: Props) {
   const satir = (k: (typeof KATEGORILER)[number]) => {
     const sayi = counts[k.key];
     const sifir = sayi === 0;
+    const etiket = kategoriEtiketi(k.key);
     return (
       <View key={k.key} style={styles.kart}>
         <View style={styles.ikonKap}>
           <Icon name={k.ikon} size={18} color={colors.primary} />
         </View>
-        <Text style={styles.etiket}>{k.label}</Text>
+        <Text style={styles.etiket}>{etiket}</Text>
 
         <View style={styles.sayacSatir}>
           <TouchableOpacity
@@ -55,7 +67,7 @@ export default function KazaScreen({ onClose }: Props) {
             onPress={() => decrement(k.key)}
             disabled={sifir}
             accessibilityRole="button"
-            accessibilityLabel={`${k.label} kaza sayısını azalt`}
+            accessibilityLabel={t('kazaSayisiniAzalt', etiket)}
           >
             <Icon name="eksi" size={16} color={sifir ? colors.textFaint : colors.white} />
           </TouchableOpacity>
@@ -66,7 +78,7 @@ export default function KazaScreen({ onClose }: Props) {
             style={[styles.sayacBtn, styles.artiBtn]}
             onPress={() => increment(k.key)}
             accessibilityRole="button"
-            accessibilityLabel={`${k.label} kaza sayısını artır`}
+            accessibilityLabel={t('kazaSayisiniArtir', etiket)}
           >
             <Icon name="arti" size={16} color={colors.primaryDark} />
           </TouchableOpacity>
@@ -78,8 +90,8 @@ export default function KazaScreen({ onClose }: Props) {
   return (
     <View style={styles.wrap}>
       <ScreenHeader
-        title="Kaza Takibi"
-        subtitle={totalCount > 0 ? `Toplam ${totalCount} kaza` : 'Kaza borcu yok'}
+        title={t('kazaTakibi')}
+        subtitle={totalCount > 0 ? t('toplamKaza', totalCount) : t('kazaBorcuYok')}
         icon="kaza"
         onClose={onClose}
       />
@@ -91,22 +103,19 @@ export default function KazaScreen({ onClose }: Props) {
         <View style={styles.ozetKart}>
           <Text style={styles.ozetSayi}>{totalCount}</Text>
           <Text style={styles.ozetEtiket}>
-            {totalCount > 0 ? 'toplam kaza borcu' : 'kaza borcunuz görünmüyor'}
+            {totalCount > 0 ? t('toplamKazaBorcu') : t('kazaBorcuGorunmuyor')}
           </Text>
         </View>
 
-        <Text style={styles.grupBaslik}>Namaz</Text>
+        <Text style={styles.grupBaslik}>{t('namaz')}</Text>
         <View style={styles.grup}>{namazlar.map(satir)}</View>
 
-        <Text style={styles.grupBaslik}>Oruç</Text>
+        <Text style={styles.grupBaslik}>{t('oruc')}</Text>
         <View style={styles.grup}>{oruclar.map(satir)}</View>
 
         <View style={styles.notKap}>
           <Icon name="bilgi" size={14} color={colors.textMuted} />
-          <Text style={styles.notYazi}>
-            Sayaçlar yalnızca bu cihazda tutulur. Kaza namazlarınızı kıldıkça
-            eksi düğmesiyle sayıyı düşürün.
-          </Text>
+          <Text style={styles.notYazi}>{t('kazaNotu')}</Text>
         </View>
       </ScrollView>
     </View>

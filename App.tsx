@@ -23,14 +23,16 @@ import { kayitliTemayiUygula } from './src/lib/temaDeposu';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AÇILIŞ EKRANI VARYANTI — denemek için bu satırı değiştirin:
-//   'girih'        → geometrik desen merkezden açılır, ortada hatem yıldızı
-//   'safak'        → ufkun altından ışık doğar, üstünde hilal belirir
-//   'hatem'        → yıldız dönerek büyür, çevresinde ince halkalar
-//   'cami-siluet'  → cami silueti alttan yükselir, ad üstte (sade)
-//   'cami-hilal'   → cami silueti + üzerinde beliren hilal, ad üstte
-//   'cami-altin'   → girih dokulu zemin + altın/bakır gradyanlı cami, ad üstte
+//   'girih'         → geometrik desen merkezden açılır, ortada hatem yıldızı
+//   'safak'         → ufkun altından ışık doğar, üstünde hilal belirir
+//   'hatem'         → yıldız dönerek büyür, çevresinde ince halkalar
+//   'cami-siluet'   → cami silueti alttan yükselir, ad üstte (sade)
+//   'cami-hilal'    → cami silueti + üzerinde beliren hilal, ad üstte
+//   'cami-altin'    → girih dokulu zemin + altın/bakır gradyanlı cami, ad üstte
+//   'ufuk-cizgisi'  → SEÇİLEN VARYANT: cami ufuk çizgisinde, arkasından
+//                      doğan ışık yükselir, ad üstte (Artifact'taki "D")
 // ─────────────────────────────────────────────────────────────────────────────
-const ACILIS_VARYANTI: AcilisVaryanti = 'girih';
+const ACILIS_VARYANTI: AcilisVaryanti = 'ufuk-cizgisi';
 
 export default function App() {
   const [fontsLoaded] = useFonts({

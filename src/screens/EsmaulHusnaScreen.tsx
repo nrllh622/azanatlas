@@ -16,6 +16,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { colors, spacing, radius, typography, elevation } from '../theme';
 import { ESMAUL_HUSNA, LAFZA_I_CELAL, EsmaItem } from '../data/esmaulHusna';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose: () => void;
@@ -57,6 +58,10 @@ function EsmaKart({ item }: { item: EsmaItem }) {
 export default function EsmaulHusnaScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [arama, setArama] = useState('');
+  const { t } = useCeviri();
+  // NOT: isim/anlam metinleri (`item.meaning`, Lafza-i celâl) VERİ içeriği —
+  // Ana Sayfa'daki ayet/tarih verileri gibi bu paketin kapsamı dışında,
+  // yalnızca çevre metinler (başlık, arama kutusu, boş durum) çevrildi.
 
   const liste = useMemo(() => {
     const q = sadelestir(arama.trim());
@@ -70,7 +75,7 @@ export default function EsmaulHusnaScreen({ onClose }: Props) {
     <View style={styles.wrap}>
       <ScreenHeader
         title="Esmâü'l-Hüsnâ"
-        subtitle="Allah'ın 99 güzel ismi"
+        subtitle={t('esmaAltBaslik')}
         icon="esma"
         onClose={onClose}
       />
@@ -96,7 +101,7 @@ export default function EsmaulHusnaScreen({ onClose }: Props) {
               <TextInput
                 value={arama}
                 onChangeText={setArama}
-                placeholder="İsim veya anlam ara"
+                placeholder={t('esmaAramaYerTutucu')}
                 placeholderTextColor={colors.textFaint}
                 style={styles.aramaGirdi}
                 autoCorrect={false}
@@ -106,7 +111,7 @@ export default function EsmaulHusnaScreen({ onClose }: Props) {
                   onPress={() => setArama('')}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Aramayı temizle"
+                  accessibilityLabel={t('esmaAramayiTemizle')}
                 >
                   <Icon name="kapat" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
@@ -117,7 +122,7 @@ export default function EsmaulHusnaScreen({ onClose }: Props) {
         ListEmptyComponent={
           <View style={styles.bosKap}>
             <Icon name="bilgi" size={26} color={colors.textFaint} />
-            <Text style={styles.bosYazi}>Aramanızla eşleşen isim bulunamadı.</Text>
+            <Text style={styles.bosYazi}>{t('esmaSonucBulunamadi')}</Text>
           </View>
         }
       />
