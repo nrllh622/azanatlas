@@ -1,9 +1,15 @@
 // src/components/SoundPickerModal.tsx
+//
+// Ses seçici alt sayfası — SimplePickerModal ile aynı görsel dil (koyu
+// başlık şeridi + İslami doku, kart satırları) kullanılıyor ki uygulamadaki
+// hiçbir popup diğerlerinden görsel olarak kopuk durmasın.
+
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Audio } from 'expo-av';
-import { colors, spacing, typography, radius } from '../theme';
+import { colors, spacing, typography, radius, fontSize } from '../theme';
 import Icon from './Icon';
+import IslamicPattern from './IslamicPattern';
 import { SOUND_CATALOG, SoundOption } from '../data/soundCatalog';
 
 interface Props {
@@ -35,24 +41,28 @@ export default function SoundPickerModal({ visible, title, selectedId, onSelect,
   return (
     <View style={styles.overlay}>
       <View style={styles.sheet}>
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.baslikSeridi}>
+          <IslamicPattern color={colors.cream} opacity={0.07} tile={36} />
+          <Text style={styles.title}>{title}</Text>
+        </View>
         <FlatList
           data={SOUND_CATALOG}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.liste}
           renderItem={({ item }) => {
             const active = item.id === selectedId;
             return (
               <TouchableOpacity
-                style={styles.row}
+                style={[styles.row, active && styles.rowActive]}
                 onPress={() => {
                   playPreview(item);
                   onSelect(item.id);
                 }}
+                activeOpacity={0.8}
               >
-                <View style={[styles.checkbox, active && styles.checkboxActive]}>
-                  {active && <Icon name="onay" size={16} color={colors.white} />}
-                </View>
-                <Text style={styles.rowText}>{item.label}</Text>
+                <Icon name="hatirlatici" size={18} color={active ? colors.primaryDark : colors.textMuted} />
+                <Text style={[styles.rowText, active && styles.rowTextActive]}>{item.label}</Text>
+                {active && <Icon name="onay" size={20} color={colors.success} />}
               </TouchableOpacity>
             );
           }}
@@ -71,20 +81,44 @@ export default function SoundPickerModal({ visible, title, selectedId, onSelect,
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-    zIndex: 100,
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.overlay, justifyContent: 'flex-end', zIndex: 100 },
+  sheet: {
+    backgroundColor: colors.cream,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    maxHeight: '75%',
+    overflow: 'hidden',
   },
-  sheet: { backgroundColor: colors.cream, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, maxHeight: '75%', paddingTop: spacing.md },
-  title: { fontFamily: typography.bodyBold, fontSize: 18, color: colors.primaryDark, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.sm },
-  checkbox: { width: 22, height: 22, borderWidth: 1.5, borderColor: colors.primary, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  checkboxActive: { backgroundColor: colors.primary },
-  checkmark: { color: colors.cream, fontSize: 14 },
-  rowText: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16 },
-  footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.lg, padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.sand },
-  footerBtn: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 14 },
-  footerBtnPrimary: { color: colors.gold },
+  baslikSeridi: {
+    backgroundColor: colors.primaryDark,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    overflow: 'hidden',
+  },
+  title: { fontFamily: typography.displaySemibold, fontSize: fontSize.title, color: colors.textOnDark },
+  liste: { padding: spacing.md, gap: spacing.xs },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  rowActive: { borderColor: colors.success },
+  rowText: { flex: 1, fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.body },
+  rowTextActive: { fontFamily: typography.bodyBold, color: colors.primaryDark },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.lg,
+    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  footerBtn: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, letterSpacing: 0.4 },
+  footerBtnPrimary: { color: colors.primaryDark },
 });

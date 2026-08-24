@@ -1,9 +1,65 @@
 import { registerRootComponent } from 'expo';
+import { LogBox } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import { handleMarkPrayedAction, MARK_PRAYED_ACTION } from './src/lib/vaktindeKilActions';
 
 import App from './App';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANA EKRAN WIDGET'I — GÖREV KAYDI
+//
+// `registerWidgetTaskHandler`, `react-native-android-widget`'ın native config
+// plugin'i (AndroidManifest.xml girişi) OLMADAN, yani Expo Go'da veya bu
+// paket henüz derlenmemiş bir build'de çağrılırsa modül bulunamadığı için
+// hata fırlatabilir. Bu try/catch, "Kıldım" bildirim görevindeki aynı
+// desenle, widget kurulu olmayan ortamlarda uygulamanın normal açılmaya
+// devam etmesini garanti ediyor — widget yalnızca `npx expo run:android`
+// ile alınan bir development build'de fiilen çalışır.
+try {
+  // `require` bilinçli tercih: statik `import` derleme zamanında çözülür ve
+  // paket eksikse try/catch onu YAKALAYAMAZ; `require` ise çalışma zamanında
+  // çözüldüğü için burada güvenle yakalanabiliyor.
+  // @ts-ignore — react-native-android-widget'ın tipleri yalnızca native
+  // build kurulu olduğunda çözülür; Expo Go geliştirmesinde de derlensin diye
+  // dinamik require + ts-ignore kullanıldı.
+  const { registerWidgetTaskHandler } = require('react-native-android-widget');
+  // @ts-ignore
+  const { widgetTaskHandler } = require('./src/widget/widgetTaskHandler');
+  registerWidgetTaskHandler(widgetTaskHandler);
+} catch {
+  // Widget native modülü mevcut değil (Expo Go ya da henüz derlenmemiş
+  // build) — sessizce geçiliyor, uygulamanın geri kalanı etkilenmiyor.
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPO GO UYARISINI SUSTUR
+//
+// expo-notifications, SADECE import edildiğinde Expo Go'da şu hatayı basıyor:
+//   "Android Push notifications (remote notifications) ... removed from Expo Go"
+//
+// Bu uyarı bizim için ANLAMSIZ: uygulama uzak (push) bildirim kullanmıyor,
+// yalnızca cihazda zamanlanan YEREL bildirimler kullanıyor ve onlar Expo Go'da
+// sorunsuz çalışıyor. Uyarı, kütüphanenin kendi içindeki otomatik push-token
+// kaydından geliyor (PushTokenAutoRegistration) ve engellenemiyor.
+//
+// Kırmızı hata ekranı geliştirme sırasında gerçek hataları gizlediği için
+// yalnızca BU mesajı filtreliyoruz — diğer tüm hatalar görünmeye devam ediyor.
+// ─────────────────────────────────────────────────────────────────────────────
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+]);
+
+// LogBox bazı sürümlerde console.error kaynaklı kırmızı katmanı yakalamıyor;
+// bu yüzden aynı mesajı console seviyesinde de süzüyoruz. Filtre metin
+// eşleşmesiyle çalışıyor, başka hiçbir hatayı bastırmıyor.
+const _origConsoleError = console.error;
+console.error = (...args: any[]) => {
+  const ilk = typeof args[0] === 'string' ? args[0] : '';
+  if (ilk.includes('expo-notifications: Android Push notifications')) return;
+  _origConsoleError(...args);
+};
 
 // ÖNEMLİ: Bu görev, uygulama TAMAMEN KAPALIYKEN (killed state) "Kıldım"
 // butonuna basıldığında da çalışabilmesi için modül düzeyinde (component

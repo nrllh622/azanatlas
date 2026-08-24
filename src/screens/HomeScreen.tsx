@@ -34,7 +34,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, radius, typography, elevation } from '../theme';
+import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import {
   calculateVakitler,
   getVakitlerWithDiyanetFallback,
@@ -54,15 +54,19 @@ import {
   scheduleAllNotifications,
   configureAndroidChannels,
 } from '../lib/notificationScheduler';
-import { scheduleVaktindeKil } from '../lib/vaktindeKilScheduler';
+import { scheduleVaktindeKil, cancelVaktindeKilForVakit } from '../lib/vaktindeKilScheduler';
 import { setupVaktindeKilCategory, registerVaktindeKilResponseListener } from '../lib/vaktindeKilActions';
 import { scheduleReminders } from '../lib/remindersScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
 import { takipEdilebilir, TakipVakti } from '../lib/ibadetTakibi';
 import { getGununAyeti } from '../data/ayetler';
+import { getDiniGun, getYaklasanDiniGun } from '../data/diniGunler';
+import { getTariheBugun } from '../data/tariheBugun';
+import { widgetVerisiniGuncelle } from '../lib/widgetVeriDeposu';
 
 import Icon, { IconName, vakitIcon } from '../components/Icon';
+import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
 import IslamicPattern from '../components/IslamicPattern';
 
 import LocationPickerScreen from './LocationPickerScreen';
@@ -76,6 +80,7 @@ import TesbihScreen from './TesbihScreen';
 import EsmaulHusnaScreen from './EsmaulHusnaScreen';
 import KesfetScreen, { KesfetHedef } from './KesfetScreen';
 import TakipScreen from './TakipScreen';
+import TemaScreen from './TemaScreen';
 
 /** Alt navigasyondaki kalıcı sekmeler. */
 type Tab = 'home' | 'imsakiye' | 'kesfet' | 'takip' | 'settings';
@@ -89,14 +94,15 @@ type SubScreen =
   | 'vaktindekil'
   | 'reminders'
   | 'tesbih'
-  | 'esma';
+  | 'esma'
+  | 'tema';
 
 const AY_ADLARI = [
   'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
   'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
 ];
 
-const SEKMELER: { id: Tab; ad: string; ikon: IconName }[] = [
+const SEKMELER: { id: Tab; ad: string; ikon: DoluIkonAdi }[] = [
   { id: 'home', ad: 'Ana Sayfa', ikon: 'anasayfa' },
   { id: 'imsakiye', ad: 'İmsakiye', ikon: 'imsakiye' },
   { id: 'kesfet', ad: 'Keşfet', ikon: 'kesfet' },
@@ -105,7 +111,7 @@ const SEKMELER: { id: Tab; ad: string; ikon: IconName }[] = [
 ];
 
 /** Ana Sayfa'daki dört hızlı araç — en sık kullanılanlar. */
-const HIZLI_ARACLAR: { hedef: SubScreen; ad: string; ikon: IconName }[] = [
+const HIZLI_ARACLAR: { hedef: SubScreen; ad: string; ikon: DoluIkonAdi }[] = [
   { hedef: 'qibla', ad: 'Kıble', ikon: 'kible' },
   { hedef: 'tesbih', ad: 'Tesbih', ikon: 'tesbih' },
   { hedef: 'esma', ad: 'Esmâ', ikon: 'esma' },
@@ -248,6 +254,31 @@ export default function HomeScreen() {
   const aksam = vakitler.find((v) => v.key === 'aksam');
   const ayet = useMemo(() => getGununAyeti(now), [now.toDateString()]);
 
+  // Bugün özel bir dini gün mü? Değilse en yakın olanı göster.
+  const diniGun = useMemo(
+    () => getDiniGun(hijriBaseDate, hijri.month, hijri.day),
+    [hijriBaseDate.toDateString(), hijri.month, hijri.day]
+  );
+  const yaklasan = useMemo(
+    () => (diniGun ? null : getYaklasanDiniGun(now, (d) => toHijri(d, hijriAdjustmentDays))),
+    [diniGun, now.toDateString(), hijriAdjustmentDays]
+  );
+  const tarihOlayi = useMemo(() => getTariheBugun(now), [now.toDateString()]);
+
+  // Widget (madde 10, devir dosyası §7): vakitler her yeniden hesaplandığında
+  // (konum/gün/yöntem değiştiğinde) AsyncStorage'a yazılıyor ki widget'ın
+  // kendi arka plan görevi karmaşık hesap yapmadan hazır veriyi okusun.
+  // Expo Go'da veya widget hiç eklenmemişse bu çağrı zararsızdır — sadece
+  // kullanılmayan bir AsyncStorage anahtarı yazar.
+  useEffect(() => {
+    widgetVerisiniGuncelle(
+      vakitler,
+      `${location.il}, ${location.ilce}`,
+      `${hijri.day} ${hijri.month}`,
+      current.key
+    );
+  }, [vakitler, location.il, location.ilce, hijri.day, hijri.month, current.key]);
+
   const kalanMs = next.date.getTime() - now.getTime();
 
   /**
@@ -303,7 +334,22 @@ export default function HomeScreen() {
       setTab(hedef as Tab);
       return;
     }
-    setSub(hedef as SubScreen);
+    // HATA DÜZELTMESİ: Keşfet ızgarası Kıble kutusu için 'kible' gönderiyor,
+    // ama alt ekran anahtarı 'qibla'. İsimler eşleşmediği için Keşfet'ten
+    // Kıble hiç açılmıyordu. Açık eşleme tablosu, ileride benzer bir
+    // uyumsuzluğun sessizce oluşmasını da engelliyor.
+    const ALT_EKRAN_ESLEME: Record<string, SubScreen> = {
+      kible: 'qibla',
+      tesbih: 'tesbih',
+      esma: 'esma',
+      kaza: 'kaza',
+      vaktindekil: 'vaktindekil',
+      reminders: 'reminders',
+      location: 'location',
+      tema: 'tema',
+    };
+    const altEkran = ALT_EKRAN_ESLEME[hedef];
+    if (altEkran) setSub(altEkran);
   }, []);
 
   // -------------------------------------------------------------------
@@ -316,6 +362,7 @@ export default function HomeScreen() {
   if (sub === 'reminders') return <RemindersScreen onClose={() => setSub(null)} />;
   if (sub === 'tesbih') return <TesbihScreen onClose={() => setSub(null)} />;
   if (sub === 'esma') return <EsmaulHusnaScreen onClose={() => setSub(null)} />;
+  if (sub === 'tema') return <TemaScreen onClose={() => setSub(null)} />;
 
   // -------------------------------------------------------------------
   // SEKME İÇERİKLERİ
@@ -344,12 +391,49 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ============ ÜST BLOK: konum, tarih, sıradaki vakit ============ */}
-        <View style={[styles.hero, { paddingTop: insets.top + spacing.md }]}>
-          <IslamicPattern color={colors.cream} opacity={0.07} tile={44} />
+        {/* ÜST ŞERİT — krem zeminde: konum solda, bildirim düğmesi sağda.
+            (1. ekran görüntüsündeki düzen) */}
+        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.sm }]}>
+          <TouchableOpacity
+            style={styles.konumBlok}
+            onPress={() => setSub('location')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Konumu değiştir"
+          >
+            <View style={styles.konumIkonKap}>
+              <Icon name="konum" size={20} color={colors.white} />
+            </View>
+            <View style={styles.konumMetin}>
+              <Text style={styles.konumIl} numberOfLines={1}>
+                {location.il}, {location.ilce}
+              </Text>
+              <Text style={styles.konumTarih} numberOfLines={1}>
+                {now.getDate()} {AY_ADLARI[now.getMonth()]} · {hijri.day} {hijri.month} {hijri.year}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bildirimBtn}
+            onPress={() => setTab('settings')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Bildirim ayarları"
+          >
+            <Icon name="hatirlatici" size={22} color={colors.copperVivid} />
+          </TouchableOpacity>
+        </View>
+
+        {/* HERO KARTI — düz (köşesiz) kart. Önceki sürümde alt kenarları
+            büyük yarıçapla kavisliydi; kullanıcı geri bildirimiyle düz
+            dikdörtgen forma dönüldü. Üstteki konum/bildirim şeridi zaten
+            ayrı bir bileşen olduğu için bu değişiklikten etkilenmiyor. */}
+        <View style={styles.hero}>
+          <IslamicPattern color={colors.cream} opacity={0.09} tile={44} />
 
           <View style={styles.heroIc}>
-            {/* Konum satırı */}
-            <View style={styles.konumSatir}>
+            <View style={styles.eskiKonumSatir}>
               {locations.length > 1 && (
                 <TouchableOpacity
                   onPress={() => konumDegistir(-1)}
@@ -361,18 +445,8 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity
-                style={styles.konumOrta}
-                onPress={() => setSub('location')}
-                accessibilityRole="button"
-                accessibilityLabel="Konumu değiştir"
-              >
-                <Icon name="konum" size={15} color={colors.copperLight} />
-                <Text style={styles.konumYazi} numberOfLines={1}>
-                  {location.il} · {location.ilce}
-                </Text>
-                <Icon name="asagi" size={13} color={colors.textOnDarkMuted} />
-              </TouchableOpacity>
+              {/* Konum artık üst şeritte; burada yalnızca çoklu konum
+                  kullananlar için ileri/geri okları kalıyor. */}
 
               {locations.length > 1 && (
                 <TouchableOpacity
@@ -386,22 +460,15 @@ export default function HomeScreen() {
               )}
             </View>
 
-            {/* Tarih: miladi + hicri */}
-            <Text style={styles.miladiTarih}>
-              {now.getDate()} {AY_ADLARI[now.getMonth()]} {now.getFullYear()}
-            </Text>
-            <Text style={styles.hicriTarih}>
-              {hijri.day} {hijri.month} {hijri.year}
-            </Text>
-
             {/* Sıradaki vakit + geri sayım */}
             <View style={styles.siradakiKap}>
-              <View style={styles.siradakiEtiketSatir}>
-                <Icon name={vakitIcon(next.key)} size={15} color={colors.copperLight} />
-                <Text style={styles.siradakiEtiket}>Sıradaki · {next.label}</Text>
+              <Text style={styles.siradakiEtiket}>SIRADAKİ VAKİT</Text>
+              <View style={styles.siradakiAdSatir}>
+                <Icon name={vakitIcon(next.key)} size={22} color={colors.copperLight} />
+                <Text style={styles.siradakiAd}>{next.label}</Text>
+                <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
               <Text style={styles.geriSayim}>{geriSayimBicimle(kalanMs)}</Text>
-              <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
             </View>
 
             {/* Mevcut vaktin ilerlemesi */}
@@ -445,6 +512,30 @@ export default function HomeScreen() {
               </TouchableOpacity>
             )}
           </View>
+
+          {/* ── DİNİ GÜN ──
+              Bugün kandil/bayram ise vurgulu kart; değilse yaklaşan günü
+              sade bir satır olarak gösteriyoruz. Böylece kart her gün
+              görünüyor ama yalnızca gerçekten özel günlerde öne çıkıyor. */}
+          {diniGun ? (
+            <View style={styles.diniGunKart}>
+              <IslamicPattern color={colors.cream} opacity={0.10} tile={38} />
+              <View style={styles.diniGunIc}>
+                <Icon name="hilal" size={22} color={colors.copperLight} />
+                <View style={styles.diniGunMetin}>
+                  <Text style={styles.diniGunAd}>{diniGun.ad}</Text>
+                  <Text style={styles.diniGunAciklama}>{diniGun.aciklama}</Text>
+                </View>
+              </View>
+            </View>
+          ) : yaklasan ? (
+            <View style={styles.yaklasanSatir}>
+              <Icon name="hilal" size={17} color={colors.copper} />
+              <Text style={styles.yaklasanYazi}>
+                {yaklasan.gun.ad}'a {yaklasan.kalanGun} gün kaldı
+              </Text>
+            </View>
+          ) : null}
 
           {location.countryCode === 'TR' && vakitKaynak === 'yerel' && (
             <View style={styles.bilgiSerit}>
@@ -495,15 +586,24 @@ export default function HomeScreen() {
                   {/* Kılındı işareti */}
                   {takipli ? (
                     <TouchableOpacity
-                      onPress={() => isaretiDegistir(v.key as TakipVakti)}
+                      onPress={async () => {
+                        const simdiKilindi = !kilindi;
+                        await isaretiDegistir(v.key as TakipVakti);
+                        // Uygulama içinden "kılındı" işaretlendiğinde, o vakte ait
+                        // bekleyen Vaktinde Kıl hatırlatmaları da anında iptal
+                        // edilmeli; aksi halde kullanıcı vakti kıldığını belirtmesine
+                        // rağmen hatırlatma almaya devam ederdi.
+                        if (simdiKilindi) cancelVaktindeKilForVakit(v.key, v.date);
+                      }}
                       hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+                      activeOpacity={0.6}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: kilindi }}
                       accessibilityLabel={`${v.label} namazını kıldım olarak işaretle`}
                     >
                       <Icon
                         name={kilindi ? 'onay' : 'daire'}
-                        size={22}
+                        size={23}
                         color={kilindi ? colors.success : colors.borderStrong}
                       />
                     </TouchableOpacity>
@@ -514,7 +614,7 @@ export default function HomeScreen() {
                   <View style={[styles.vakitIkonKap, suAnki && styles.vakitIkonKapAktif]}>
                     <Icon
                       name={vakitIcon(v.key)}
-                      size={17}
+                      size={15}
                       color={suAnki ? colors.primaryDeep : colors.primary}
                     />
                   </View>
@@ -543,14 +643,15 @@ export default function HomeScreen() {
                       }
                       hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
                       style={styles.zilBtn}
+                      activeOpacity={0.6}
                       accessibilityRole="switch"
                       accessibilityState={{ checked: !!bildirimAcik }}
                       accessibilityLabel={`${v.label} vakti bildirimi`}
                     >
                       <Icon
                         name={bildirimAcik ? 'bildirimAcik' : 'bildirimKapali'}
-                        size={17}
-                        color={bildirimAcik ? colors.copper : colors.textFaint}
+                        size={19}
+                        color={bildirimAcik ? colors.copperVivid : colors.textFaint}
                       />
                     </TouchableOpacity>
                   ) : (
@@ -561,18 +662,23 @@ export default function HomeScreen() {
             })}
           </View>
 
-          {/* ============ HIZLI ARAÇLAR (Muslim Pro'daki dörtlü satır) ============ */}
+          {/* ============ HIZLI ARAÇLAR (Muslim Pro'daki dörtlü satır) ============
+              Bu kart bilinçli olarak REKLAM ALANININ ÜSTÜNDE, ilk ekranda
+              kalacak şekilde konumlandı — Kıble/Tesbih/Esmâ/Kaza'ya scroll
+              yapmadan ulaşmak (madde 1) reklam şeridinden önce garanti
+              edilmiş oluyor. */}
           <View style={styles.hizliKart}>
             {HIZLI_ARACLAR.map((arac) => (
               <TouchableOpacity
                 key={arac.ad}
                 style={styles.hizliOge}
                 onPress={() => setSub(arac.hedef)}
+                activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={arac.ad}
               >
                 <View style={styles.hizliIkonKap}>
-                  <Icon name={arac.ikon} size={21} color={colors.primary} />
+                  <DoluIkon ad={arac.ikon} boyut={26} zemin={colors.primarySoft} />
                   {arac.hedef === 'kaza' && kazaTotal > 0 && (
                     <View style={styles.hizliRozet}>
                       <Text style={styles.hizliRozetYazi}>
@@ -586,6 +692,14 @@ export default function HomeScreen() {
             ))}
           </View>
 
+          {/* ============ REKLAM ALANI ============
+              Banner reklam entegrasyonu (react-native-google-mobile-ads)
+              henüz eklenmedi; bu, gerçek reklamın kaplayacağı sabit
+              yüksekliği (standart banner 50dp) ayırarak yukarıdaki tüm
+              içeriğin reklam eklendiğinde YER DEĞİŞTİRMEMESİNİ sağlıyor.
+              Reklam kodu eklendiğinde bu View'in içi doldurulacak. */}
+          <View style={styles.reklamAlani} />
+
           {/* ============ GÜNÜN AYETİ ============ */}
           <View style={styles.ayetKart}>
             <View style={styles.ayetBaslikSatir}>
@@ -595,6 +709,25 @@ export default function HomeScreen() {
             <Text style={styles.ayetMetin}>{ayet.meal}</Text>
             <Text style={styles.ayetKaynak}>{ayet.kaynak}</Text>
           </View>
+
+          {/* ── İSLAM TARİHİNDE BUGÜN ──
+              Yalnızca o güne ait doğrulanmış bir olay varsa görünür.
+              Her günü doldurmak için tarihi tartışmalı olaylar eklenmedi. */}
+          {tarihOlayi && (
+            <View style={styles.tarihKart}>
+              <View style={styles.tarihBaslikSatir}>
+                <Icon name="imsakiye" size={17} color={colors.copper} />
+                <Text style={styles.tarihBaslik}>İslam Tarihinde Bugün</Text>
+              </View>
+              <View style={styles.tarihIcerik}>
+                <Text style={styles.tarihYil}>{tarihOlayi.yil}</Text>
+                <View style={styles.tarihMetin}>
+                  <Text style={styles.tarihOlayBaslik}>{tarihOlayi.baslik}</Text>
+                  <Text style={styles.tarihAciklama}>{tarihOlayi.aciklama}</Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
     );
@@ -615,15 +748,30 @@ export default function HomeScreen() {
               key={s.id}
               style={styles.navOge}
               onPress={() => setTab(s.id)}
+              activeOpacity={0.75}
               accessibilityRole="tab"
               accessibilityState={{ selected: aktif }}
               accessibilityLabel={s.ad}
             >
               <View style={[styles.navIkonKap, aktif && styles.navIkonKapAktif]}>
-                <Icon
-                  name={s.ikon}
-                  size={20}
-                  color={aktif ? colors.primaryDeep : colors.textOnDarkMuted}
+                {/* Aktif sekmede ikon PARLAK dolgu üzerinde durduğu için
+                    gövde rengi koyuya çevriliyor; pasiflerde ise koyu
+                    navigasyon zemininde okunacak açık tonlar kullanılıyor.
+                    HATA DÜZELTMESİ: "Keşfet" ikonu tıklanınca bozuk
+                    görünüyordu — sebebi hem varsayılan activeOpacity'nin
+                    (0.2) dolgulu ikonu şeffaflaştırıp katmanları birbirine
+                    karıştırması, hem de pasif haldeki govde/vurgu renk
+                    çiftinin (textOnDarkMuted + copperLight) kesfet
+                    ikonundaki 4 kutucukla düşük kontrastta çakışmasıydı.
+                    activeOpacity yükseltildi; pasif ikon artık A1 (parlak
+                    turkuaz) katmanıyla aynı aileden, net ayrışan bir vurgu
+                    kullanıyor. */}
+                <DoluIkon
+                  ad={s.ikon}
+                  boyut={26}
+                  govde={aktif ? colors.primaryDeep : colors.textOnDarkMuted}
+                  vurgu={aktif ? colors.primaryDark : colors.primaryBright}
+                  zemin={aktif ? colors.primaryBright : colors.primaryDark}
                 />
                 {s.id === 'takip' && kazaTotal > 0 && (
                   <View style={styles.navNokta} />
@@ -647,17 +795,51 @@ const styles = StyleSheet.create({
   anaAkis: { flex: 1, backgroundColor: colors.cream },
   anaIcerik: { paddingBottom: spacing.lg },
 
-  // ---------- HERO ----------
+  // ---------- ÜST ŞERİT (krem zemin) ----------
+  ustSerit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  konumBlok: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
+  konumIkonKap: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  konumMetin: { flex: 1 },
+  konumIl: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.bodyLg,
+    color: colors.primaryDark,
+    lineHeight: lineHeight.bodyLg,
+  },
+  konumTarih: {
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.tiny,
+    color: colors.textMuted,
+    lineHeight: lineHeight.tiny,
+  },
+  bildirimBtn: {
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: colors.white,
+    borderWidth: 2, borderColor: colors.copperVivid,
+    alignItems: 'center', justifyContent: 'center',
+    ...elevation.card,
+  },
+
+  // ---------- HERO (düz koyu kart — kavis kaldırıldı) ----------
   hero: {
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: radius.xl,
-    borderBottomRightRadius: radius.xl,
     overflow: 'hidden',
-    paddingBottom: spacing.lg,
+    paddingVertical: spacing.sm + 2,
   },
   heroIc: { paddingHorizontal: spacing.lg },
 
-  konumSatir: {
+  eskiKonumSatir: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -692,49 +874,66 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  siradakiKap: { alignItems: 'center', marginTop: spacing.md },
-  siradakiEtiketSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  siradakiKap: { marginTop: spacing.xs },
   siradakiEtiket: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.tiny,
     color: colors.copperLight,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+  },
+  siradakiAdSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  siradakiAd: {
+    flex: 1,
+    fontFamily: typography.displayFamily,
+    fontSize: 26,
+    color: colors.white,
+    lineHeight: 36,
+  },
+  // Saat önceden textOnDarkMuted (bazı temalarda hero zeminine çok yakın,
+  // düşük kontrastlı) kullanıyordu; artık copperLight — sıcak, parlak ve
+  // her palette karşı ölçülmüş kontrast — kullanılıyor, ayrıca büyütüldü.
+  siradakiSaat: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.title,
+    color: colors.copperLight,
   },
   geriSayim: {
     fontFamily: typography.displayFamily,
-    fontSize: 46,
+    fontSize: fontSize.countdown,
     color: colors.white,
-    lineHeight: 58,
-    marginTop: spacing.xs,
-  },
-  siradakiSaat: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 13,
-    color: colors.textOnDarkMuted,
-    marginTop: -spacing.xs,
+    lineHeight: 54,
+    marginTop: 2,
+    letterSpacing: 1,
   },
 
   ilerlemeRay: {
-    height: 4,
-    borderRadius: 2,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: 'rgba(253,250,241,0.22)',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     overflow: 'hidden',
   },
   // Koyu hero üzerinde dolgu; metin taşımadığı için en canlı ton kullanılabilir.
   // Hero zemini `primary`; dolgunun ondan net ayrışması için bir basamak
   // daha parlak olan primaryGlow kullanılıyor (primaryBright 2.67'de kalıyordu).
-  ilerlemeDolu: { height: 4, borderRadius: 2, backgroundColor: colors.primaryGlow },
+  ilerlemeDolu: { height: 5, borderRadius: 3, backgroundColor: colors.primaryGlow },
   ilerlemeAltSatir: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.xs,
   },
-  ilerlemeUc: { fontFamily: typography.bodyMedium, fontSize: 10.5, color: colors.textOnDarkMuted },
+  // Şimdiki/sonraki vakit yazısı da aynı sebeple textOnDarkMuted'dan
+  // copperLight'a taşındı — hero zemininde her palette karşı test edilmiş,
+  // belirgin kalan tek sıcak ton bu.
+  ilerlemeUc: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.copperLight },
 
   // ---------- GÖVDE ----------
-  govde: { paddingHorizontal: spacing.md, marginTop: spacing.md },
+  govde: { paddingHorizontal: spacing.md, marginTop: spacing.sm },
 
   cipSatir: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm, flexWrap: 'wrap' },
   kaynakCip: {
@@ -748,7 +947,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  kaynakCipYazi: { fontFamily: typography.bodyMedium, fontSize: 11, color: colors.textOnLight },
+  kaynakCipYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.textOnLight },
   seriCip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -760,7 +959,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EBD5BE',
   },
-  seriCipYazi: { fontFamily: typography.bodyBold, fontSize: 11, color: colors.copper },
+  seriCipYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.copper },
 
   bilgiSerit: {
     flexDirection: 'row',
@@ -775,9 +974,9 @@ const styles = StyleSheet.create({
   bilgiSeritYazi: {
     flex: 1,
     fontFamily: typography.bodyMedium,
-    fontSize: 11.5,
+    fontSize: fontSize.small,
     color: colors.textMuted,
-    lineHeight: 16,
+    lineHeight: lineHeight.small,
   },
   uyariSerit: {
     flexDirection: 'row',
@@ -789,7 +988,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
-  uyariSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: 12.5, color: colors.white },
+  uyariSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: fontSize.small, color: colors.white },
   iftarSerit: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -800,18 +999,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
-  iftarSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: 12.5, color: colors.primaryDeep },
+  iftarSeritYazi: { flex: 1, fontFamily: typography.bodyBold, fontSize: fontSize.small, color: colors.primaryDeep },
 
   // ---------- VAKİT LİSTESİ ----------
-  vakitListe: { gap: 6 },
+  // Satır aralığı ve dikey iç boşluk daha da sıkıştırıldı: yedi vaktin
+  // TAMAMI (İmsak'tan Yatsı'ya) artı reklam alanı ve dört hızlı araç
+  // scroll YAPILMADAN ilk ekranda görünsün diye. Yazı boyu küçültülmedi —
+  // okunabilirlik korunuyor, kazanılan alan yalnızca boşluklardan geliyor.
+  vakitListe: { gap: 4 },
   vakitSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm + 2,
+    gap: spacing.sm,
     backgroundColor: colors.white,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm + 3,
-    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -821,15 +1024,15 @@ const styles = StyleSheet.create({
   },
   isaretBosluk: { width: 22 },
   vakitIkonKap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   vakitIkonKapAktif: { backgroundColor: colors.primaryBright },
-  vakitAd: { flex: 1, fontFamily: typography.bodyBold, fontSize: 14.5, color: colors.textOnLight },
+  vakitAd: { flex: 1, fontFamily: typography.bodyBold, fontSize: fontSize.body, color: colors.textOnLight },
   vakitAdAktif: { color: colors.textOnDark },
   simdiRozet: {
     backgroundColor: colors.copperBright,
@@ -837,36 +1040,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
-  simdiRozetYazi: { fontFamily: typography.bodyBold, fontSize: 9.5, color: colors.primaryDeep },
+  simdiRozetYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.micro, color: colors.primaryDeep },
   vakitSaat: {
     fontFamily: typography.bodyBold,
-    fontSize: 15.5,
+    fontSize: fontSize.body,
     color: colors.primaryDark,
-    minWidth: 48,
+    minWidth: 52,
     textAlign: 'right',
   },
   vakitSaatAktif: { color: colors.primaryGlow },
-  zilBtn: { width: 24, alignItems: 'center' },
+  zilBtn: { width: 26, alignItems: 'center' },
 
   // ---------- HIZLI ARAÇLAR ----------
   hizliKart: {
     flexDirection: 'row',
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    marginTop: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    marginTop: spacing.sm,
     ...elevation.card,
   },
-  hizliOge: { flex: 1, alignItems: 'center', gap: spacing.xs + 2 },
+  hizliOge: { flex: 1, alignItems: 'center', gap: spacing.xs + 1 },
   hizliIkonKap: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hizliAd: { fontFamily: typography.bodyBold, fontSize: 11.5, color: colors.textOnLight },
+  hizliAd: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.textOnLight },
   hizliRozet: {
     position: 'absolute',
     top: -2,
@@ -882,60 +1085,158 @@ const styles = StyleSheet.create({
   },
   hizliRozetYazi: { fontFamily: typography.bodyBold, fontSize: 9, color: colors.white },
 
+  // ---------- REKLAM ALANI ----------
+  // Standart banner reklam yüksekliği (50dp) + üst/alt boşluk kadar sabit
+  // yer ayrılıyor; reklam kodu eklendiğinde içerik konumu değişmeyecek.
+  reklamAlani: { height: 50, marginTop: spacing.sm },
+
   // ---------- GÜNÜN AYETİ ----------
   ayetKart: {
     backgroundColor: colors.primaryDark,
     borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginTop: spacing.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
   },
   ayetBaslikSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   ayetBaslik: {
     fontFamily: typography.bodyBold,
-    fontSize: 11,
+    fontSize: fontSize.tiny,
     color: colors.copperLight,
-    letterSpacing: 0.9,
+    letterSpacing: 1.1,
     textTransform: 'uppercase',
   },
   ayetMetin: {
     fontFamily: typography.displaySemibold,
-    fontSize: 15,
+    fontSize: fontSize.bodyLg,
     color: colors.textOnDark,
-    lineHeight: 26,
+    lineHeight: 28,
     marginTop: spacing.sm,
   },
   ayetKaynak: {
-    fontFamily: typography.bodyMedium,
-    fontSize: 11.5,
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.small,
     color: colors.textOnDarkMuted,
     marginTop: spacing.sm,
   },
 
+  // ---------- DİNİ GÜN ----------
+  diniGunKart: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  diniGunIc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm + 2,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  diniGunMetin: { flex: 1 },
+  diniGunAd: {
+    fontFamily: typography.displaySemibold,
+    fontSize: fontSize.bodyLg,
+    color: colors.textOnDark,
+  },
+  diniGunAciklama: {
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.tiny,
+    color: colors.copperLight,
+    marginTop: 1,
+  },
+  yaklasanSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.copperSoft,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  yaklasanYazi: {
+    flex: 1,
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.small,
+    color: colors.copper,
+  },
+
+  // ---------- İSLAM TARİHİNDE BUGÜN ----------
+  tarihKart: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tarihBaslikSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  tarihBaslik: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.tiny,
+    color: colors.copper,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  tarihIcerik: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
+  tarihYil: {
+    fontFamily: typography.displayFamily,
+    fontSize: fontSize.title,
+    color: colors.primaryDark,
+    minWidth: 46,
+  },
+  tarihMetin: { flex: 1 },
+  tarihOlayBaslik: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.body,
+    color: colors.textOnLight,
+    lineHeight: lineHeight.body,
+  },
+  tarihAciklama: {
+    fontFamily: typography.bodyFamily,
+    fontSize: fontSize.small,
+    color: colors.textMuted,
+    lineHeight: lineHeight.small,
+    marginTop: 3,
+  },
+
   // ---------- ALT NAVİGASYON ----------
+  // Alt navigasyon belirginleştirildi: ikon kabı ve yazı büyütüldü, aktif
+  // sekmenin dolgusu tam doygun tonda ve üstünde ince bir gösterge çizgisi
+  // var — hangi sekmede olduğunuz uzaktan bakınca anlaşılıyor.
   altNav: {
     flexDirection: 'row',
     backgroundColor: colors.primaryDark,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
-  navOge: { flex: 1, alignItems: 'center', gap: 3 },
+  navOge: { flex: 1, alignItems: 'center', gap: 4 },
   navIkonKap: {
-    width: 44,
-    height: 28,
+    width: 54,
+    height: 34,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   navIkonKapAktif: { backgroundColor: colors.primaryBright },
-  navYazi: { fontFamily: typography.bodyMedium, fontSize: 9.5, color: colors.textOnDarkMuted },
-  navYaziAktif: { fontFamily: typography.bodyBold, color: colors.copperLight },
+  navYazi: {
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.micro,
+    color: colors.textOnDarkMuted,
+  },
+  navYaziAktif: { fontFamily: typography.bodyBold, color: colors.primaryGlow },
   navNokta: {
     position: 'absolute',
-    top: 3,
-    right: 9,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.danger,
+    top: 4,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.copperVivid,
+    borderWidth: 1.5,
+    borderColor: colors.primaryDark,
   },
 });

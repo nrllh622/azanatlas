@@ -15,7 +15,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon, { IconName } from '../components/Icon';
-import { colors, spacing, radius, typography, elevation } from '../theme';
+import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
+import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import { useKaza } from '../context/KazaContext';
 import { useIbadetTakibi } from '../context/IbadetTakibiContext';
 
@@ -29,13 +30,14 @@ export type KesfetHedef =
   | 'vaktindekil'
   | 'reminders'
   | 'location'
-  | 'settings';
+  | 'settings'
+  | 'tema';
 
 interface Arac {
   hedef: KesfetHedef;
   ad: string;
   aciklama: string;
-  ikon: IconName;
+  ikon: DoluIkonAdi;
 }
 
 interface Grup {
@@ -65,6 +67,7 @@ const GRUPLAR: Grup[] = [
     araclar: [
       { hedef: 'vaktindekil', ad: 'Vaktinde Kıl', aciklama: 'Tekrarlı uyarı', ikon: 'vaktindekil' },
       { hedef: 'reminders', ad: 'Hatırlatıcılar', aciklama: 'Özel uyarılar', ikon: 'hatirlatici' },
+      { hedef: 'tema', ad: 'Tema', aciklama: '11 renk düzeni', ikon: 'tema' },
       { hedef: 'location', ad: 'Konum', aciklama: 'Şehir seç', ikon: 'konum' },
       { hedef: 'settings', ad: 'Ayarlar', aciklama: 'Tüm ayarlar', ikon: 'ayarlar' },
     ],
@@ -113,7 +116,7 @@ export default function KesfetScreen({ onClose, onNavigate }: Props) {
                     accessibilityLabel={`${arac.ad}. ${arac.aciklama}`}
                   >
                     <View style={styles.ikonKap}>
-                      <Icon name={arac.ikon} size={22} color={colors.primary} />
+                      <DoluIkon ad={arac.ikon} boyut={34} zemin={colors.primarySoft} />
                     </View>
                     {r && (
                       <View style={styles.rozet}>
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
   grup: { marginBottom: spacing.lg },
   grupBaslik: {
     fontFamily: typography.displaySemibold,
-    fontSize: 14,
+    fontSize: fontSize.title,
     color: colors.primaryDark,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.xs,
@@ -161,16 +164,16 @@ const styles = StyleSheet.create({
     ...elevation.card,
   },
   ikonKap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  kutuAd: { fontFamily: typography.bodyBold, fontSize: 13.5, color: colors.textOnLight },
-  kutuAciklama: { fontFamily: typography.bodyFamily, fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  kutuAd: { fontFamily: typography.bodyBold, fontSize: fontSize.bodyLg, color: colors.textOnLight },
+  kutuAciklama: { fontFamily: typography.bodyMedium, fontSize: fontSize.small, color: colors.textMuted, marginTop: 2 },
 
   rozet: {
     position: 'absolute',
@@ -183,5 +186,5 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     alignItems: 'center',
   },
-  rozetYazi: { fontFamily: typography.bodyBold, fontSize: 10, color: colors.white },
+  rozetYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.micro, color: colors.white },
 });

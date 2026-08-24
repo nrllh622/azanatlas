@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
-import { colors, spacing, radius, typography, elevation } from '../theme';
+import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 
 const STORAGE_KEY = 'azanatlas_tesbih_v1';
@@ -151,8 +151,6 @@ export default function TesbihScreen({ onClose }: Props) {
         subtitle="Zikirmatik"
         icon="tesbih"
         onClose={onClose}
-        rightIcon="yenile"
-        onRightPress={sifirla}
       />
 
       <ScrollView
@@ -211,24 +209,41 @@ export default function TesbihScreen({ onClose }: Props) {
           <Text style={styles.dokunIpucu}>Saymak için dokunun</Text>
         </Pressable>
 
-        {/* Tur ve geri alma */}
-        <View style={styles.altSatir}>
-          <View style={styles.turKart}>
-            <Icon name="yildiz" size={16} color={colors.copper} />
-            <View>
-              <Text style={styles.turEtiket}>Tamamlanan tur</Text>
-              <Text style={styles.turDeger}>{tur}</Text>
-            </View>
-          </View>
+        {/* Tur sayacı */}
+        <View style={styles.turKart}>
+          <Icon name="yildiz" size={20} color={colors.copper} />
+          <Text style={styles.turEtiket}>Tamamlanan tur</Text>
+          <Text style={styles.turDeger}>{tur}</Text>
+        </View>
 
+        {/* ─────────────────────────────────────────────────────────────
+            BÜYÜK, YAZILI EYLEM BUTONLARI
+
+            Önceki sürümde sıfırlama, ekranın en üstünde küçük bir ikondu ve
+            ne işe yaradığı anlaşılmıyordu. Artık ikisi de altta, parmakla
+            rahat basılacak büyüklükte, HEM İKON HEM YAZI taşıyor. Sıfırlama
+            geri alınamaz olduğu için dolgulu bakır renkle ayrıştırıldı;
+            kazara basılma ihtimali görsel olarak azaltıldı.
+            ───────────────────────────────────────────────────────────── */}
+        <View style={styles.eylemSatir}>
           <TouchableOpacity
             style={styles.geriAlBtn}
             onPress={azalt}
             accessibilityRole="button"
-            accessibilityLabel="Bir geri al"
+            accessibilityLabel="Son sayımı geri al"
           >
-            <Icon name="eksi" size={18} color={colors.primaryDark} />
-            <Text style={styles.geriAlYazi}>Geri al</Text>
+            <Icon name="eksi" size={24} color={colors.primaryDark} />
+            <Text style={styles.geriAlYazi}>Geri Al</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.sifirlaBtn}
+            onPress={sifirla}
+            accessibilityRole="button"
+            accessibilityLabel="Sayacı ve turları sıfırla"
+          >
+            <Icon name="yenile" size={24} color={colors.white} />
+            <Text style={styles.sifirlaYazi}>Sıfırla</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -254,9 +269,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   zikirCipSecili: { backgroundColor: colors.primary, borderColor: colors.primary },
-  zikirCipYazi: { fontFamily: typography.bodyBold, fontSize: 12.5, color: colors.textOnLight },
+  zikirCipYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.body, color: colors.textOnLight },
   zikirCipYaziSecili: { color: colors.white },
-  zikirCipHedef: { fontFamily: typography.bodyMedium, fontSize: 11, color: colors.textMuted },
+  zikirCipHedef: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.textMuted },
   zikirCipHedefSecili: { color: colors.copperLight },
 
   zikirKart: {
@@ -276,17 +291,18 @@ const styles = StyleSheet.create({
   },
   zikirLatin: {
     fontFamily: typography.bodyBold,
-    fontSize: 15,
+    fontSize: fontSize.title,
     color: colors.copper,
     marginTop: spacing.xs,
     textAlign: 'center',
   },
   zikirAnlam: {
     fontFamily: typography.bodyFamily,
-    fontSize: 12.5,
+    fontSize: fontSize.small,
     color: colors.textMuted,
     marginTop: spacing.xs,
     textAlign: 'center',
+    lineHeight: lineHeight.small,
   },
 
   sayacAlan: {
@@ -314,40 +330,54 @@ const styles = StyleSheet.create({
   },
   sayacHedef: {
     fontFamily: typography.bodyMedium,
-    fontSize: 14,
+    fontSize: fontSize.bodyLg,
     color: colors.textMuted,
     marginTop: -spacing.xs,
   },
   dokunIpucu: {
     fontFamily: typography.bodyMedium,
-    fontSize: 12,
-    color: colors.textFaint,
+    fontSize: fontSize.body,
+    color: colors.textMuted,
     marginTop: spacing.md,
   },
 
-  altSatir: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   turKart: {
-    flex: 1,
     backgroundColor: colors.white,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    ...elevation.card,
-  },
-  turEtiket: { fontFamily: typography.bodyMedium, fontSize: 11, color: colors.textMuted },
-  turDeger: { fontFamily: typography.bodyBold, fontSize: 18, color: colors.primaryDark },
-  geriAlBtn: {
-    backgroundColor: colors.creamDeep,
-    borderRadius: radius.md,
     paddingHorizontal: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    ...elevation.card,
   },
-  geriAlYazi: { fontFamily: typography.bodyBold, fontSize: 13, color: colors.primaryDark },
+  turEtiket: { flex: 1, fontFamily: typography.bodyMedium, fontSize: fontSize.body, color: colors.textMuted },
+  turDeger: { fontFamily: typography.bodyBold, fontSize: fontSize.title, color: colors.primaryDark },
+
+  eylemSatir: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  geriAlBtn: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md + 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+  },
+  geriAlYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.bodyLg, color: colors.primaryDark },
+  sifirlaBtn: {
+    flex: 1,
+    backgroundColor: colors.copper,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md + 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  sifirlaYazi: { fontFamily: typography.bodyBold, fontSize: fontSize.bodyLg, color: colors.white },
 });

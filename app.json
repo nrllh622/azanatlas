@@ -32,12 +32,37 @@
     },
     "plugins": [
       "expo-font",
+      "expo-updates",
       [
         "expo-notifications",
         {
           "sounds": ["./assets/sounds/bip.wav", "./assets/sounds/dong.wav"]
         }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "AzanAtlasWidget",
+              "label": "AzanAtlas — Namaz Vakitleri",
+              "description": "Bugünün yedi namaz vaktini gösterir.",
+              "minWidth": "250dp",
+              "minHeight": "180dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 3,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
       ]
-    ]
+    ],
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }

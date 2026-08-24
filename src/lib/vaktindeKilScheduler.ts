@@ -4,6 +4,7 @@ import { VakitEntry } from './prayerCalculator';
 import { VaktindeKilSound } from '../context/VaktindeKilContext';
 import { VAKTINDE_KIL_CATEGORY } from './vaktindeKilActions';
 import { getChannelForSound } from './notificationScheduler';
+import { kayitlariYukle, gununVakitleri, takipEdilebilir, TakipVakti } from './ibadetTakibi';
 
 // Yeniden planlamadan önce, SADECE Vaktinde Kıl'a ait daha önce kurulmuş
 // bildirimleri iptal eder (diğer bildirim türlerine dokunmaz). Bu olmadan,
@@ -20,6 +21,43 @@ async function cancelExistingVaktindeKilNotifications() {
   }
 }
 
+/**
+ * Bu vakit, bu gün için ZATEN KILINDI olarak işaretlenmiş mi?
+ *
+ * Kaynak, kullanıcının "Kıldım" dediği anda yazılan kalıcı ibadet takibi
+ * kaydıdır. Bildirimlerin iptal edilmiş olması TEK BAŞINA yeterli bir hafıza
+ * değildir — iptal yalnızca o anki zamanlanmış bildirimleri siler; sonraki
+ * bir yeniden planlama onları geri getirir.
+ */
+async function buVakitKilindiMi(vakit: VakitEntry): Promise<boolean> {
+  if (!takipEdilebilir(vakit.key)) return false;
+  try {
+    const kayitlar = await kayitlariYukle();
+    return gununVakitleri(kayitlar, vakit.date).includes(vakit.key as TakipVakti);
+  } catch {
+    // Depolama okunamazsa hatırlatmayı kurmaya devam et — kullanıcıyı sessizce
+    // hatırlatmasız bırakmaktansa fazladan hatırlatmak yeğdir.
+    return false;
+  }
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * HATA DÜZELTMESİ — "Kıldım'a bastım ama bildirim gelmeye devam etti"
+ *
+ * Önceki akış:
+ *   1. Kullanıcı "Kıldım"a basar → o vakte ait bildirimler iptal edilir. ✓
+ *   2. Uygulama öne gelir / ayar değişir → HomeScreen useEffect yeniden
+ *      çalışır → scheduleVaktindeKil çağrılır → AYNI vakit için hatırlatmalar
+ *      SIFIRDAN yeniden kurulur. ✗
+ *
+ * Yani iptal doğruydu ama KALICI DEĞİLDİ: zamanlayıcı, kullanıcının o vakti
+ * kıldığını bilmediği için iptal edilenleri geri getiriyordu. "Buton hiç
+ * çalışmıyor" görünmesinin sebebi buydu.
+ *
+ * Çözüm: planlamadan ÖNCE kalıcı takip kaydına bak; kılınmışsa hiç kurma.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
 export async function scheduleVaktindeKil(
   current: VakitEntry,
   next: VakitEntry,
@@ -29,6 +67,9 @@ export async function scheduleVaktindeKil(
   vibrationEnabled: boolean
 ) {
   await cancelExistingVaktindeKilNotifications();
+
+  // Kullanıcı bu vakti kıldıysa hatırlatma kurulmaz.
+  if (await buVakitKilindiMi(current)) return;
 
   const start = new Date(current.date.getTime() + firstDelayMinutes * 60 * 1000);
   const end = next.date;
@@ -42,7 +83,7 @@ export async function scheduleVaktindeKil(
     if (t.getTime() > Date.now()) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Vaktinde Kıl',
+          title: `${current.label} Namazı`,
           body: `${current.label} namazını henüz kılmadıysan vaktinde kılmayı unutma.`,
           sound: soundFile,
           categoryIdentifier: VAKTINDE_KIL_CATEGORY,
@@ -53,5 +94,37 @@ export async function scheduleVaktindeKil(
     }
     t = new Date(t.getTime() + repeatIntervalMinutes * 60 * 1000);
     count++;
+  }
+}
+
+
+/**
+ * Bir vakit UYGULAMA İÇİNDEN "kılındı" işaretlendiğinde çağrılır: o vakte ait
+ * bekleyen hatırlatmaları ve ekranda duran bildirimleri anında kaldırır.
+ *
+ * Buna neden ayrıca ihtiyaç var: kullanıcı vakti uygulama içinden
+ * işaretlediğinde `handleMarkPrayedAction` (bildirim aksiyonu) çalışmaz.
+ * Bu fonksiyon olmadan, zaten kılınmış bir vakit için hatırlatmalar bir
+ * sonraki yeniden planlamaya kadar gelmeye devam ederdi.
+ */
+export async function cancelVaktindeKilForVakit(vakitKey: string, vakitDate: Date) {
+  try {
+    const hedefISO = vakitDate.toISOString();
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of scheduled) {
+      const d = n.content.data as any;
+      if (d && d.type === 'vaktindekil' && d.vakitKey === vakitKey && d.vakitDateISO === hedefISO) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    }
+    const gosterilen = await Notifications.getPresentedNotificationsAsync();
+    for (const n of gosterilen) {
+      const d = n.request.content.data as any;
+      if (d && d.type === 'vaktindekil' && d.vakitKey === vakitKey && d.vakitDateISO === hedefISO) {
+        await Notifications.dismissNotificationAsync(n.request.identifier);
+      }
+    }
+  } catch {
+    // Bildirim API'si kullanılamıyorsa işaretleme yine de geçerli kalmalı.
   }
 }

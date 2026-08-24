@@ -1,9 +1,20 @@
 // src/screens/SettingsScreen.tsx
+//
+// AYARLAR
+//
+// Önceden bu ekran kendi başlığını çiziyor, düz `colors.primary` zemin ve
+// serbest punto/köşe değerleri kullanıyordu — uygulamanın geri kalanıyla
+// (Ana Sayfa, Kıble, Tesbih...) aynı görsel dilde durmuyordu. Artık diğer
+// tüm alt ekranlar gibi ortak `ScreenHeader`'ı (İslami doku + tutarlı
+// başlık biçimi) ve ortak `radius`/`fontSize`/`lineHeight` ölçeğini
+// kullanıyor; kartlar `elevation.card` gölgesiyle Kıble/Tesbih/Kaza
+// ekranlarındaki kartlarla birebir aynı dilde.
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { colors, spacing, typography } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
+import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import {
   useNotificationSettings,
   PreAlertVakitKey,
@@ -49,7 +60,6 @@ interface Props {
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
 export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenReminders }: Props) {
-  const insets = useSafeAreaInsets();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
     autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
@@ -126,24 +136,15 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   };
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top + spacing.sm }]}>
-      <View style={styles.headerRow}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.backArrow}>‹ Geri</Text>
-          </TouchableOpacity>
-          <Text style={styles.header}>Ayarlar</Text>
-        </View>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.closeText}>Kapat</Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={styles.card} onPress={onOpenVaktindeKil}>
+    <View style={styles.wrap}>
+      <ScreenHeader title="Ayarlar" subtitle="Tüm tercihler tek yerde" icon="ayarlar" onClose={onClose} />
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <TouchableOpacity style={styles.linkCard} onPress={onOpenVaktindeKil} activeOpacity={0.85}>
           <Text style={styles.cardLabel}>Vaktinde Kıl</Text>
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.card} onPress={onOpenReminders}>
+        <TouchableOpacity style={styles.linkCard} onPress={onOpenReminders} activeOpacity={0.85}>
           <Text style={styles.cardLabel}>Hatırlatıcılar</Text>
           <Text style={styles.chevron}>›</Text>
         </TouchableOpacity>
@@ -162,7 +163,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
                   setGpsStatus(null);
                 }
               }}
-              trackColor={{ true: colors.gold, false: undefined }}
+              trackColor={{ true: colors.primaryBright, false: undefined }}
+              thumbColor={colors.white}
             />
             <Text style={styles.cardLabelInline}>Otomatik</Text>
           </View>
@@ -179,6 +181,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           style={[styles.card, autoMethod && styles.cardDisabled]}
           onPress={() => !autoMethod && setMethodPickerVisible(true)}
           disabled={autoMethod}
+          activeOpacity={0.85}
         >
           <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>Hesaplama Yöntemi</Text>
           <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{autoMethod ? 'Konuma göre' : methodLabel}</Text>
@@ -187,6 +190,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           style={[styles.card, autoMethod && styles.cardDisabled]}
           onPress={() => !autoMethod && setMadhabPickerVisible(true)}
           disabled={autoMethod}
+          activeOpacity={0.85}
         >
           <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>İkindi Hesabı</Text>
           <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{madhabLabel}</Text>
@@ -195,18 +199,19 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           style={[styles.card, autoMethod && styles.cardDisabled]}
           onPress={() => !autoMethod && setHighLatPickerVisible(true)}
           disabled={autoMethod}
+          activeOpacity={0.85}
         >
           <Text style={[styles.cardLabel, autoMethod && styles.textDisabled]}>Yüksek Açı Hesabı</Text>
           <Text style={[styles.cardSubtext, autoMethod && styles.textDisabled]}>{highLatLabel}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card} onPress={() => setKerahatPickerVisible(true)}>
+        <TouchableOpacity style={styles.card} onPress={() => setKerahatPickerVisible(true)} activeOpacity={0.85}>
           <Text style={styles.cardLabel}>Kerahat Vakti Süresi</Text>
           <Text style={styles.cardSubtext}>{kerahatMinutes} dk</Text>
         </TouchableOpacity>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={settings.kerahatNotifyEnabled} onValueChange={(v) => setFlag('kerahatNotifyEnabled', v)} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={settings.kerahatNotifyEnabled} onValueChange={(v) => setFlag('kerahatNotifyEnabled', v)} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Kerahat Vaktinde Uyar</Text>
           </View>
         </View>
@@ -226,11 +231,11 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={hijriSwitchAtMaghrib} onValueChange={setHijriSwitchAtMaghrib} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={hijriSwitchAtMaghrib} onValueChange={setHijriSwitchAtMaghrib} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Hicri Gün Değişimini Akşam Vaktinde Yap</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.card} onPress={() => setDistanceUnitPickerVisible(true)}>
+        <TouchableOpacity style={styles.card} onPress={() => setDistanceUnitPickerVisible(true)} activeOpacity={0.85}>
           <Text style={styles.cardLabel}>Ölçü Birimleri</Text>
           <Text style={styles.cardSubtext}>{distanceUnitLabel}</Text>
         </TouchableOpacity>
@@ -238,31 +243,31 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         <Text style={styles.sectionTitle}>Genel</Text>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Titreşim</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={faceDownSilenceEnabled} onValueChange={setFaceDownSilenceEnabled} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={faceDownSilenceEnabled} onValueChange={setFaceDownSilenceEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Cihazı Yüzüstü Çevirdiğinde Sesi Kapat</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={notificationBarWidgetEnabled} onValueChange={setNotificationBarWidgetEnabled} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={notificationBarWidgetEnabled} onValueChange={setNotificationBarWidgetEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Bildirim Çubuğu Widgeti</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={settings.ezanDuasiEnabled} onValueChange={(v) => setFlag('ezanDuasiEnabled', v)} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={settings.ezanDuasiEnabled} onValueChange={(v) => setFlag('ezanDuasiEnabled', v)} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Ezan Duası</Text>
           </View>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
-            <Switch value={settings.sabahAtImsakVaktinde} onValueChange={(v) => setFlag('sabahAtImsakVaktinde', v)} trackColor={{ true: colors.gold, false: undefined }} />
+            <Switch value={settings.sabahAtImsakVaktinde} onValueChange={(v) => setFlag('sabahAtImsakVaktinde', v)} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>Sabah Ezanı İmsak Vaktinde Oku</Text>
           </View>
         </View>
@@ -273,7 +278,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           return (
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
-                <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
+                <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
                 <Text style={styles.cardLabelInline}>{label}</Text>
               </View>
               <Text style={styles.offsetLine}>{s.minutesBefore} dakika önce</Text>
@@ -290,7 +295,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           return (
             <View key={key} style={styles.card}>
               <View style={styles.cardTopRow}>
-                <Switch value={s.enabled} onValueChange={(val) => setOnTime(key, { enabled: val })} trackColor={{ true: colors.gold, false: undefined }} />
+                <Switch value={s.enabled} onValueChange={(val) => setOnTime(key, { enabled: val })} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
                 <Text style={styles.cardLabelInline}>{label}</Text>
               </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
@@ -361,30 +366,69 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.primary },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  backArrow: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 15 },
-  header: { fontFamily: typography.displaySemibold, color: colors.textOnDark, fontSize: 22 },
-  closeText: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 16 },
-  scrollContent: { padding: spacing.lg },
-  sectionTitle: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 14, textTransform: 'uppercase', marginTop: spacing.lg, marginBottom: spacing.sm },
-  card: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, position: 'relative' },
+  wrap: { flex: 1, backgroundColor: colors.cream },
+  scrollContent: { padding: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xl },
+
+  sectionTitle: {
+    fontFamily: typography.bodyBold,
+    color: colors.primaryDark,
+    fontSize: fontSize.tiny,
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+
+  linkCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...elevation.card,
+  },
+
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   cardDisabled: { opacity: 0.45 },
   textDisabled: { color: colors.primary },
   cardTopRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16 },
-  cardLabelInline: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: 16, flex: 1 },
-  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: 2 },
-  chevron: { color: colors.primary, fontSize: 20, position: 'absolute', right: spacing.md, top: spacing.md },
-  offsetLine: { fontFamily: typography.bodyMedium, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
-  soundLink: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: 13, marginTop: spacing.xs },
-  gpsHint: { fontFamily: typography.bodyMedium, color: colors.gold, fontSize: 12, marginBottom: spacing.sm },
-  gpsStatusText: { fontFamily: typography.bodyMedium, color: colors.sand, fontSize: 12, marginBottom: spacing.xs, lineHeight: 17 },
-  retryLink: { fontFamily: typography.bodyBold, color: colors.gold, fontSize: 12, marginBottom: spacing.sm, textDecorationLine: 'underline' },
-  stepperCard: { backgroundColor: colors.white, borderRadius: 12, padding: spacing.md, marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  cardLabel: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.body },
+  cardLabelInline: { fontFamily: typography.bodyMedium, color: colors.textOnLight, fontSize: fontSize.body, flex: 1 },
+  cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: fontSize.small, marginTop: 2 },
+  chevron: { color: colors.primary, fontSize: 22, fontFamily: typography.bodyBold },
+  offsetLine: { fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.small, marginTop: spacing.xs },
+  soundLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, marginTop: spacing.xs },
+  gpsHint: { fontFamily: typography.bodyMedium, color: colors.copper, fontSize: fontSize.tiny, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
+  gpsStatusText: { fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.tiny, marginBottom: spacing.xs, lineHeight: lineHeight.tiny, paddingHorizontal: spacing.xs },
+  retryLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.tiny, marginBottom: spacing.sm, textDecorationLine: 'underline', paddingHorizontal: spacing.xs },
+
+  stepperCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  stepperBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  stepperBtnText: { color: colors.white, fontSize: 18, fontFamily: typography.bodyBold },
-  stepperValue: { fontFamily: typography.displaySemibold, color: colors.primaryDark, fontSize: 18, minWidth: 30, textAlign: 'center' },
+  stepperBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  stepperBtnText: { color: colors.white, fontSize: fontSize.title, fontFamily: typography.bodyBold },
+  stepperValue: { fontFamily: typography.displaySemibold, color: colors.primaryDark, fontSize: fontSize.title, minWidth: 32, textAlign: 'center' },
 });

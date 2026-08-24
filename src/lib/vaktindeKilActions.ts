@@ -5,11 +5,34 @@ import { vaktiKilindiIsaretle, takipEdilebilir } from './ibadetTakibi';
 export const VAKTINDE_KIL_CATEGORY = 'VAKTINDE_KIL';
 export const MARK_PRAYED_ACTION = 'MARK_PRAYED';
 
+export const DISMISS_ACTION = 'DISMISS_REMINDER';
+
+/**
+ * Bildirim aksiyon butonlarını tanımlar.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * GÖRÜNÜRLÜK
+ *
+ * Android bildirim aksiyonlarının rengini ve simgesini uygulama BELİRLEYEMEZ;
+ * sistem kendi bildirim gölgesi temasına göre çizer. Elimizdeki tek gerçek
+ * araç BUTON METNİDİR. Bu yüzden düz "Kıldım" yerine, ne yapacağını açıkça
+ * söyleyen ve gözle taranırken ayrışan bir metin kullanılıyor.
+ *
+ * Ayrıca ikinci bir "Sonra" butonu eklendi: tek butonlu bildirimde kullanıcı
+ * genelde butonu değil bildirimin kendisini kapatmaya çalışıyor. İki buton
+ * olunca ikisi de birer eylem olarak okunuyor ve "Kıldım" fark ediliyor.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
 export async function setupVaktindeKilCategory() {
   await Notifications.setNotificationCategoryAsync(VAKTINDE_KIL_CATEGORY, [
     {
       identifier: MARK_PRAYED_ACTION,
-      buttonTitle: 'Kıldım',
+      buttonTitle: '✓  KILDIM',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: DISMISS_ACTION,
+      buttonTitle: 'Sonra hatırlat',
       options: { opensAppToForeground: false },
     },
   ]);
