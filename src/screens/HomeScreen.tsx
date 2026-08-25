@@ -60,7 +60,7 @@ import { setupVaktindeKilCategory, registerVaktindeKilResponseListener } from '.
 import { scheduleReminders } from '../lib/remindersScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
-import { takipEdilebilir, TakipVakti, TAKIP_VAKITLERI } from '../lib/ibadetTakibi';
+import { takipEdilebilir, TakipVakti } from '../lib/ibadetTakibi';
 import { getGununAyeti } from '../data/ayetler';
 import { getDiniGun, getYaklasanDiniGun } from '../data/diniGunler';
 import { getTariheEnYakinOlay } from '../data/tariheBugun';
@@ -169,16 +169,12 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // "Kıldım"/"Sonra hatırlat" bildirim aksiyonu kuruluyor (kategori + yanıt
-  // dinleyicisi). `dil` bağımlılığa eklendi — madde 7 (i18n taraması, bu
-  // tur): buton metinleri artık seçili dile göre kuruluyor, dolayısıyla dil
-  // değiştiğinde kategori YENİDEN kurulmalı (aksi halde kullanıcı dili
-  // değiştirdikten sonra bile bildirim butonlarını eski dilde görürdü).
+  // "Kıldım" bildirim aksiyonu bir kez kuruluyor (kategori + yanıt dinleyicisi)
   useEffect(() => {
-    setupVaktindeKilCategory(dil);
+    setupVaktindeKilCategory();
     const sub2 = registerVaktindeKilResponseListener();
     return () => sub2.remove();
-  }, [dil]);
+  }, []);
 
   // Donanım geri tuşu: önce açık aracı kapat, sonra Ana Sayfa'ya dön,
   // en sonunda uygulamadan çıkışa izin ver.
@@ -248,27 +244,6 @@ export default function HomeScreen() {
     const gecen = [...vakitler].reverse().find((v) => v.date.getTime() <= now.getTime());
     return gecen ?? vakitler[vakitler.length - 1];
   }, [vakitler, now]);
-
-  // Takip ikonundaki kırmızı nokta için: bugün TAMAMEN GEÇMİŞ (yani şu anki
-  // aktif vakitten ÖNCEKİ) farz namazlardan kaçının henüz "kılındı"
-  // işaretlenmediği. Önceden bu nokta yanlışlıkla `kazaTotal > 0` (Kaza
-  // sayısı) ile kontrol ediliyordu. Bir düzeltme daha sonra `current.key`'i
-  // (şu an içinde bulunulan, kılma süresi HÂLÂ DEVAM EDEN vakit) de
-  // "bekleyen" sayıyordu — kullanıcı henüz o vakti kılmaya fırsat bulmadan
-  // (örn. öğle vakti yeni girmişken) bile nokta çıkıyordu, bu yanıltıcıydı.
-  // Artık yalnızca `current`'tan ÖNCEKİ takip edilebilir vakitler sayılıyor
-  // — aktif vaktin kılma süresi bitene kadar ona dokunulmuyor.
-  const takipBekleyen = useMemo(() => {
-    const currentIndex = vakitler.findIndex((v) => v.key === current.key);
-    return TAKIP_VAKITLERI.reduce((sayac, vakitKey) => {
-      const girdiIndex = vakitler.findIndex((v) => v.key === vakitKey);
-      // Yalnızca current'tan KESİN ÖNCE gelen (indeksi küçük) vakitler
-      // "tamamen geçmiş" sayılır; current'ın kendisi ve sonrası hariç.
-      const tamamenGecti = girdiIndex !== -1 && currentIndex !== -1 && girdiIndex < currentIndex;
-      const kilindi = bugunKilinanlar.includes(vakitKey);
-      return tamamenGecti && !kilindi ? sayac + 1 : sayac;
-    }, 0);
-  }, [vakitler, current, bugunKilinanlar]);
 
   const kerahat = useMemo(
     () => getKerahatInfo(vakitler, now, kerahatMinutes),
@@ -447,11 +422,7 @@ export default function HomeScreen() {
             tasarlandı: dolgulu daireler yerine ince kenarlıklı, yarı saydam
             "cam" düğmeler — parlak beyaz dolgu koyu zeminde çok sert
             dururdu, bu yumuşak versiyon hem okunaklı hem tema rengine sadık. */}
-        {/* Madde 6a (bu tur): kullanıcı Konum/Bildirim butonlarının status
-            bar'a çok yakın durduğunu, biraz daha aşağı inmesi gerektiğini
-            belirtti — üst boşluk `insets.top + spacing.xs`'ten
-            `insets.top + spacing.sm`'e çıkarıldı. */}
-        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.xs }]}>
           <IslamicPattern color={colors.cream} opacity={0.07} tile={44} />
           <TouchableOpacity
             style={styles.konumBlok}
@@ -520,32 +491,29 @@ export default function HomeScreen() {
               )}
             </View>
 
-            {/* Sıradaki vakit + geri sayım.
-                Madde 6 (bu tur): kullanıcı "SIRADAKİ VAKİT: İkindi 16:57" ve
-                "KALAN SÜRE 03:26:08" örnekleriyle, etiket + değerin AYNI
-                SATIRDA ve aynı hizada (baseline'da) durmasını istedi. Önceki
-                düzende etiket üstte ayrı bir satır, ikon+ad+saat ALTTA ayrı
-                bir satırdı — ikisi görsel olarak hizalı değildi. Artık her
-                ikisi de tek bir yatay `Satir` içinde, `alignItems:
-                'baseline'` ile hizalanıyor. */}
+            {/* Sıradaki vakit + geri sayım
+                DÜZELTME (bu tur — 3 madde):
+                1) Vakit adı ve saat artık AYNI punto/font kullanıyor (ikisi de
+                   siradakiSaat stiliyle) — önceden vakit adı 22px, saat 32px
+                   olduğu için taban çizgileri kayıyordu.
+                2) İkon artık ad/saat satırıyla YAN YANA değil, kendi başına
+                   ÜSTTE ayrı bir satırda — önceden satır 32px'lik saate göre
+                   uzadıkça 22px'lik ikon görsel olarak "aşağı düşmüş" gibi
+                   duruyordu; ikonu ayrı satıra almak hem bu kaymayı ortadan
+                   kaldırıyor hem de önceki tasarımlardaki "ikon vaktin
+                   üstünde" yerleşimini geri getiriyor.
+                3) "KALAN SÜRE" etiketi ile geri sayım artık üst-alt değil,
+                   "Sıradaki Vakit" satırıyla aynı düzen dilinde YAN YANA ve
+                   dikeyde ortalanmış (kalanSureSatir). */}
             <View style={styles.siradakiKap}>
-              <View style={styles.siradakiSatir}>
-                <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
-                {/* Madde 2b (bu tur): İkon `alignItems:'baseline'` hizalı bir
-                    satırın içinde tek başına aşağı kayıyordu (Text değil,
-                    baseline'ı olmayan bir View/SVG). Ayrı bir sabit-yükseklikli
-                    kapta `alignItems:'center'` ile sarmalandı, bu da onu
-                    kardeş metinlerin hizasına ortalıyor. */}
-                <View style={styles.siradakiIkonKap}>
-                  <Icon name={vakitIcon(next.key)} size={18} color={colors.copperLight} />
-                </View>
+              <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
+              <View style={styles.siradakiIkon}>
+                <Icon name={vakitIcon(next.key)} size={22} color={colors.copperLight} />
+              </View>
+              <View style={styles.siradakiAdSatir}>
                 <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
-              {/* Madde 2 (önceki tur): büyük sayacın ne olduğu etiketsiz
-                  belirsizdi — "KALAN SÜRE" etiketiyle birlikte gösteriliyor.
-                  Sayaç zaten her saniye `now` güncellendiği için otomatik
-                  azalıyor (bkz. `kalanMs` hesaplaması). */}
               <View style={styles.kalanSureSatir}>
                 <Text style={styles.kalanSureEtiket}>{t('kalanSure')}</Text>
                 <Text style={styles.geriSayim}>{geriSayimBicimle(kalanMs)}</Text>
@@ -604,10 +572,8 @@ export default function HomeScreen() {
               <View style={styles.diniGunIc}>
                 <Icon name="hilal" size={22} color={colors.copperLight} />
                 <View style={styles.diniGunMetin}>
-                  <Text style={styles.diniGunAd}>{dil === 'en' ? diniGun.adEn : diniGun.ad}</Text>
-                  <Text style={styles.diniGunAciklama}>
-                    {dil === 'en' ? diniGun.aciklamaEn : diniGun.aciklama}
-                  </Text>
+                  <Text style={styles.diniGunAd}>{diniGun.ad}</Text>
+                  <Text style={styles.diniGunAciklama}>{diniGun.aciklama}</Text>
                 </View>
               </View>
             </View>
@@ -615,11 +581,7 @@ export default function HomeScreen() {
             <View style={styles.yaklasanSatir}>
               <Icon name="hilal" size={17} color={colors.copper} />
               <Text style={styles.yaklasanYazi}>
-                {t(
-                  'kalanGunKaldi',
-                  dil === 'en' ? yaklasan.gun.adEn : yaklasan.gun.ad,
-                  yaklasan.kalanGun
-                )}
+                {t('kalanGunKaldi', yaklasan.gun.ad, yaklasan.kalanGun)}
               </Text>
             </View>
           ) : null}
@@ -633,26 +595,10 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Madde 1 (bu tur — önceki turda tamamı kaldırılmıştı): kullanıcı
-              yalnızca ZEVAL vaktinde şeridin gizli kalmasını istedi; Güneş
-              doğarken/batarken kerahat uyarısı ESKİ HALİYLE geri getirildi.
-              `kerahat.tur !== 'zeval'` koşulu Zeval'i dışlıyor — bildirim
-              tarafı (notificationScheduler.ts, Zeval bildirimi) bu ekran
-              şeridinden bağımsız, ondan etkilenmiyor. Sebep metni artık
-              `kerahat.tur`'a göre çevrilen anahtarlardan geliyor (sabit
-              Türkçe string yerine), böylece İngilizce modda da doğru dilde
-              gösteriliyor. */}
-          {kerahat.active && kerahat.tur !== 'zeval' && (
+          {kerahat.active && (
             <View style={styles.uyariSerit}>
               <Icon name="uyari" size={15} color={colors.white} />
-              <Text style={styles.uyariSeritYazi}>
-                {t(
-                  'mekruhVakti',
-                  kerahat.tur === 'gunes-dogarken'
-                    ? t('kerahatSeritGunesDogarken')
-                    : t('kerahatSeritGunesBatarken')
-                )}
-              </Text>
+              <Text style={styles.uyariSeritYazi}>{t('mekruhVakti', kerahat.reason)}</Text>
             </View>
           )}
 
@@ -789,28 +735,14 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                   )}
-                  {/* Bu nokta, Takip'in KENDİ verisine göre gösterilir: bugün
-                      vakti girmiş ama henüz "kılındı" işaretlenmemiş bir farz
-                      namaz varsa (>0) çıkar. Önceden yanlışlıkla `kazaTotal`
-                      (Kaza sayısı) ile kontrol ediliyordu — Takip değeri
-                      sıfır olsa bile Kaza borcu varsa nokta görünüyordu. */}
-                  {arac.hedef === 'takip' && takipBekleyen > 0 && (
-                    <View style={styles.hizliNokta} />
-                  )}
+                  {/* DÜZELTME (bu tur): Takip ikonundaki kırmızı nokta yanlışlıkla
+                      kazaTotal'a (Kaza borcuna) bağlıydı — Takip'in kendi değeriyle
+                      hiçbir ilgisi yoktu, Kaza borcu > 0 olduğunda Takip ikonunda da
+                      anlamsızca beliriyordu. Takip'in kendine ait bir "bildirim
+                      sayısı" kavramı olmadığı için bu gösterge tamamen kaldırıldı —
+                      Kaza'nın kendi rozeti (yukarıda) zaten tek başına yeterli. */}
                 </View>
-                {/* "Esmâ" için İngilizce etiket "Names of Allah" — Türkçe
-                    karşılığından belirgin biçimde uzun. Kutuyu büyütmeden
-                    (dört buton hâlâ eşit `flex: 1` genişlikte) sığdırmak
-                    için `numberOfLines={1}` + `adjustsFontSizeToFit`: metin
-                    taşarsa font otomatik küçülür, taşmaz/kaymaz. */}
-                <Text
-                  style={styles.hizliAd}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.72}
-                >
-                  {t(arac.adAnahtari)}
-                </Text>
+                <Text style={styles.hizliAd}>{t(arac.adAnahtari)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -1010,76 +942,58 @@ const styles = StyleSheet.create({
   },
 
   siradakiKap: { marginTop: 2 },
-  // Madde 6 (bu tur): etiket + ikon + ad + saat artık TEK satırda,
-  // `alignItems: 'baseline'` ile hizalı ("SIRADAKİ VAKİT: İkindi 16:57").
-  // `flexWrap` yok — dar ekranlarda taşma riski varsa `siradakiAd` esnek
-  // (`flexShrink`) kalıyor, saat ve etiket sabit genişlikte.
-  siradakiSatir: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.xs + 2,
-    flexWrap: 'wrap',
-  },
   siradakiEtiket: {
     fontFamily: typography.bodyBold,
     fontSize: fontSize.tiny,
     color: colors.copperLight,
     letterSpacing: 1.4,
   },
-  // Madde 2 (bu tur): kullanıcı vakit adının ("İkindi") saat yazısıyla
-  // ("16:57") AYNI boyutta olmasını istedi — önceden 22px/32px olarak
-  // farklıydı, artık ikisi de 32px.
-  siradakiAd: {
-    flexShrink: 1,
-    fontFamily: typography.displayFamily,
-    fontSize: 32,
-    color: colors.white,
-    lineHeight: 40,
+  // İkon artık ad/saat satırının DIŞINDA, kendi başına üstte — bkz. JSX'teki
+  // düzeltme notu. Ayrı bir satır olduğu için ad/saat metniyle hizalanma
+  // sorunu yaşamıyor.
+  siradakiIkon: {
+    marginTop: spacing.xs,
   },
-  // Kullanıcı bu satırı iki pakettir "hâlâ küçük" diye tekrarladı. 26px
-  // yetersiz kaldı — 32'ye çıkarıldı (vakit adı biraz küçültülerek satırın
-  // taşması engellendi, iki metin artık daha net bir görsel hiyerarşi
-  // kuruyor: isim ikincil, saat birincil vurgu). Renk copperLight'ta
-  // kalıyor — her palette karşı ölçülen tek sıcak/parlak ton.
+  siradakiAdSatir: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  // DÜZELTME (bu tur): vakit adı ve saat artık BİREBİR AYNI punto/font
+  // kullanıyor (önceden 22px/32px farklıydı, taban çizgileri kayıyordu).
+  // `alignItems: 'baseline'` ile ikisi de aynı metin hizasında duruyor.
+  siradakiAd: {
+    fontFamily: typography.displaySemibold,
+    fontSize: 28,
+    color: colors.white,
+  },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 32,
+    fontSize: 28,
     color: colors.copperLight,
   },
-  // Madde 2b (bu tur): ikon artık kendi kabında ortalanıyor (bkz. JSX'teki
-  // `siradakiIkonKap` sarmalayıcı) — satırın `alignItems:'baseline'`
-  // hizasından bağımsız olarak metinlerle aynı dikey hizada duruyor.
-  siradakiIkonKap: {
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Madde 6 (bu tur): "KALAN SÜRE" etiketi ve sayaç artık TEK satırda,
-  // `alignItems: 'baseline'` ile hizalı ("KALAN SÜRE 03:26:08") — önceki
-  // düzende etiket üstte, sayaç ayrı bir alt satırdaydı.
+  // DÜZELTME (bu tur): "KALAN SÜRE" etiketi ile geri sayım artık üst-alt
+  // değil, "Sıradaki Vakit" satırıyla aynı düzen dilinde YAN YANA ve
+  // `alignItems: 'baseline'` ile aynı hizada. İkisi de aynı fontSize.
   kalanSureSatir: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.xs + 2,
-    marginTop: spacing.xs,
     flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  // Madde 2 (bu tur): "KALAN SÜRE" etiketi de sayaçla ("03:26:08") AYNI
-  // boyutta olsun istendi — önceden fontSize.micro/38 olarak çok farklıydı,
-  // artık ikisi de 38px. Büyük harf + letterSpacing ile etiket karakteri
-  // korunuyor.
   kalanSureEtiket: {
     fontFamily: typography.bodyBold,
-    fontSize: 38,
+    fontSize: 28,
     color: colors.copperLight,
-    letterSpacing: 1.4,
-    opacity: 0.9,
+    letterSpacing: 0.6,
   },
   geriSayim: {
     fontFamily: typography.displayFamily,
-    fontSize: 38,
+    fontSize: 28,
     color: colors.white,
-    lineHeight: 46,
     letterSpacing: 1,
   },
 
@@ -1234,7 +1148,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs + 2,
     ...elevation.card,
   },
-  hizliOge: { flex: 1, alignItems: 'center', gap: 3, paddingHorizontal: 2 },
+  hizliOge: { flex: 1, alignItems: 'center', gap: 3 },
   hizliIkonKap: {
     width: 34,
     height: 34,
@@ -1243,13 +1157,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hizliAd: {
-    fontFamily: typography.bodyBold,
-    fontSize: fontSize.tiny,
-    color: colors.textOnLight,
-    textAlign: 'center',
-    width: '100%',
-  },
+  hizliAd: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.textOnLight },
   hizliRozet: {
     position: 'absolute',
     top: -2,
@@ -1264,17 +1172,6 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   hizliRozetYazi: { fontFamily: typography.bodyBold, fontSize: 9, color: colors.white },
-  hizliNokta: {
-    position: 'absolute',
-    top: -1,
-    right: -1,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: colors.copperVivid,
-    borderWidth: 1.5,
-    borderColor: colors.white,
-  },
 
   // ---------- REKLAM ALANI ----------
   // Artık gerçek `BannerReklam` bileşenine geçirilen konum stili — yükseklik
