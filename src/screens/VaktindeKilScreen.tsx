@@ -73,11 +73,8 @@ export default function VaktindeKilScreen({ onClose }: Props) {
         )}
 
         <View style={styles.quoteCard}>
-          <Text style={styles.quoteText}>
-            "Allah katında en hayırlı amel, vaktinde kılınan namazdır. Sonra anne babaya iyilik, sonra da Allah
-            yolunda cihad etmektir."
-          </Text>
-          <Text style={styles.quoteSource}>Buhari</Text>
+          <Text style={styles.quoteText}>"{t('vaktindeKilHadis')}"</Text>
+          <Text style={styles.quoteSource}>{t('vaktindeKilHadisKaynak')}</Text>
         </View>
 
         <View style={styles.card}>

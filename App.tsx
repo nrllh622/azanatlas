@@ -20,6 +20,8 @@ import { View } from 'react-native';
 import AcilisEkrani, { AcilisVaryanti } from './src/screens/AcilisEkrani';
 import { colors } from './src/theme';
 import { kayitliTemayiUygula } from './src/lib/temaDeposu';
+import { DilKodu, VARSAYILAN_DIL } from './src/i18n/ceviriler';
+import { kayitliDiliOku } from './src/i18n/dilDeposu';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AÇILIŞ EKRANI VARYANTI — denemek için bu satırı değiştirin:
@@ -45,11 +47,19 @@ export default function App() {
 
   const [temaHazir, setTemaHazir] = useState(false);
   const [acilisBitti, setAcilisBitti] = useState(false);
+  // Madde 7 (i18n taraması, bu tur): açılış ekranındaki slogan daha önce
+  // hardcoded Türkçe idi. `AcilisEkrani` `DilProvider`'ın (AppGovde.tsx
+  // içinde, tema sonrası yüklenir) DIŞINDA render edildiği için
+  // `useCeviri()` çağıramaz — tıpkı temanın burada `kayitliTemayiUygula()`
+  // ile doğrudan okunması gibi, dil de `kayitliDiliOku()` ile doğrudan
+  // AsyncStorage'dan okunup `AcilisEkrani`'na prop olarak geçiriliyor.
+  const [acilisDili, setAcilisDili] = useState<DilKodu>(VARSAYILAN_DIL);
 
   useEffect(() => {
     // Tema okuması başarısız olsa bile açılış devam etmeli — varsayılan
     // palet zaten yüklü durumda.
     kayitliTemayiUygula().finally(() => setTemaHazir(true));
+    kayitliDiliOku().then(setAcilisDili);
   }, []);
 
   const hazir = fontsLoaded && temaHazir && acilisBitti;
@@ -58,7 +68,7 @@ export default function App() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.primaryDeep }}>
         <StatusBar style="light" />
-        <AcilisEkrani varyant={ACILIS_VARYANTI} onBitti={() => setAcilisBitti(true)} />
+        <AcilisEkrani varyant={ACILIS_VARYANTI} dil={acilisDili} onBitti={() => setAcilisBitti(true)} />
       </View>
     );
   }

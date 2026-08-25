@@ -1,6 +1,7 @@
 // src/lib/vaktindeKilActions.ts
 import * as Notifications from 'expo-notifications';
 import { vaktiKilindiIsaretle, takipEdilebilir } from './ibadetTakibi';
+import { DilKodu, VARSAYILAN_DIL, tDil } from '../i18n/ceviriler';
 
 export const VAKTINDE_KIL_CATEGORY = 'VAKTINDE_KIL';
 export const MARK_PRAYED_ACTION = 'MARK_PRAYED';
@@ -22,17 +23,23 @@ export const DISMISS_ACTION = 'DISMISS_REMINDER';
  * genelde butonu değil bildirimin kendisini kapatmaya çalışıyor. İki buton
  * olunca ikisi de birer eylem olarak okunuyor ve "Kıldım" fark ediliyor.
  * ─────────────────────────────────────────────────────────────────────────
+ *
+ * Madde 7 (i18n taraması, bu tur): buton metinleri daha önce hardcoded
+ * Türkçe idi, `dil` parametresi hiç almıyordu — İngilizce arayüzde bile
+ * "KILDIM" / "Sonra hatırlat" görünüyordu. Artık `tDil()` ile seçili dile
+ * göre kuruluyor. Bu fonksiyon HomeScreen'de dil değiştiğinde de yeniden
+ * çağrılmalı (bkz. oradaki `useEffect` bağımlılık dizisine `dil` eklendi).
  */
-export async function setupVaktindeKilCategory() {
+export async function setupVaktindeKilCategory(dil: DilKodu = VARSAYILAN_DIL) {
   await Notifications.setNotificationCategoryAsync(VAKTINDE_KIL_CATEGORY, [
     {
       identifier: MARK_PRAYED_ACTION,
-      buttonTitle: '✓  KILDIM',
+      buttonTitle: tDil(dil, 'vaktindeKilButonuKildim'),
       options: { opensAppToForeground: false },
     },
     {
       identifier: DISMISS_ACTION,
-      buttonTitle: 'Sonra hatırlat',
+      buttonTitle: tDil(dil, 'vaktindeKilButonuSonraHatirlat'),
       options: { opensAppToForeground: false },
     },
   ]);

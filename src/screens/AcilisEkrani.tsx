@@ -44,6 +44,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import Svg, { Path, Circle, G, Defs, Pattern, Rect, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 import { colors, typography, fontSize, spacing } from '../theme';
+import { DilKodu, VARSAYILAN_DIL } from '../i18n/ceviriler';
 
 export type AcilisVaryanti =
   | 'girih' | 'safak' | 'hatem'
@@ -53,7 +54,19 @@ export type AcilisVaryanti =
 interface Props {
   varyant?: AcilisVaryanti;
   onBitti: () => void;
+  /** Madde 7 (i18n taraması, bu tur): bu ekran `DilProvider`'ın DIŞINDA
+   *  render edildiği için `useCeviri()` çağıramaz — dil, App.tsx'te
+   *  `kayitliDiliOku()` ile doğrudan okunup buraya prop olarak geçiriliyor
+   *  (tema'nın burada aynı şekilde doğrudan okunmasıyla birebir aynı kalıp). */
+  dil?: DilKodu;
 }
+
+/** Açılış sloganı — yalnızca bu iki dil, ekran henüz tam çeviri sözlüğüne
+ *  bağlı değil (bkz. Props.dil açıklaması). */
+const SLOGAN: Record<DilKodu, string> = {
+  tr: 'Namaz vakitleri, her yerde',
+  en: 'Prayer times, everywhere',
+};
 
 const { width: EKRAN_G } = Dimensions.get('window');
 const SURE = 1600;
@@ -95,7 +108,8 @@ const CAMI_YAN_KUBBE_SAG =
 const CAMI_KAPI_YOL =
   'M150 200 L150 158 C150 148 158 141 168 141 L182 141 C192 141 200 148 200 158 L200 200 Z';
 
-export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
+export default function AcilisEkrani({ varyant = 'girih', onBitti, dil = VARSAYILAN_DIL }: Props) {
+  const slogan = SLOGAN[dil] ?? SLOGAN[VARSAYILAN_DIL];
   // ÖNEMLİ: Renkler `StyleSheet.create` içinde DEĞİL, burada okunuyor.
   // Açılış ekranı, tema cihazdan okunmadan önce çizilir; stile kilitlenmiş
   // renkler varsayılan palete sabitlenirdi. Render anında okuyunca, tema
@@ -679,7 +693,7 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
             ]}
           >
             <Text style={[styles.adBuyuk, { color: C.cream }]}>AzanAtlas</Text>
-            <Text style={[styles.slogan, { color: C.glow }]}>Namaz vakitleri, her yerde</Text>
+            <Text style={[styles.slogan, { color: C.glow }]}>{slogan}</Text>
           </Animated.View>
         </View>
       ) : (
@@ -698,7 +712,7 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti }: Props) {
             ]}
           >
             <Text style={[styles.ad, { color: C.cream }]}>AzanAtlas</Text>
-            <Text style={[styles.slogan, { color: C.glow }]}>Namaz vakitleri, her yerde</Text>
+            <Text style={[styles.slogan, { color: C.glow }]}>{slogan}</Text>
           </Animated.View>
         </>
       )}

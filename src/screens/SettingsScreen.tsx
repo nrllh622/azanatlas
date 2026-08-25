@@ -67,12 +67,14 @@ type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; k
 
 export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenReminders }: Props) {
   // i18n paketi: dil seçici ekranın en üstünde ("Vaktinde Kıl" linkinden
-  // önce) — kullanıcının en çok arayacağı yer. Bu turda ekranın GERİ
-  // KALANI da (hesaplama yöntemi, kişiselleştirme, genel, uyarılar
-  // bölümleri) çevrildi — yalnızca Hesaplama Yöntemi/Mezhep/Yüksek Açı/
-  // Ölçü Birimi SEÇENEKLERİNİN etiketleri (paylaşılan
-  // CalculationSettingsContext.tsx'ten geliyor) hâlâ Türkçe, ayrı bir
-  // dosya olduğu için bir sonraki turda ele alınacak.
+  // önce) — kullanıcının en çok arayacağı yer. Ekranın GERİ KALANI da
+  // (hesaplama yöntemi, kişiselleştirme, genel, uyarılar bölümleri)
+  // çevrildi. Hesaplama Yöntemi/Mezhep/Yüksek Açı/Ölçü Birimi
+  // SEÇENEKLERİNİN etiketleri (CalculationSettingsContext.tsx'ten geliyor)
+  // artık `labelEn` de taşıyor — bkz. `methodLabel`/`madhabLabel`/
+  // `highLatLabel`/`distanceUnitLabel` hesaplamaları ve aşağıdaki
+  // `SimplePickerModal` çağrılarındaki `.map(...)` dönüşümleri (madde 7,
+  // bu tur).
   const { dil, diliDegistir, t } = useCeviri();
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
@@ -107,10 +109,21 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
     pickerTitle = t('uyariSesi', found ? t(found.anahtar) : '');
   }
 
-  const methodLabel = CALC_METHODS.find((m) => m.id === methodId)?.label ?? '';
-  const madhabLabel = MADHAB_OPTIONS.find((m) => m.id === madhab)?.label ?? '';
-  const highLatLabel = HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label ?? '';
-  const distanceUnitLabel = DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label ?? '';
+  // Madde 7 (i18n taraması, bu tur): CALC_METHODS/MADHAB_OPTIONS/
+  // HIGH_LAT_OPTIONS/DISTANCE_UNIT_OPTIONS artık `labelEn` de taşıyor
+  // (bkz. CalculationSettingsContext.tsx) — dile göre seçiliyor.
+  const methodLabel = (dil === 'en'
+    ? CALC_METHODS.find((m) => m.id === methodId)?.labelEn
+    : CALC_METHODS.find((m) => m.id === methodId)?.label) ?? '';
+  const madhabLabel = (dil === 'en'
+    ? MADHAB_OPTIONS.find((m) => m.id === madhab)?.labelEn
+    : MADHAB_OPTIONS.find((m) => m.id === madhab)?.label) ?? '';
+  const highLatLabel = (dil === 'en'
+    ? HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.labelEn
+    : HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label) ?? '';
+  const distanceUnitLabel = (dil === 'en'
+    ? DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.labelEn
+    : DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label) ?? '';
 
   // ÖNEMLİ: "Otomatik" anahtarı GPS gerçekten başarılı olana kadar AÇIK duruma
   // GEÇMİYOR — kullanıcının bildirdiği hata buydu (izin reddedilse bile
@@ -159,7 +172,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
             Değişiklik ANINDA uygulanır (tema gibi yeniden başlatma
             GEREKMİYOR) çünkü metinler StyleSheet'e değil, render'a
             kilitli — bkz. DilContext.tsx'teki açıklama. */}
-        <Text style={styles.sectionTitle}>Dil / Language</Text>
+        <Text style={styles.sectionTitle}>{t('dilBolumBasligi')}</Text>
         <View style={styles.dilKart}>
           {(Object.keys(DIL_ADLARI) as DilKodu[]).map((kod) => {
             const aktif = kod === dil;
@@ -357,10 +370,14 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         onClose={() => setPickerFor(null)}
       />
 
+      {/* Madde 7 (i18n taraması, bu tur): seçenek listeleri artık `dil`'e
+          göre map'lenip `label` alanı EN/TR arasında seçiliyor —
+          `SimplePickerModal`'ın kendisi yalnızca `{id, label}` bekliyor,
+          hangi dilde olduğunu bilmiyor. */}
       <SimplePickerModal
         visible={methodPickerVisible}
         title={t('hesaplamaYontemiBaslik')}
-        options={CALC_METHODS}
+        options={CALC_METHODS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
         selectedId={methodId}
         onSelect={(id) => setMethodId(id as any)}
         onClose={() => setMethodPickerVisible(false)}
@@ -369,7 +386,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={madhabPickerVisible}
         title={t('ikindiHesabi')}
-        options={MADHAB_OPTIONS}
+        options={MADHAB_OPTIONS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
         selectedId={madhab}
         onSelect={(id) => setMadhab(id as any)}
         onClose={() => setMadhabPickerVisible(false)}
@@ -378,7 +395,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={highLatPickerVisible}
         title={t('yuksekAciHesabi')}
-        options={HIGH_LAT_OPTIONS}
+        options={HIGH_LAT_OPTIONS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
         selectedId={highLatRule}
         onSelect={(id) => setHighLatRule(id as any)}
         onClose={() => setHighLatPickerVisible(false)}
@@ -396,7 +413,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={distanceUnitPickerVisible}
         title={t('olcuBirimleri')}
-        options={DISTANCE_UNIT_OPTIONS}
+        options={DISTANCE_UNIT_OPTIONS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
         selectedId={distanceUnit}
         onSelect={(id) => setDistanceUnit(id as any)}
         onClose={() => setDistanceUnitPickerVisible(false)}

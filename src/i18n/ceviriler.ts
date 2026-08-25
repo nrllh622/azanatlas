@@ -44,6 +44,14 @@ export type DilKodu = 'tr' | 'en';
 
 export const VARSAYILAN_DIL: DilKodu = 'tr';
 
+// ÖNEMLİ: Bu sözlük KASITLI OLARAK aktif dile göre değişmez — her dil
+// seçeneği HER ZAMAN KENDİ DİLİNDE yazılı görünmeli ("Türkçe" ve "English"
+// sabit kalır, uygulamanın o an hangi dilde olduğu fark etmez). Kullanıcı
+// "uygulama Türkçe iken İngilizce butonu 'English' yazıyor" diye şikayet
+// ettiğinde bu ZATEN doğru/istenen davranıştır — SettingsScreen.tsx'teki
+// `DIL_ADLARI[kod]` render'ı `dil` state'ine hiç bakmaz, yalnızca `kod`'a
+// (yani hangi buton olduğuna) bakar. Bu satırları `dil`'e göre çeviren bir
+// mantığa ASLA çevirme — o zaman kullanıcı hedef dili göremez.
 export const DIL_ADLARI: Record<DilKodu, string> = {
   tr: 'Türkçe',
   en: 'English',
@@ -76,6 +84,11 @@ const ortak = {
     kapatBuyuk: 'KAPAT',
     vazgecBuyuk: 'VAZGEÇ',
     tamamBuyuk: 'TAMAM',
+    // Madde 7 (i18n taraması, bu tur): Ayarlar'daki dil seçimi bölüm başlığı
+    // daha önce SettingsScreen.tsx'te literal string olarak yazılıydı —
+    // t()'ye alındı. Metin bilinçli olarak HER İKİ dilde de aynı (kendi
+    // adını iki dilde birden gösteren tek bölüm başlığı).
+    dilBolumBasligi: 'Dil / Language',
   },
   en: {
     kapat: 'Close',
@@ -88,6 +101,7 @@ const ortak = {
     kapatBuyuk: 'CLOSE',
     vazgecBuyuk: 'CANCEL',
     tamamBuyuk: 'OK',
+    dilBolumBasligi: 'Dil / Language',
   },
 };
 
@@ -162,7 +176,7 @@ const anaSayfa = {
     sekmeAyarlar: 'Settings',
     aracTakip: 'Tracking',
     aracTesbih: 'Tasbih',
-    aracEsma: 'Names',
+    aracEsma: 'Names of Allah',
     aracKaza: 'Makeup',
     ocak: 'January', subat: 'February', mart: 'March', nisan: 'April',
     mayis: 'May', haziran: 'June', temmuz: 'July', agustos: 'August',
@@ -384,6 +398,11 @@ const vaktindeKilEkrani = {
   tr: {
     vaktindeKilBilgi:
       'Vaktinde Kıl açıkken, bir namaz vakti girdikten belirlediğin gecikme süresi kadar sonra, eğer o vakti henüz kılmadıysan sana hatırlatma bildirimi gönderir. Bir sonraki vakit girene kadar, belirlediğin sıklıkla bu hatırlatma tekrarlanır. Bildirimdeki "Kıldım" butonuna dokunursan, o vakit için kalan hatırlatmalar durur.',
+    // Madde 7 (i18n taraması, bu tur): bu hadis alıntısı daha önce
+    // VaktindeKilScreen.tsx'te hardcoded Türkçe idi.
+    vaktindeKilHadis:
+      'Allah katında en hayırlı amel, vaktinde kılınan namazdır. Sonra anne babaya iyilik, sonra da Allah yolunda cihad etmektir.',
+    vaktindeKilHadisKaynak: 'Buhârî',
     ilkUyariGecikmesi: 'İlk Uyarı Gecikmesi',
     uyariSikligi: 'Uyarı Sıklığı',
     dakikadaBir: (n: number) => `${n} dakikada bir`,
@@ -393,6 +412,9 @@ const vaktindeKilEkrani = {
   en: {
     vaktindeKilBilgi:
       'When Pray on Time is on, it sends you a reminder notification after your chosen delay once a prayer time begins, if you haven’t marked it as performed yet. This reminder repeats at your chosen frequency until the next prayer time begins. Tapping "Done" on the notification stops the remaining reminders for that prayer.',
+    vaktindeKilHadis:
+      'The most beloved deed to Allah is prayer performed on time, then kindness to parents, then striving in the way of Allah.',
+    vaktindeKilHadisKaynak: 'Sahih al-Bukhari',
     ilkUyariGecikmesi: 'First Alert Delay',
     uyariSikligi: 'Alert Frequency',
     dakikadaBir: (n: number) => `Every ${n} minutes`,
@@ -486,6 +508,12 @@ const bildirimler = {
     cumaGovde: 'Cuma namazına hazırlan.',
     vaktindeKilBaslik: (vakitAdi: string) => `${vakitAdi} Namazı`,
     vaktindeKilGovde: (vakitAdi: string) => `${vakitAdi} namazını henüz kılmadıysan vaktinde kılmayı unutma.`,
+    // Madde 7 (i18n taraması, bu tur): "Vaktinde Kıl" bildirimindeki aksiyon
+    // butonu metinleri (bkz. vaktindeKilActions.ts) daha önce hardcoded
+    // Türkçe idi ve `dil` parametresi hiç almıyordu — İngilizce arayüzde
+    // bile "KILDIM" / "Sonra hatırlat" görünüyordu.
+    vaktindeKilButonuKildim: '✓  KILDIM',
+    vaktindeKilButonuSonraHatirlat: 'Sonra hatırlat',
   },
   en: {
     bildirimVaktiBaslik: (vakitAdi: string) => `${vakitAdi} Time`,
@@ -512,6 +540,8 @@ const bildirimler = {
     cumaGovde: 'Get ready for Friday prayer.',
     vaktindeKilBaslik: (vakitAdi: string) => `${vakitAdi} Prayer`,
     vaktindeKilGovde: (vakitAdi: string) => `If you haven't prayed ${vakitAdi} yet, don't forget to pray it on time.`,
+    vaktindeKilButonuKildim: '✓  PRAYED',
+    vaktindeKilButonuSonraHatirlat: 'Remind me later',
   },
 };
 

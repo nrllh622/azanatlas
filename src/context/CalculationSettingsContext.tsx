@@ -6,43 +6,49 @@ export type CalcMethodId =
   | 'Karachi' | 'UmmAlQura' | 'Tehran' | 'Kuwait' | 'Qatar' | 'Singapore'
   | 'Dubai' | 'MoonsightingCommittee' | 'Jakim' | 'Uoif';
 
-export const CALC_METHODS: { id: CalcMethodId; label: string }[] = [
-  { id: 'Turkey', label: 'Diyanet Takvimi (Türkiye)' },
-  { id: 'NorthAmerica', label: 'Kuzey Amerika (ISNA)' },
-  { id: 'MuslimWorldLeague', label: 'Müslim World Lig' },
-  { id: 'Egyptian', label: 'Mısır' },
-  { id: 'Karachi', label: 'Karaçi İslami İlimler Üniversitesi' },
-  { id: 'UmmAlQura', label: 'Ümmül Kurra' },
-  { id: 'Tehran', label: 'Tahran Üniversitesi' },
-  { id: 'Kuwait', label: 'Kuveyt' },
-  { id: 'Qatar', label: 'Katar' },
-  { id: 'Singapore', label: 'Singapur (MUIS)' },
-  { id: 'Dubai', label: 'Dubai' },
-  { id: 'MoonsightingCommittee', label: 'Ay Gözlem Komitesi' },
-  { id: 'Jakim', label: 'JAKIM (Malezya)' },
-  { id: 'Uoif', label: 'UOIF (Fransa)' },
+// Madde 7 (i18n taraması, bu tur): bu dosya React bileşeni değil, `label`
+// dizileri MODÜL YÜKLENİRKEN bir kez oluşur — `useCeviri()` çağıramaz. Aynı
+// bilingual VERİ deseni burada da uygulanıyor (bkz. theme.ts'teki
+// `PALETLER`'in `adEn`/`aciklamaEn`'i): Türkçe `label` korunuyor, yanına
+// `labelEn` ekleniyor; ekran tarafı (SettingsScreen.tsx) render sırasında
+// `dil === 'en' ? o.labelEn : o.label` ile seçiyor.
+export const CALC_METHODS: { id: CalcMethodId; label: string; labelEn: string }[] = [
+  { id: 'Turkey', label: 'Diyanet Takvimi (Türkiye)', labelEn: 'Diyanet (Turkey)' },
+  { id: 'NorthAmerica', label: 'Kuzey Amerika (ISNA)', labelEn: 'North America (ISNA)' },
+  { id: 'MuslimWorldLeague', label: 'Müslim World Lig', labelEn: 'Muslim World League' },
+  { id: 'Egyptian', label: 'Mısır', labelEn: 'Egyptian General Authority' },
+  { id: 'Karachi', label: 'Karaçi İslami İlimler Üniversitesi', labelEn: 'University of Islamic Sciences, Karachi' },
+  { id: 'UmmAlQura', label: 'Ümmül Kurra', labelEn: 'Umm al-Qura, Makkah' },
+  { id: 'Tehran', label: 'Tahran Üniversitesi', labelEn: 'University of Tehran' },
+  { id: 'Kuwait', label: 'Kuveyt', labelEn: 'Kuwait' },
+  { id: 'Qatar', label: 'Katar', labelEn: 'Qatar' },
+  { id: 'Singapore', label: 'Singapur (MUIS)', labelEn: 'Singapore (MUIS)' },
+  { id: 'Dubai', label: 'Dubai', labelEn: 'Dubai' },
+  { id: 'MoonsightingCommittee', label: 'Ay Gözlem Komitesi', labelEn: 'Moonsighting Committee' },
+  { id: 'Jakim', label: 'JAKIM (Malezya)', labelEn: 'JAKIM (Malaysia)' },
+  { id: 'Uoif', label: 'UOIF (Fransa)', labelEn: 'UOIF (France)' },
 ];
 
 export const KERAHAT_OPTIONS = [15, 30, 45, 60];
 
 export type MadhabId = 'Shafi' | 'Hanafi';
-export const MADHAB_OPTIONS: { id: MadhabId; label: string }[] = [
-  { id: 'Shafi', label: 'Şafi, Maliki, Hanbeli, Türkiye' },
-  { id: 'Hanafi', label: 'Hanefi' },
+export const MADHAB_OPTIONS: { id: MadhabId; label: string; labelEn: string }[] = [
+  { id: 'Shafi', label: 'Şafi, Maliki, Hanbeli, Türkiye', labelEn: 'Shafi, Maliki, Hanbali (standard)' },
+  { id: 'Hanafi', label: 'Hanefi', labelEn: 'Hanafi' },
 ];
 
 export type HighLatRuleId = 'AngleBased' | 'MiddleOfTheNight' | 'SeventhOfTheNight' | 'None';
-export const HIGH_LAT_OPTIONS: { id: HighLatRuleId; label: string }[] = [
-  { id: 'AngleBased', label: 'Açı Tabanlı Yöntem' },
-  { id: 'MiddleOfTheNight', label: 'Gece Yarısı' },
-  { id: 'SeventhOfTheNight', label: 'Gecenin 1/7 si' },
-  { id: 'None', label: 'Yok' },
+export const HIGH_LAT_OPTIONS: { id: HighLatRuleId; label: string; labelEn: string }[] = [
+  { id: 'AngleBased', label: 'Açı Tabanlı Yöntem', labelEn: 'Angle-Based Method' },
+  { id: 'MiddleOfTheNight', label: 'Gece Yarısı', labelEn: 'Middle of the Night' },
+  { id: 'SeventhOfTheNight', label: 'Gecenin 1/7 si', labelEn: 'One-Seventh of the Night' },
+  { id: 'None', label: 'Yok', labelEn: 'None' },
 ];
 
 export type DistanceUnit = 'km' | 'mi';
-export const DISTANCE_UNIT_OPTIONS: { id: DistanceUnit; label: string }[] = [
-  { id: 'km', label: 'Kilometre' },
-  { id: 'mi', label: 'Mil' },
+export const DISTANCE_UNIT_OPTIONS: { id: DistanceUnit; label: string; labelEn: string }[] = [
+  { id: 'km', label: 'Kilometre', labelEn: 'Kilometers' },
+  { id: 'mi', label: 'Mil', labelEn: 'Miles' },
 ];
 
 interface Ctx {

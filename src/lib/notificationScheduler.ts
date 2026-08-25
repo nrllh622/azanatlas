@@ -60,17 +60,23 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
   }
 
   // Vaktinde Kıl — Bip / Dong
+  // Madde 7 (i18n taraması, bu tur): kanal adındaki "Vaktinde Kıl" ifadesi
+  // daha önce hardcoded Türkçe idi — İngilizce arayüzde bile Android sistem
+  // bildirim ayarlarında "Vaktinde Kıl" olarak görünüyordu. `t('vaktindeKil')`
+  // zaten ORTAK bölümünde tanımlı ("Pray on Time" karşılığıyla), burada
+  // `tDil()` ile aynı anahtar kullanılıyor.
+  const vaktindeKilEtiket = tDil(dil, 'vaktindeKil');
   for (const soundId of VAKTINDE_KIL_SOUND_IDS) {
     const soundFile = `${soundId}.wav`;
     const soundEtiket = soundId === 'bip' ? tDil(dil, 'bip') : tDil(dil, 'dong');
     await Notifications.setNotificationChannelAsync(channelIdFor(soundId, true), {
-      name: `AzanAtlas — Vaktinde Kıl ${soundEtiket} (${titresimliEtiket})`,
+      name: `AzanAtlas — ${vaktindeKilEtiket} ${soundEtiket} (${titresimliEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       sound: soundFile,
     });
     await Notifications.setNotificationChannelAsync(channelIdFor(soundId, false), {
-      name: `AzanAtlas — Vaktinde Kıl ${soundEtiket} (${titresimsizEtiket})`,
+      name: `AzanAtlas — ${vaktindeKilEtiket} ${soundEtiket} (${titresimsizEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0],
       sound: soundFile,
@@ -178,14 +184,20 @@ export async function scheduleAllNotifications(
         });
       }
     }
-    if (ogle) {
-      const d = new Date(ogle.date.getTime() - 10 * 60 * 1000);
-      if (d.getTime() > Date.now()) {
-        await Notifications.scheduleNotificationAsync({
-          content: { title: tDil(dil, 'kerahatVaktiBaslik'), body: tDil(dil, 'kerahatZeval'), sound: 'default' },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId: defaultChannelId },
-        });
-      }
-    }
+    // Madde 5 (bu tur): kullanıcı isteğiyle ZEVAL VAKTİ bildirimi
+    // KALDIRILDI — Güneş doğarken/batarken kerahat bildirimlerine (yukarıda,
+    // bu if bloğunun içinde) DOKUNULMADI, onlar aynen çalışmaya devam
+    // ediyor. Kod silinmedi, yalnızca yorum satırına alındı; kullanıcı
+    // ileride tekrar açmak isteyebilir.
+    //
+    // if (ogle) {
+    //   const d = new Date(ogle.date.getTime() - 10 * 60 * 1000);
+    //   if (d.getTime() > Date.now()) {
+    //     await Notifications.scheduleNotificationAsync({
+    //       content: { title: tDil(dil, 'kerahatVaktiBaslik'), body: tDil(dil, 'kerahatZeval'), sound: 'default' },
+    //       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: d, channelId: defaultChannelId },
+    //     });
+    //   }
+    // }
   }
 }
