@@ -35,7 +35,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
-import * as Updates from 'expo-updates';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import IslamicPattern from '../components/IslamicPattern';
@@ -135,6 +134,22 @@ export default function TemaScreen({ onClose }: Props) {
   const yenidenBaslat = async () => {
     setYenidenBasliyor(true);
     try {
+      // Bilinçli olarak DİNAMİK require: `expo-updates`, YALNIZCA gerçek
+      // bir build'de (development build veya production) çalışan native
+      // bir modül. Bu dosyanın en üstünde `import * as Updates from
+      // 'expo-updates'` STATİK importu vardı — bu, Expo Go'da modül daha
+      // DEĞERLENDİRİLİRKEN (kullanıcı Tema ekranına hiç girmeden, uygulama
+      // daha açılırken) "Cannot find native module 'ExpoUpdates'" hatası
+      // fırlatıyordu ve try/catch bunu YAKALAYAMIYORDU çünkü hata modül
+      // yükleme anında, bu fonksiyonun dışında oluşuyordu — uygulamanın
+      // Expo Go'da hiç açılamamasının kök nedeni buydu. `require` burada,
+      // tıpkı `index.ts`'teki widget deseninde olduğu gibi, YALNIZCA
+      // kullanıcı "Şimdi Yeniden Başlat"a bastığı ANDA çözülüyor — bu
+      // yüzden try/catch onu artık güvenle yakalayabiliyor.
+      // @ts-ignore — expo-updates'in tipleri yalnızca native build kurulu
+      // olduğunda anlamlı; Expo Go'da da derlensin diye dinamik require
+      // + ts-ignore kullanıldı (bkz. index.ts'teki aynı desen).
+      const Updates = require('expo-updates');
       await Updates.reloadAsync();
     } catch {
       // Expo Go'da veya development build dışı ortamlarda reloadAsync
