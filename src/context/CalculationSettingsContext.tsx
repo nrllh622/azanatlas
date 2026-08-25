@@ -33,7 +33,7 @@ export const KERAHAT_OPTIONS = [15, 30, 45, 60];
 
 export type MadhabId = 'Shafi' | 'Hanafi';
 export const MADHAB_OPTIONS: { id: MadhabId; label: string; labelEn: string }[] = [
-  { id: 'Shafi', label: 'Şafi, Maliki, Hanbeli, Türkiye', labelEn: 'Shafi, Maliki, Hanbali (standard)' },
+  { id: 'Shafi', label: 'Şafi, Maliki, Hanbeli', labelEn: 'Shafi, Maliki, Hanbali (standard)' },
   { id: 'Hanafi', label: 'Hanefi', labelEn: 'Hanafi' },
 ];
 

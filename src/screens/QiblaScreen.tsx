@@ -20,10 +20,38 @@
 //
 // `trueHeading` yalnızca konum izni varsa ve cihaz sapmayı hesaplayabiliyorsa
 // gelir; gelmezse (-1) magHeading'e düşülür ve kullanıcıya durum bildirilir.
+//
+// MADDE 1 (bu tur) — AKTİF KALİBRASYON UYARISI ARAŞTIRMASI:
+// Kullanıcı "pusula hâlâ tam doğru göstermiyor, senkronizasyon bozuksa
+// kullanıcıyı UYARALIM demiştik ama yapamamıştık" dedi. Önceki sürümde
+// yalnızca PASİF bir yardım vardı: kullanıcı "Pusula doğru göstermiyor mu?"
+// butonuna kendisi basmadıkça 8-çizme talimatı hiç görünmüyordu.
+//
+// Araştırılan/değerlendirilen seçenekler:
+//  1) `expo-location`'ın `watchHeadingAsync` callback'i `trueHeading`/
+//     `magHeading`'in yanında bir de `accuracy` alanı döndürüyor. ANDROİD'de
+//     bu, işletim sisteminin kendi `SensorManager` doğruluk seviyesidir:
+//     0=güvenilmez, 1=düşük, 2=orta, 3=yüksek — yani cihaz zaten "kalibre mi
+//     değil mi" bilgisini kendisi hesaplıyor, bizim ayrıca ham manyetometre
+//     okumasından (`expo-sensors`) kalite tahmini çıkarmamıza gerek yok. Bu
+//     turda kullanılan çözüm budur: `accuracy <= 1` iken artık PASİF değil,
+//     AKTİF/göze çarpan bir uyarı kartı (dönen ikon + "8 çizer gibi çevirin"
+//     talimatı) otomatik gösteriliyor — kullanıcının butona basmasını
+//     beklemiyor.
+//  2) iOS'ta `accuracy`'nin anlamı farklıdır (derece cinsinden manyetik
+//     sapma belirsizliği) VE iOS, düşük doğruluk algıladığında zaten KENDİ
+//     sistem düzeyinde "Kalibre Et" dairesel animasyonunu otomatik gösterir
+//     (Apple'ın Core Location davranışı). Bu yüzden aktif banner SADECE
+//     Android'de gösteriliyor — iOS'ta tekrarlamak kafa karıştırır.
+//  3) Değerlendirilip ELENEN alternatif: `expo-sensors`'ın ham
+//     `Magnetometer` verisinden kendi kalite skorumuzu hesaplamak (ör.
+//     örnekler arası varyansı izlemek). Bu, işletim sisteminin zaten
+//     sağladığı `accuracy` bilgisini yeniden icat etmek anlamına gelirdi —
+//     daha karmaşık, daha az güvenilir, ek pil tüketimi. Gerek görülmedi.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import Svg, {
@@ -75,6 +103,32 @@ function AnimasyonluOk({ yon }: { yon: 'sol' | 'sag' }) {
   );
 }
 
+// Kalibrasyon uyarısındaki ikon — dikkat çekmesi için hafifçe sağa-sola
+// sallanıyor (8 çizme hareketinin göze basit bir çağrışımı).
+function KalibrasyonIkonu() {
+  const kayma = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const dongu = Animated.loop(
+      Animated.sequence([
+        Animated.timing(kayma, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(kayma, { toValue: -1, duration: 1000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(kayma, { toValue: 0, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ])
+    );
+    dongu.start();
+    return () => dongu.stop();
+  }, [kayma]);
+
+  const rotate = kayma.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });
+
+  return (
+    <Animated.View style={{ transform: [{ rotate }] }}>
+      <Icon name="kible" size={22} color={colors.danger} />
+    </Animated.View>
+  );
+}
+
 export default function QiblaScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { location } = useLocationContext();
@@ -83,8 +137,15 @@ export default function QiblaScreen({ onClose }: Props) {
 
   const [heading, setHeading] = useState<number | null>(null);
   const [gercekKuzey, setGercekKuzey] = useState(true);
+  const [sensorDogruluk, setSensorDogruluk] = useState<number | null>(null);
   const [sensorHatasi, setSensorHatasi] = useState<string | null>(null);
   const [rehberAcik, setRehberAcik] = useState(false);
+
+  // Madde 1 (bu tur): bkz. dosya başındaki açıklama — yalnızca Android'de,
+  // işletim sisteminin bildirdiği doğruluk seviyesi düşük/güvenilmezken
+  // (0=güvenilmez, 1=düşük) aktif kalibrasyon uyarısı gösteriliyor.
+  const kalibrasyonGerekli =
+    Platform.OS === 'android' && sensorDogruluk !== null && sensorDogruluk <= 1;
 
   const qiblaBearing = useMemo(
     () => calculateQiblaBearing(location.latitude, location.longitude),
@@ -119,6 +180,9 @@ export default function QiblaScreen({ onClose }: Props) {
           const deger = gecerliTrue ? h.trueHeading : h.magHeading;
           if (typeof deger === 'number' && !isNaN(deger)) {
             setHeading(((deger % 360) + 360) % 360);
+          }
+          if (typeof h.accuracy === 'number') {
+            setSensorDogruluk(h.accuracy);
           }
         });
       } catch {
@@ -230,6 +294,23 @@ export default function QiblaScreen({ onClose }: Props) {
         contentContainerStyle={[styles.icerik, { paddingBottom: insets.bottom + spacing.lg }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Madde 1 (bu tur): AKTİF kalibrasyon uyarısı — pasif "Pusula doğru
+            göstermiyor mu?" butonunun tersine, kullanıcı bir şey yapmadan
+            kendiliğinden beliriyor (bkz. dosya başındaki araştırma notu). */}
+        {kalibrasyonGerekli && (
+          <TouchableOpacity
+            style={styles.kalibrasyonKart}
+            onPress={() => setRehberAcik(true)}
+            activeOpacity={0.85}
+          >
+            <KalibrasyonIkonu />
+            <View style={styles.kalibrasyonMetinKap}>
+              <Text style={styles.kalibrasyonBaslik}>{t('pusulaKalibrasyonBasligi')}</Text>
+              <Text style={styles.kalibrasyonMetin}>{t('pusulaKalibrasyonMetni')}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         <View style={[styles.ipucuSatir, hizali && styles.ipucuSatirHizali]}>
           {hazir && !hizali && <AnimasyonluOk yon={sapma > 0 ? 'sag' : 'sol'} />}
           {hizali && <Icon name="onay" size={24} color={colors.success} />}
@@ -524,6 +605,22 @@ const styles = StyleSheet.create({
     ...elevation.card,
   },
   ipucuSatirHizali: { borderColor: colors.success, backgroundColor: '#F1FBF6' },
+  // Madde 1 (bu tur): aktif kalibrasyon uyarı kartı.
+  kalibrasyonKart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#FDEDEA',
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+    padding: spacing.md,
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  kalibrasyonMetinKap: { flex: 1 },
+  kalibrasyonBaslik: { fontFamily: typography.bodyBold, fontSize: 14.5, color: colors.danger, marginBottom: 2 },
+  kalibrasyonMetin: { fontFamily: typography.bodyMedium, fontSize: 12.5, color: colors.textOnLight, lineHeight: 18 },
   ipucuYazi: { fontFamily: typography.bodyBold, fontSize: 17, color: colors.textOnLight },
   ipucuYaziHizali: { color: colors.success },
 

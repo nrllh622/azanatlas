@@ -465,6 +465,43 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Madde 7 (bu tur): oklar önceden hero kartının içinde, ayrı ve
+              ortalanmış bir satırda duruyordu ("Şehir" adının epey aşağısında
+              görünüyordu). Kullanıcı isteği üzerine oklar buraya, "Şehir"
+              adının HEMEN yanına taşındı. Bildirim butonuna değmemesi için:
+              - `konumBlok` (Şehir metni) `flex: 1` + `numberOfLines={1}`
+                kullanıyor, bu yüzden en uzun çeviri bile bu bloğun içinde
+                kırpılır, asla oklara doğru taşmaz.
+              - Bu ok grubu ve `bildirimBtn` ikisi de SABİT genişlikte
+                (`flexShrink: 0` benzeri, içerik genişliğinde), aralarında
+                `ustSerit`'in `gap: spacing.sm` değeri korunuyor — yani oklar
+                hiçbir zaman bildirim butonuna yapışmıyor/değmiyor.
+              - Dikey hizalama: bu grup `ustSerit`in `alignItems: 'center'`
+                kuralına tabi, `konumBlok` ile TAM AYNI dikey eksende durur;
+                dil değişince (uzun çeviri) yalnızca `konumIl`/`konumTarih`
+                metni kırpılır, satır yüksekliği/ok konumu ASLA aşağı/yukarı
+                kaymaz. */}
+          {locations.length > 1 && (
+            <View style={styles.konumOkGrubu}>
+              <TouchableOpacity
+                onPress={() => konumDegistir(-1)}
+                hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t('oncekiKonum')}
+              >
+                <Icon name="sol" size={16} color={colors.copperLight} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => konumDegistir(1)}
+                hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={t('sonrakiKonum')}
+              >
+                <Icon name="sag" size={16} color={colors.copperLight} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <TouchableOpacity
             style={styles.bildirimBtn}
             onPress={() => setTab('settings')}
@@ -485,32 +522,9 @@ export default function HomeScreen() {
           <IslamicPattern color={colors.cream} opacity={0.09} tile={44} />
 
           <View style={styles.heroIc}>
-            <View style={styles.eskiKonumSatir}>
-              {locations.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => konumDegistir(-1)}
-                  hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('oncekiKonum')}
-                >
-                  <Icon name="sol" size={18} color={colors.copperLight} />
-                </TouchableOpacity>
-              )}
-
-              {/* Konum artık üst şeritte; burada yalnızca çoklu konum
-                  kullananlar için ileri/geri okları kalıyor. */}
-
-              {locations.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => konumDegistir(1)}
-                  hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('sonrakiKonum')}
-                >
-                  <Icon name="sag" size={18} color={colors.copperLight} />
-                </TouchableOpacity>
-              )}
-            </View>
+            {/* Madde 7 (bu tur): konum ileri/geri okları buradan kaldırılıp
+                yukarıdaki `ustSerit`e, "Şehir" adının yanına taşındı — bkz.
+                o bloktaki ayrıntılı yorum. */}
 
             {/* Sıradaki vakit + geri sayım
                 DÜZELTME (3. tur — kullanıcı 5. kez aynı şeyi belirtti):
@@ -775,7 +789,13 @@ export default function HomeScreen() {
                     <View style={styles.hizliNokta} />
                   )}
                 </View>
-                <Text style={styles.hizliAd}>{t(arac.adAnahtari)}</Text>
+                {/* Madde 3 (bu tur): "Asmaul Husna" gibi uzun bir çeviri iki
+                    satıra bölünüp sütunu aşağı kaydırmıştı — metin artık
+                    "Asma" olarak kısaltıldı (ceviriler.ts), ama gelecekte
+                    benzer bir uzun çeviri eklenirse aynı hatanın tekrarını
+                    önlemek için burada da `numberOfLines={1}` ile güvence
+                    altına alındı. */}
+                <Text style={styles.hizliAd} numberOfLines={1}>{t(arac.adAnahtari)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -950,6 +970,16 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
   },
+  // Madde 7 (bu tur): "Şehir" adının yanındaki ileri/geri konum okları —
+  // sabit/kompakt genişlikte (içerik kadar), bu yüzden `konumBlok`un
+  // `flex: 1` ile ne kadar daralırsa daralsın bu grup ASLA sıkışmaz/taşmaz;
+  // `bildirimBtn`e olan mesafeyi `ustSerit`in `gap: spacing.sm` değeri
+  // garanti eder.
+  konumOkGrubu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
 
   // ---------- HERO (koyu kart — alt köşeler kavisli) ----------
   // Madde 1 (ısrarla tekrar edilen şikayet): dikey boşluklar burada da
@@ -971,13 +1001,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: radius.lg,
   },
   heroIc: { paddingHorizontal: spacing.lg },
-
-  eskiKonumSatir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
 
   siradakiKap: { marginTop: 2 },
   // DÜZELTME (4. tur, 6. kez tekrarlanan uyarı): önceki turda "SIRADAKİ

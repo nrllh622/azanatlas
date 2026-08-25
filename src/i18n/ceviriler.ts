@@ -240,7 +240,13 @@ const anaSayfa = {
     sekmeAyarlar: 'Pengaturan',
     aracTakip: 'Pelacakan',
     aracTesbih: 'Tasbih',
-    aracEsma: 'Asmaul Husna',
+    // Madde 3 (bu tur): "Asmaul Husna" anasayfadaki dar hızlı-erişim
+    // butonunda iki satıra bölünüyor ve o sütunu aşağı kaydırıyordu
+    // (ekran görüntüsüyle bildirildi) — EN/FR'de zaten kullanılan kısa
+    // "Asma" biçimine getirildi (Tasbih gibi tek kelime, taşma riski yok).
+    // Tam "Asmaul Husna" adı ekranın kendi başlığında (`adEsmaulHusna`)
+    // olduğu gibi kalıyor.
+    aracEsma: 'Asma',
     aracKaza: 'Qadha',
     ocak: 'Januari', subat: 'Februari', mart: 'Maret', nisan: 'April',
     mayis: 'Mei', haziran: 'Juni', temmuz: 'Juli', agustos: 'Agustus',
@@ -789,12 +795,16 @@ const konumSecici = {
     ilSec: 'İl Seç',
     ilceSec: 'İlçe Seç',
     sil: 'Sil',
-    gpsIleEkle: 'GPS ile Ekle',
+    // Madde 2 (bu tur): "GPS ile Ekle" tek başına belirsizdi (bazı
+    // kullanıcılar GPS terimini tanımıyor) — "GPS/Konum ile Ekle" yapıldı.
+    gpsIleEkle: 'GPS/Konum ile Ekle',
     ilIlceSecerekEkle: '+ İl/İlçe Seçerek Ekle',
-    // Madde 9 (bu tur): Türkiye dışındaki Faz-1 ülkeleri için manuel
+    // Madde 9 (önceki tur): Türkiye dışındaki Faz-1 ülkeleri için manuel
     // ülke → şehir seçim akışı eklendi (bkz. globalLocations.ts,
-    // LocationPickerScreen.tsx).
-    konumEkle: '+ Konum Ekle',
+    // LocationPickerScreen.tsx). Madde 2 (bu tur): buton metni "+ Konum
+    // Ekle" yerine ne yaptığını daha net anlatan "Ülke/Şehir Değiştir"
+    // yapıldı.
+    konumEkle: 'Ülke/Şehir Değiştir',
     ulkeSec: 'Ülke Seç',
     sehirSec: 'Şehir Seç',
     turkiyeIlIlceSecerek: 'Türkiye (İl / İlçe seçerek)',
@@ -804,9 +814,9 @@ const konumSecici = {
     ilSec: 'Select Province',
     ilceSec: 'Select District',
     sil: 'Delete',
-    gpsIleEkle: 'Add via GPS',
+    gpsIleEkle: 'Add via GPS/Location',
     ilIlceSecerekEkle: '+ Add by Selecting Province/District',
-    konumEkle: '+ Add Location',
+    konumEkle: 'Change Country/City',
     ulkeSec: 'Select Country',
     sehirSec: 'Select City',
     turkiyeIlIlceSecerek: 'Turkey (by Province / District)',
@@ -816,9 +826,9 @@ const konumSecici = {
     ilSec: 'Pilih Provinsi',
     ilceSec: 'Pilih Kabupaten',
     sil: 'Hapus',
-    gpsIleEkle: 'Tambah via GPS',
+    gpsIleEkle: 'Tambah via GPS/Lokasi',
     ilIlceSecerekEkle: '+ Tambah dengan Memilih Provinsi/Kabupaten',
-    konumEkle: '+ Tambah Lokasi',
+    konumEkle: 'Ubah Negara/Kota',
     ulkeSec: 'Pilih Negara',
     sehirSec: 'Pilih Kota',
     turkiyeIlIlceSecerek: 'Turki (pilih Provinsi / Kabupaten)',
@@ -828,9 +838,9 @@ const konumSecici = {
     ilSec: 'Sélectionner la province',
     ilceSec: 'Sélectionner le district',
     sil: 'Supprimer',
-    gpsIleEkle: 'Ajouter via GPS',
+    gpsIleEkle: 'Ajouter via GPS/position',
     ilIlceSecerekEkle: '+ Ajouter en choisissant province/district',
-    konumEkle: '+ Ajouter un emplacement',
+    konumEkle: 'Changer de pays/ville',
     ulkeSec: 'Sélectionner le pays',
     sehirSec: 'Sélectionner la ville',
     turkiyeIlIlceSecerek: 'Turquie (par province / district)',
@@ -1150,6 +1160,12 @@ const kibleEkrani = {
     pusulaOkumasiBekleniyor: 'Pusula okuması bekleniyor. Telefonu düz tutup hafifçe çevirin.',
     manyetikKuzeyeGoreGosteriliyor: 'Manyetik kuzeye göre gösteriliyor. Konum izni verilirse gerçek kuzeye göre daha isabetli olur.',
     pusulaDogruGostermiyorMu: 'Pusula doğru göstermiyor mu?',
+    // Madde 1 (bu tur): Android'in kendi manyetik sensör doğruluk seviyesi
+    // (SensorManager accuracy) "düşük/güvenilmez" döndürdüğünde artık pasif
+    // bir ipucu yerine AKTİF, göze çarpan bir uyarı gösteriliyor — bkz.
+    // QiblaScreen.tsx'teki `kalibrasyonGerekli`.
+    pusulaKalibrasyonBasligi: 'Pusula kalibrasyonu gerekiyor',
+    pusulaKalibrasyonMetni: 'Telefonunuzun manyetik sensörü şu an güvenilir okuma yapamıyor. Telefonu düz tutup havada birkaç kez 8 (sekiz) çizer gibi çevirin.',
     mil: 'mil',
     yonKuzey: 'K', yonDogu: 'D', yonGuney: 'G', yonBati: 'B',
   },
@@ -1172,6 +1188,8 @@ const kibleEkrani = {
     pusulaOkumasiBekleniyor: 'Waiting for compass reading. Hold the phone flat and turn it slightly.',
     manyetikKuzeyeGoreGosteriliyor: 'Shown relative to magnetic north. Granting location permission gives a more accurate reading relative to true north.',
     pusulaDogruGostermiyorMu: "Compass not pointing correctly?",
+    pusulaKalibrasyonBasligi: 'Compass calibration needed',
+    pusulaKalibrasyonMetni: "Your phone's magnetic sensor cannot currently take a reliable reading. Hold the phone flat and move it in a figure-eight (8) motion in the air a few times.",
     mil: 'mi',
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'W',
   },
@@ -1194,6 +1212,8 @@ const kibleEkrani = {
     pusulaOkumasiBekleniyor: 'Menunggu pembacaan kompas. Pegang ponsel secara datar dan putar sedikit.',
     manyetikKuzeyeGoreGosteriliyor: 'Ditampilkan relatif terhadap utara magnetik. Memberikan izin lokasi menghasilkan pembacaan yang lebih akurat relatif terhadap utara sejati.',
     pusulaDogruGostermiyorMu: 'Kompas tidak menunjuk dengan benar?',
+    pusulaKalibrasyonBasligi: 'Kalibrasi kompas diperlukan',
+    pusulaKalibrasyonMetni: 'Sensor magnetik ponsel Anda saat ini tidak dapat memberikan pembacaan yang andal. Pegang ponsel secara datar dan gerakkan membentuk angka delapan (8) di udara beberapa kali.',
     mil: 'mi',
     yonKuzey: 'U', yonDogu: 'T', yonGuney: 'S', yonBati: 'B',
   },
@@ -1216,6 +1236,8 @@ const kibleEkrani = {
     pusulaOkumasiBekleniyor: 'En attente de la lecture de la boussole. Tenez le téléphone à plat et tournez-le légèrement.',
     manyetikKuzeyeGoreGosteriliyor: 'Affiché par rapport au nord magnétique. Autoriser la localisation donne une lecture plus précise par rapport au nord vrai.',
     pusulaDogruGostermiyorMu: 'La boussole n\'indique pas correctement ?',
+    pusulaKalibrasyonBasligi: 'Étalonnage de la boussole requis',
+    pusulaKalibrasyonMetni: 'Le capteur magnétique de votre téléphone ne peut pas fournir de lecture fiable pour le moment. Tenez le téléphone à plat et déplacez-le en formant un huit (8) dans les airs plusieurs fois.',
     mil: 'mi',
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'O',
   },

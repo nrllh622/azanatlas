@@ -17,6 +17,7 @@ import { TURKEY_PROVINCES, Province } from '../data/turkeyLocations';
 import { DISTRICT_COORDS } from '../data/districtCoords';
 import { GLOBAL_COUNTRIES, GlobalCountry } from '../data/globalLocations';
 import { useLocationContext } from '../context/LocationContext';
+import { useCalculationSettings } from '../context/CalculationSettingsContext';
 import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
@@ -45,6 +46,54 @@ function getCoordsFor(il: string, ilce: string) {
   return PROVINCE_FALLBACK[il] || DEFAULT_FALLBACK;
 }
 
+// Madde 4 (bu tur): GPS ile konum alındığında Android'in native reverse-geocode
+// sonucu (`place.region`/`place.subregion`) uygulamanın kendi 81 il / ilçe
+// listesindeki (turkeyLocations.ts) YAZIM ile birebir aynı gelmeyebiliyor —
+// örn. "İstanbul İli", baştaki/sondaki boşluklar, ya da nadiren ilçe hiç
+// dönmeyebiliyor. Bu, GPS'ten dönen il adının diyanetSehirIds.ts'teki tam
+// eşleşme aramasında bulunamayıp "Diyanet verisine ulaşılamadı" uyarısına yol
+// açan asıl nedendi (diyanetSehirIds.ts'e ayrıca normalize edilmiş arama
+// eklendi — bkz. o dosya). Burada ayrıca GPS sonucunu, uygulamanın kendi
+// bilinen il/ilçe listesindeki EN YAKIN karşılığa "onarmak" için normalize
+// edilmiş bir eşleştirme yapılıyor; böylece hem Diyanet sorgusu hem de
+// uygulama içi il/ilçe gösterimi tutarlı ve güvenilir hale geliyor.
+function normalizeTrForMatch(s: string): string {
+  return s
+    .toLocaleUpperCase('tr-TR')
+    .replace(/İ/g, 'I')
+    .replace(/Ş/g, 'S')
+    .replace(/Ğ/g, 'G')
+    .replace(/Ü/g, 'U')
+    .replace(/Ö/g, 'O')
+    .replace(/Ç/g, 'C')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+// GPS'ten dönen ham il adını, uygulamanın bilinen 81 il listesindeki tam
+// karşılığına çözer. Bulamazsa ham adı olduğu gibi geri döner (en azından
+// bir isim gösterilsin diye) — yalnızca Diyanet sorgusu tarafı zaten kendi
+// normalize aramasına sahip olduğu için bu durumda da sessizce yerele düşer.
+function resolveKnownIl(rawIl: string): string {
+  const norm = normalizeTrForMatch(rawIl);
+  const found = TURKEY_PROVINCES.find((p) => normalizeTrForMatch(p.name) === norm);
+  if (found) return found.name;
+  const partial = TURKEY_PROVINCES.find(
+    (p) => norm.includes(normalizeTrForMatch(p.name)) && p.name.length >= 3
+  );
+  return partial ? partial.name : rawIl;
+}
+
+// GPS'ten dönen ham ilçe adını, çözülen ilin bilinen ilçe listesindeki tam
+// karşılığına çözer (varsa). Bulamazsa (ör. ilçe listesi henüz "Merkez" ile
+// temsil edilen 71 il için) ham adı olduğu gibi geri döner.
+function resolveKnownIlce(resolvedIl: string, rawIlce: string): string {
+  const province = TURKEY_PROVINCES.find((p) => p.name === resolvedIl);
+  if (!province || !rawIlce) return rawIlce;
+  const norm = normalizeTrForMatch(rawIlce);
+  const found = province.districts.find((d) => normalizeTrForMatch(d.name) === norm);
+  return found ? found.name : rawIlce;
+}
+
 // Madde 9 (bu tur): Türkiye dışındaki Faz-1 ülkeleri için manuel ülke→şehir
 // akışı eklendi. 'country' → 'city' yeni akış (globalLocations.ts); Türkiye
 // seçilirse mevcut 'province' → 'district' akışına (il/ilçe düzeyi) yönlenir
@@ -54,6 +103,7 @@ type Mode = 'list' | 'country' | 'province' | 'district' | 'city';
 export default function LocationPickerScreen({ onDone }: Props) {
   const insets = useSafeAreaInsets();
   const { locations, activeId, setActiveId, addLocation, removeLocation } = useLocationContext();
+  const { setAutoMethod } = useCalculationSettings();
   const { t } = useCeviri();
   const [mode, setMode] = useState<Mode>('list');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
@@ -73,14 +123,31 @@ export default function LocationPickerScreen({ onDone }: Props) {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
+      const countryCode = place?.isoCountryCode || 'TR';
+      const rawIl = place?.region || place?.city || t('gpsKonumu');
+      const rawIlce = place?.subregion || place?.district || place?.city || '';
+      // Madde 4 (bu tur): sadece Türkiye'deyken bilinen il/ilçe listesine göre
+      // "onarım" yapılır — bu normalize eşleştirme yalnızca TURKEY_PROVINCES
+      // için anlamlı (diğer ülkelerde ham ad zaten yeterli).
+      const il = countryCode === 'TR' ? resolveKnownIl(rawIl) : rawIl;
+      const ilce = countryCode === 'TR' ? resolveKnownIlce(il, rawIlce) : rawIlce;
       addLocation({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        il: place?.region || place?.city || t('gpsKonumu'),
-        ilce: place?.subregion || place?.district || place?.city || '',
-        countryCode: place?.isoCountryCode || 'TR',
+        il,
+        ilce,
+        countryCode,
         isGps: true,
       });
+      // Madde 5 (bu tur): konum GPS ile değiştirildiğinde Ayarlar'daki
+      // "Otomatik" hesaplama yöntemi de otomatik açılır — uygulama yeni
+      // konumun ülkesine göre doğru yöntemi (ör. Türkiye→Diyanet) kendiliğinden
+      // seçip tüm vakitleri buna göre yeniden hesaplar (bkz. prayerCalculator.ts
+      // içindeki getMethodForCountry — autoMethod açıkken zaten ülkeye göre
+      // otomatik yöntem seçiyor, ekstra bir "yeniden hesapla" çağrısına gerek
+      // yok çünkü HomeScreen zaten location/autoMethod değiştiğinde useEffect
+      // ile yeniden hesaplıyor).
+      setAutoMethod(true);
       onDone();
     } catch (e) {
       // sessizce yut
@@ -201,6 +268,8 @@ export default function LocationPickerScreen({ onDone }: Props) {
                   ilce: item.name,
                   countryCode: selectedCountry!.code,
                 });
+                // Madde 5 (bu tur): bkz. useGps içindeki aynı satırın yorumu.
+                setAutoMethod(true);
                 onDone();
               }}
             >
@@ -264,6 +333,8 @@ export default function LocationPickerScreen({ onDone }: Props) {
                 ilce: item.name,
                 countryCode: 'TR',
               });
+              // Madde 5 (bu tur): bkz. useGps içindeki aynı satırın yorumu.
+              setAutoMethod(true);
               onDone();
             }}
           >

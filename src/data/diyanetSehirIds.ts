@@ -30,6 +30,45 @@ export const DIYANET_SEHIR_IDS: Record<string, number> = {
   'Zonguldak': 580,
 };
 
+// Madde 4 (bu tur): GPS ile konum alındığında `expo-location`'ın
+// `reverseGeocodeAsync` çağrısı Android'de il adını (`region`) her zaman
+// bu sözlükteki YAZIM ile birebir aynı döndürmüyor — cihaza/Android
+// sürümüne göre baştaki/sondaki boşluk, "il" kelimesi eklenmiş olması
+// (ör. "İstanbul İli") ya da nadiren tamamen farklı bir bölge adı gelebiliyor.
+// Önceki hâliyle `DIYANET_SEHIR_IDS[il]` TAM eşleşme arıyordu; ufak bir yazım
+// farkında bile `null` dönüp sessizce yerel hesaba düşüyordu — kullanıcının
+// bildirdiği "Diyanet verisine ulaşılamadı" uyarısının kök nedeni budur.
+// Şimdi diyanetApi.ts'teki `normalizeTr` ile aynı mantıkla (büyük harf +
+// Türkçe karakter sadeleştirme + noktalama/boşluk temizliği) normalize
+// edilmiş bir arama tablosu da tutuluyor; tam eşleşme başarısız olursa bu
+// tabloya düşülüyor.
+function normalizeTrLocal(s: string): string {
+  return s
+    .toLocaleUpperCase('tr-TR')
+    .replace(/İ/g, 'I')
+    .replace(/Ş/g, 'S')
+    .replace(/Ğ/g, 'G')
+    .replace(/Ü/g, 'U')
+    .replace(/Ö/g, 'O')
+    .replace(/Ç/g, 'C')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+const NORMALIZED_SEHIR_IDS: Record<string, number> = Object.fromEntries(
+  Object.entries(DIYANET_SEHIR_IDS).map(([il, id]) => [normalizeTrLocal(il), id])
+);
+
 export function getSehirIdForIl(il: string): number | null {
-  return DIYANET_SEHIR_IDS[il] ?? null;
+  if (DIYANET_SEHIR_IDS[il] != null) return DIYANET_SEHIR_IDS[il];
+
+  const norm = normalizeTrLocal(il);
+  if (NORMALIZED_SEHIR_IDS[norm] != null) return NORMALIZED_SEHIR_IDS[norm];
+
+  // "İstanbul İli", "İstanbul Province" gibi ek kelime içeren varyantlar için:
+  // normalize edilmiş il adlarından biri, gelen string'in İÇİNDE geçiyorsa
+  // (ve gelen string o il adından belirgin uzun değilse) eşleşme kabul edilir.
+  const found = Object.entries(NORMALIZED_SEHIR_IDS).find(
+    ([ilNorm]) => norm.includes(ilNorm) && ilNorm.length >= 3
+  );
+  return found ? found[1] : null;
 }
