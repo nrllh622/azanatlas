@@ -61,6 +61,7 @@ import { scheduleReminders } from '../lib/remindersScheduler';
 import { toHijri } from '../lib/hijri';
 import { getKerahatInfo } from '../lib/kerahat';
 import { takipEdilebilir, TakipVakti } from '../lib/ibadetTakibi';
+import { veriSec } from '../lib/veriSec';
 import { getGununAyeti } from '../data/ayetler';
 import { getDiniGun, getYaklasanDiniGun } from '../data/diniGunler';
 import { getTariheEnYakinOlay } from '../data/tariheBugun';
@@ -147,13 +148,11 @@ function geriSayimBicimle(ms: number): string {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { t, vakitAdi, dil } = useCeviri();
-  // Günün Ayeti / İslam Tarihinde Bugün verisi şimdilik yalnızca tr/en
-  // olarak yazılı. Faz-1'e eklenen id/fr arayüzü tam çevrildi, ama bu veri
-  // içeriği (ayet meali/kaynağı, tarih olayı başlığı/açıklaması) henüz
-  // id/fr'ye çevrilmedi — Türkçe DIŞINDAKİ her dilde (en/id/fr) İngilizce
-  // metne düşülüyor; sessizce Türkçe göstermek yerine en azından anlaşılır
-  // bir dilde kalınması tercih edildi.
-  const veriDili = dil === 'tr' ? 'tr' : 'en';
+  // Madde 10a/13 (bu tur): Günün Ayeti / İslam Tarihinde Bugün / dini gün
+  // verisi artık id/fr dahil 4 dilde tam çevrili (bkz. ayetler.ts,
+  // tariheBugun.ts, diniGunler.ts) — `veriSec()` yardımcı fonksiyonu doğru
+  // dildeki alanı seçiyor, eksik kalan bir alan olursa sessizce Türkçe'ye
+  // değil İngilizce'ye düşer.
   const { location, locations, activeId, setActiveId } = useLocationContext();
   const { settings, setOnTime } = useNotificationSettings();
   const {
@@ -582,20 +581,17 @@ export default function HomeScreen() {
               Bugün kandil/bayram ise vurgulu kart; değilse yaklaşan günü
               sade bir satır olarak gösteriyoruz. Böylece kart her gün
               görünüyor ama yalnızca gerçekten özel günlerde öne çıkıyor. */}
-          {/* Madde 3 (bu tur): "Mevlid Kandili" / "Peygamber Efendimizin doğum
-              yıldönümü" gibi dini gün verisi zaten `ad`/`adEn` ve
-              `aciklama`/`aciklamaEn` şeklinde iki dilli tutuluyordu
-              (diniGunler.ts) — ama bu ekran hep Türkçe `ad`/`aciklama`
-              alanını okuyordu, `veriDili`'ye hiç bakmıyordu. Artık ayet/
-              tarih kartlarıyla aynı `veriDili` deseni kullanılıyor. */}
+          {/* Madde 3/10a/13: dini gün verisi artık tr/en/id/fr dördünde de
+              tam çevrili (diniGunler.ts) ve `veriSec()` ile seçiliyor —
+              ayet/tarih kartlarıyla aynı desen. */}
           {diniGun ? (
             <View style={styles.diniGunKart}>
               <IslamicPattern color={colors.cream} opacity={0.10} tile={38} />
               <View style={styles.diniGunIc}>
                 <Icon name="hilal" size={22} color={colors.copperLight} />
                 <View style={styles.diniGunMetin}>
-                  <Text style={styles.diniGunAd}>{veriDili === 'en' ? diniGun.adEn : diniGun.ad}</Text>
-                  <Text style={styles.diniGunAciklama}>{veriDili === 'en' ? diniGun.aciklamaEn : diniGun.aciklama}</Text>
+                  <Text style={styles.diniGunAd}>{veriSec(dil, diniGun.ad, diniGun.adEn, diniGun.adId, diniGun.adFr)}</Text>
+                  <Text style={styles.diniGunAciklama}>{veriSec(dil, diniGun.aciklama, diniGun.aciklamaEn, diniGun.aciklamaId, diniGun.aciklamaFr)}</Text>
                 </View>
               </View>
             </View>
@@ -603,7 +599,7 @@ export default function HomeScreen() {
             <View style={styles.yaklasanSatir}>
               <Icon name="hilal" size={17} color={colors.copper} />
               <Text style={styles.yaklasanYazi}>
-                {t('kalanGunKaldi', veriDili === 'en' ? yaklasan.gun.adEn : yaklasan.gun.ad, yaklasan.kalanGun)}
+                {t('kalanGunKaldi', veriSec(dil, yaklasan.gun.ad, yaklasan.gun.adEn, yaklasan.gun.adId, yaklasan.gun.adFr), yaklasan.kalanGun)}
               </Text>
             </View>
           ) : null}
@@ -800,8 +796,8 @@ export default function HomeScreen() {
               <Icon name="ayet" size={16} color={colors.copperLight} />
               <Text style={styles.ayetBaslik}>{t('gununAyeti')}</Text>
             </View>
-            <Text style={styles.ayetMetin}>{veriDili === 'en' ? ayet.mealEn : ayet.meal}</Text>
-            <Text style={styles.ayetKaynak}>{veriDili === 'en' ? ayet.kaynakEn : ayet.kaynak}</Text>
+            <Text style={styles.ayetMetin}>{veriSec(dil, ayet.meal, ayet.mealEn, ayet.mealId, ayet.mealFr)}</Text>
+            <Text style={styles.ayetKaynak}>{veriSec(dil, ayet.kaynak, ayet.kaynakEn, ayet.kaynakId, ayet.kaynakFr)}</Text>
           </View>
 
           {/* ── İSLAM TARİHİNDE BUGÜN ──
@@ -820,8 +816,8 @@ export default function HomeScreen() {
             <View style={styles.tarihIcerik}>
               <Text style={styles.tarihYil}>{tarihOlayi.olay.yil}</Text>
               <View style={styles.tarihMetin}>
-                <Text style={styles.tarihOlayBaslik}>{veriDili === 'en' ? tarihOlayi.olay.baslikEn : tarihOlayi.olay.baslik}</Text>
-                <Text style={styles.tarihAciklama}>{veriDili === 'en' ? tarihOlayi.olay.aciklamaEn : tarihOlayi.olay.aciklama}</Text>
+                <Text style={styles.tarihOlayBaslik}>{veriSec(dil, tarihOlayi.olay.baslik, tarihOlayi.olay.baslikEn, tarihOlayi.olay.baslikId, tarihOlayi.olay.baslikFr)}</Text>
+                <Text style={styles.tarihAciklama}>{veriSec(dil, tarihOlayi.olay.aciklama, tarihOlayi.olay.aciklamaEn, tarihOlayi.olay.aciklamaId, tarihOlayi.olay.aciklamaFr)}</Text>
                 {!tarihOlayi.bugunMu && (
                   <Text style={styles.tarihGoreceli}>
                     {tarihOlayi.gunFarki > 0
@@ -1003,11 +999,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     includeFontPadding: false,
   },
+  // Madde 1 (bu tur): fontSize 26→19 küçültmesi taşmayı çözmüştü ama
+  // kelimeler artık "yapışık" görünüyordu — `gap` xs(4dp)'den sm(8dp)'ye
+  // çıkarıldı. fontSize düşüşünün bıraktığı geniş pay (≈%23 satır genişliği)
+  // sayesinde en uzun çeviri olan Fransızca "PROCHAINE PRIÈRE" dahil hiçbir
+  // dilde satır taşması olmuyor.
   siradakiAdSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     marginTop: spacing.xs,
   },
   siradakiAd: {
@@ -1029,28 +1030,38 @@ const styles = StyleSheet.create({
   // displayFamily kullanıyordu — aynı fontSize'da bile farklı font ailesi
   // göze belirgin boyut farkı gibi görünüyordu). Aynı lineHeight ile de
   // taban çizgisi kayması engellendi.
+  // Madde 2 (bu tur): kullanıcı "KALAN SÜRE" etiketinin yerinde kalıp geri
+  // sayım DEĞERİNİN sağa, kart kenarından biraz boşluklu şekilde
+  // konumlanmasını istedi. `justifyContent: 'space-between'` ile etiket
+  // solda sabit kalıyor, değer satırın sağına yaslanıyor — kartın kendi
+  // `heroIc` iç boşluğu (spacing.lg = 24dp) zaten ekran kenarından belirgin
+  // bir boşluk bırakıyor. Taşma riskini azaltmak için fontSize 26→22'ye,
+  // lineHeight 32→28'e indirildi ve `flexWrap` kaldırıldı — en uzun
+  // çeviriler (ör. Fransızca "TEMPS RESTANT") için de tek satırda sığıyor.
   kalanSureSatir: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'space-between',
     marginTop: spacing.sm,
   },
   kalanSureEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 28,
     color: colors.copperLight,
     letterSpacing: 0.4,
     includeFontPadding: false,
+    flexShrink: 1,
   },
   geriSayim: {
     fontFamily: typography.displaySemibold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 28,
     color: colors.white,
     letterSpacing: 0.6,
     includeFontPadding: false,
+    flexShrink: 0,
+    marginLeft: spacing.sm,
   },
 
   ilerlemeRay: {
@@ -1196,12 +1207,19 @@ const styles = StyleSheet.create({
   zilBtn: { width: 26, alignItems: 'center' },
 
   // ---------- HIZLI ARAÇLAR ----------
+  // Madde 5 (bu tur): vakit listesi ile bu kart arasındaki boşluk çok azdı
+  // (6dp) — spacing.md (16dp) yapıldı. Aynı maddede istenen "açık tonda
+  // farklı arka plan rengi" için `colors.white` yerine her paletle uyumlu
+  // çok açık bir ton olan `colors.primaryMist` kullanıldı — ikon dairesi
+  // (`hizliIkonKap`, primarySoft) ve yazılar (textOnLight, koyu) üzerinde
+  // hâlâ net okunuyor, yalnızca kartın kendisi anasayfa zemininden
+  // (colors.cream) hafifçe ayrışıyor.
   hizliKart: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
+    backgroundColor: colors.primaryMist,
     borderRadius: radius.lg,
     paddingVertical: spacing.xs + 2,
-    marginTop: spacing.xs + 2,
+    marginTop: spacing.md,
     ...elevation.card,
   },
   hizliOge: { flex: 1, alignItems: 'center', gap: 3 },
@@ -1244,14 +1262,18 @@ const styles = StyleSheet.create({
   // Artık gerçek `BannerReklam` bileşenine geçirilen konum stili — yükseklik
   // artık BannerReklam'ın kendi minHeight'inden geliyor, burada yalnızca
   // üstteki boşluk (marginTop) kalıyor.
-  reklamAlani: { marginTop: spacing.sm },
+  // Madde 6 (bu tur): hızlı araçlar ile "Günün Ayeti" arasındaki boşluk
+  // (aralarındaki reklam şeridiyle birlikte) fazla bulunmuştu — hem reklam
+  // şeridinin hem ayet kartının üst boşluğu spacing.sm(8)'den spacing.xs(4)'e
+  // indirildi.
+  reklamAlani: { marginTop: spacing.xs },
 
   // ---------- GÜNÜN AYETİ ----------
   ayetKart: {
     backgroundColor: colors.primaryDark,
     borderRadius: radius.lg,
     padding: spacing.md,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   ayetBaslikSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   ayetBaslik: {
@@ -1323,8 +1345,11 @@ const styles = StyleSheet.create({
   },
 
   // ---------- İSLAM TARİHİNDE BUGÜN ----------
+  // Madde 7 (bu tur): "İslam Tarihinde" kartının arka planı, yazı/imoji
+  // okunurluğunu etkilemeyecek kadar açık olan `colors.copperSoft` ile
+  // hafifçe tonlandırıldı (önceden düz `colors.white`'dı).
   tarihKart: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.copperSoft,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginTop: spacing.sm,

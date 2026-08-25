@@ -44,6 +44,7 @@ import {
 } from '../theme';
 import { temayiKaydet, kayitliTemayiOku } from '../lib/temaDeposu';
 import { useCeviri } from '../i18n/DilContext';
+import { veriSec } from '../lib/veriSec';
 
 interface Props {
   onClose?: () => void;
@@ -182,15 +183,11 @@ export default function TemaScreen({ onClose }: Props) {
   };
 
   const anahtarlar = Object.keys(PALETLER) as PaletAdi[];
-  // Palet adı/açıklaması verisi şimdilik yalnızca tr/en olarak yazılı.
-  // Faz-1'e eklenen id/fr arayüzü tam çevrildi, ancak bu veri içeriği
-  // (11 palet × ad+açıklama) henüz id/fr'ye çevrilmedi — bu yüzden
-  // Türkçe DIŞINDAKİ her dilde (en/id/fr) İngilizce metne düşülüyor;
-  // sessizce Türkçe göstermek yerine en azından anlaşılır bir dilde
-  // kalınması tercih edildi.
-  const veriDili = dil === 'tr' ? 'tr' : 'en';
-  const paletAdi = (p: (typeof PALETLER)[PaletAdi]) => (veriDili === 'en' ? p.adEn : p.ad);
-  const paletAciklama = (p: (typeof PALETLER)[PaletAdi]) => (veriDili === 'en' ? p.aciklamaEn : p.aciklama);
+  // Madde 10a/13 (bu tur): palet adı/açıklaması artık id/fr dahil 4 dilde
+  // tam çevrili (bkz. theme.ts'in PALETLER'i) — `veriSec()` doğru dildeki
+  // alanı seçiyor.
+  const paletAdi = (p: (typeof PALETLER)[PaletAdi]) => veriSec(dil, p.ad, p.adEn, p.adId, p.adFr);
+  const paletAciklama = (p: (typeof PALETLER)[PaletAdi]) => veriSec(dil, p.aciklama, p.aciklamaEn, p.aciklamaId, p.aciklamaFr);
 
   return (
     <View style={styles.wrap}>
@@ -275,7 +272,7 @@ export default function TemaScreen({ onClose }: Props) {
               </View>
               <Text style={styles.modalBaslik}>{t('temaDegisti')}</Text>
               <Text style={styles.modalYazi}>
-                {t('temaKaydedildiYeniden', veriDili === 'en' ? PALETLER[secili].adEn : PALETLER[secili].ad)}
+                {t('temaKaydedildiYeniden', paletAdi(PALETLER[secili]))}
               </Text>
 
               <TouchableOpacity

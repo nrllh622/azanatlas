@@ -15,6 +15,7 @@ import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { TURKEY_PROVINCES, Province } from '../data/turkeyLocations';
 import { DISTRICT_COORDS } from '../data/districtCoords';
+import { GLOBAL_COUNTRIES, GlobalCountry } from '../data/globalLocations';
 import { useLocationContext } from '../context/LocationContext';
 import { useCeviri } from '../i18n/DilContext';
 
@@ -44,7 +45,11 @@ function getCoordsFor(il: string, ilce: string) {
   return PROVINCE_FALLBACK[il] || DEFAULT_FALLBACK;
 }
 
-type Mode = 'list' | 'province' | 'district';
+// Madde 9 (bu tur): Türkiye dışındaki Faz-1 ülkeleri için manuel ülke→şehir
+// akışı eklendi. 'country' → 'city' yeni akış (globalLocations.ts); Türkiye
+// seçilirse mevcut 'province' → 'district' akışına (il/ilçe düzeyi) yönlenir
+// — o veri seti (TURKEY_PROVINCES/DISTRICT_COORDS) korunuyor, DEĞİŞMEDİ.
+type Mode = 'list' | 'country' | 'province' | 'district' | 'city';
 
 export default function LocationPickerScreen({ onDone }: Props) {
   const insets = useSafeAreaInsets();
@@ -52,6 +57,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
   const { t } = useCeviri();
   const [mode, setMode] = useState<Mode>('list');
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<GlobalCountry | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
   const useGps = async () => {
@@ -122,10 +128,86 @@ export default function LocationPickerScreen({ onDone }: Props) {
               <Text style={styles.actionBtnText}>{gpsLoading ? t('konumAliniyor') : t('gpsIleEkle')}</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtnIkincil} onPress={() => setMode('province')} activeOpacity={0.75}>
-            <Text style={styles.actionBtnIkincilText}>{t('ilIlceSecerekEkle')}</Text>
+          <TouchableOpacity style={styles.actionBtnIkincil} onPress={() => setMode('country')} activeOpacity={0.75}>
+            <Text style={styles.actionBtnIkincilText}>{t('konumEkle')}</Text>
           </TouchableOpacity>
         </View>
+      </View>
+    );
+  }
+
+  // Madde 9 (bu tur): ülke seçimi — en üstte Türkiye (kendi il/ilçe akışına
+  // yönlenir), altında Faz-1'in diğer hedef ülkeleri (globalLocations.ts).
+  if (mode === 'country') {
+    return (
+      <View style={styles.wrap}>
+        <ScreenHeader title={t('ulkeSec')} icon="konum" onClose={() => setMode('list')} />
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listIcerik}
+          data={GLOBAL_COUNTRIES}
+          keyExtractor={(item) => item.code}
+          ListHeaderComponent={
+            <TouchableOpacity
+              style={styles.row}
+              activeOpacity={0.75}
+              onPress={() => setMode('province')}
+            >
+              <Text style={styles.rowText}>{t('turkiyeIlIlceSecerek')}</Text>
+            </TouchableOpacity>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.row}
+              activeOpacity={0.75}
+              onPress={() => {
+                setSelectedCountry(item);
+                setMode('city');
+              }}
+            >
+              <Text style={styles.rowText}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    );
+  }
+
+  // Madde 9 (bu tur): Türkiye dışı ülkeler için düz şehir listesi — il/ilçe
+  // hiyerarşisi yerine (bkz. globalLocations.ts'teki kapsam açıklaması).
+  if (mode === 'city') {
+    return (
+      <View style={styles.wrap}>
+        <ScreenHeader
+          title={t('sehirSec')}
+          subtitle={selectedCountry?.name}
+          icon="konum"
+          onClose={() => setMode('country')}
+        />
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listIcerik}
+          data={selectedCountry?.cities ?? []}
+          keyExtractor={(item) => item.name}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.row}
+              activeOpacity={0.75}
+              onPress={() => {
+                addLocation({
+                  latitude: item.lat,
+                  longitude: item.lng,
+                  il: selectedCountry!.name,
+                  ilce: item.name,
+                  countryCode: selectedCountry!.code,
+                });
+                onDone();
+              }}
+            >
+              <Text style={styles.rowText}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
       </View>
     );
   }
@@ -133,7 +215,7 @@ export default function LocationPickerScreen({ onDone }: Props) {
   if (mode === 'province') {
     return (
       <View style={styles.wrap}>
-        <ScreenHeader title={t('ilSec')} icon="konum" onClose={() => setMode('list')} />
+        <ScreenHeader title={t('ilSec')} icon="konum" onClose={() => setMode('country')} />
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listIcerik}

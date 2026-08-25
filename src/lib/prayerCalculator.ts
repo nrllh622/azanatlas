@@ -20,6 +20,14 @@ const LABELS: Record<VakitKey, string> = {
   yatsi: 'Yatsı',
 };
 
+// Madde 9 (bu tur): Faz-1'e eklenen yeni ülkeler (GB/AU/ID/FR) için otomatik
+// yöntem seçimi. GB/AU/ID için MWL (Muslim World League) — pek çok namaz
+// vakti uygulamasının bu ülkelerde varsayılan olarak kullandığı, yaygın
+// kabul gören açı seti — zaten `default` dalıyla zımnen kapsanıyordu; burada
+// AÇIKÇA listelendi (davranış DEĞİŞMEDİ, yalnızca niyet netleşti). FR için
+// ise `getMethodById('Uoif')`'de zaten tanımlı olan Fransa'ya özgü UOIF açı
+// setine (Fecr 12°, Yatsı 12°) yönlendirildi — bu, `default`'taki MWL'den
+// (Fecr 18°, Yatsı 17°) daha isabetli bir yerel tercih.
 function getMethodForCountry(countryCode: string) {
   switch (countryCode) {
     case 'TR': return CalculationMethod.Turkey();
@@ -27,6 +35,13 @@ function getMethodForCountry(countryCode: string) {
     case 'SA': return CalculationMethod.UmmAlQura();
     case 'EG': return CalculationMethod.Egyptian();
     case 'PK': case 'IN': case 'BD': return CalculationMethod.Karachi();
+    case 'GB': case 'AU': case 'ID': return CalculationMethod.MuslimWorldLeague();
+    case 'FR': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 12;
+      p.ishaAngle = 12;
+      return p;
+    }
     default: return CalculationMethod.MuslimWorldLeague();
   }
 }

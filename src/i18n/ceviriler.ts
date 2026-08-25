@@ -198,7 +198,10 @@ const anaSayfa = {
     sekmeAyarlar: 'Settings',
     aracTakip: 'Tracking',
     aracTesbih: 'Tasbih',
-    aracEsma: 'Names',
+    // Madde 12 (bu tur): "Names" tek başına anlamsız/eksikti — "Tasbih" gibi
+    // İngilizce konuşan Müslümanlar arasında zaten yerleşik olan "Asma"
+    // (Esmâ'nın uluslararası yazımı) kullanıldı.
+    aracEsma: 'Asma',
     aracKaza: 'Makeup',
     ocak: 'January', subat: 'February', mart: 'March', nisan: 'April',
     mayis: 'May', haziran: 'June', temmuz: 'July', agustos: 'August',
@@ -276,7 +279,10 @@ const anaSayfa = {
     sekmeAyarlar: 'Réglages',
     aracTakip: 'Suivi',
     aracTesbih: 'Tasbih',
-    aracEsma: 'Noms',
+    // Madde 12 (bu tur): "Noms" tek başına belirsizdi — "Tasbih" gibi
+    // Fransızca konuşan Müslümanlar arasında da yerleşik olan "Asma"
+    // (Esmâ'nın uluslararası yazımı) kullanıldı.
+    aracEsma: 'Asma',
     aracKaza: 'Rattrapage',
     ocak: 'Janvier', subat: 'Février', mart: 'Mars', nisan: 'Avril',
     mayis: 'Mai', haziran: 'Juin', temmuz: 'Juillet', agustos: 'Août',
@@ -675,13 +681,19 @@ const hatirlaticilarEkrani = {
 };
 
 // ── VAKTİNDE KIL ──
-// NOT: alıntı ("Allah katında en hayırlı amel...") bir HADİS metni —
-// Ana Sayfa'daki ayet/tarih verileri gibi VERİ içeriği sayılıyor, bu
-// paketin kapsamı dışında (yalnızca çevre metinler çevrildi).
+// NOT (bu tur): "vaktindeKilHadis"/"vaktindeKilHadisKaynak" anahtarları
+// önceki bir turda VaktindeKilScreen.tsx'e eklenmişti ama sözlükte hiç
+// tanımlanmamıştı — ekranda anahtar adının kendisi ("vaktindeKilHadis")
+// görünmesine yol açan bir hataydı (bkz. `dilBolumBasligi` ile aynı sınıf
+// hata). Alıntı, Sahih el-Buhârî 527 / Sahih Müslim 85'te geçen, İbn
+// Mes'ûd (r.a.) rivayetiyle bilinen sahih bir hadis — dört dilde de o
+// hadisin yerleşik/standart çevirisi kullanıldı.
 const vaktindeKilEkrani = {
   tr: {
     vaktindeKilBilgi:
       'Vaktinde Kıl açıkken, bir namaz vakti girdikten belirlediğin gecikme süresi kadar sonra, eğer o vakti henüz kılmadıysan sana hatırlatma bildirimi gönderir. Bir sonraki vakit girene kadar, belirlediğin sıklıkla bu hatırlatma tekrarlanır. Bildirimdeki "Kıldım" butonuna dokunursan, o vakit için kalan hatırlatmalar durur.',
+    vaktindeKilHadis: 'Allah katında en sevimli amel, vaktinde kılınan namazdır.',
+    vaktindeKilHadisKaynak: 'Buhârî, Mevâkît, 5; Müslim, Îmân, 137',
     ilkUyariGecikmesi: 'İlk Uyarı Gecikmesi',
     uyariSikligi: 'Uyarı Sıklığı',
     dakikadaBir: (n: number) => `${n} dakikada bir`,
@@ -691,6 +703,8 @@ const vaktindeKilEkrani = {
   en: {
     vaktindeKilBilgi:
       'When Pray on Time is on, it sends you a reminder notification after your chosen delay once a prayer time begins, if you haven’t marked it as performed yet. This reminder repeats at your chosen frequency until the next prayer time begins. Tapping "Done" on the notification stops the remaining reminders for that prayer.',
+    vaktindeKilHadis: 'The deed most beloved to Allah is prayer performed at its early appointed time.',
+    vaktindeKilHadisKaynak: 'Sahih al-Bukhari 527; Sahih Muslim 85',
     ilkUyariGecikmesi: 'First Alert Delay',
     uyariSikligi: 'Alert Frequency',
     dakikadaBir: (n: number) => `Every ${n} minutes`,
@@ -700,6 +714,8 @@ const vaktindeKilEkrani = {
   id: {
     vaktindeKilBilgi:
       'Saat Salat Tepat Waktu aktif, setelah waktu salat masuk dan Anda belum menandainya sebagai dikerjakan, aplikasi akan mengirim notifikasi pengingat setelah jeda waktu yang Anda tentukan. Pengingat ini berulang sesuai frekuensi yang Anda tentukan hingga waktu salat berikutnya masuk. Menekan tombol "Sudah" pada notifikasi akan menghentikan sisa pengingat untuk waktu tersebut.',
+    vaktindeKilHadis: 'Amalan yang paling dicintai Allah adalah shalat yang dikerjakan tepat pada waktunya.',
+    vaktindeKilHadisKaynak: 'Shahih Bukhari 527; Shahih Muslim 85',
     ilkUyariGecikmesi: 'Jeda Peringatan Pertama',
     uyariSikligi: 'Frekuensi Peringatan',
     dakikadaBir: (n: number) => `Setiap ${n} menit`,
@@ -709,6 +725,8 @@ const vaktindeKilEkrani = {
   fr: {
     vaktindeKilBilgi:
       'Lorsque Prier à l\'heure est activé, l\'application vous envoie une notification de rappel après le délai choisi une fois qu\'une heure de prière commence, si vous ne l\'avez pas encore marquée comme accomplie. Ce rappel se répète selon la fréquence choisie jusqu\'à la prochaine heure de prière. Toucher "Fait" sur la notification arrête les rappels restants pour cette prière.',
+    vaktindeKilHadis: 'L\'œuvre la plus aimée d\'Allah est la prière accomplie à son heure.',
+    vaktindeKilHadisKaynak: 'Sahih al-Boukhari 527 ; Sahih Muslim 85',
     ilkUyariGecikmesi: 'Délai de la première alerte',
     uyariSikligi: 'Fréquence des alertes',
     dakikadaBir: (n: number) => `Toutes les ${n} minutes`,
@@ -773,6 +791,13 @@ const konumSecici = {
     sil: 'Sil',
     gpsIleEkle: 'GPS ile Ekle',
     ilIlceSecerekEkle: '+ İl/İlçe Seçerek Ekle',
+    // Madde 9 (bu tur): Türkiye dışındaki Faz-1 ülkeleri için manuel
+    // ülke → şehir seçim akışı eklendi (bkz. globalLocations.ts,
+    // LocationPickerScreen.tsx).
+    konumEkle: '+ Konum Ekle',
+    ulkeSec: 'Ülke Seç',
+    sehirSec: 'Şehir Seç',
+    turkiyeIlIlceSecerek: 'Türkiye (İl / İlçe seçerek)',
   },
   en: {
     sehriDegistir: 'Change City',
@@ -781,6 +806,10 @@ const konumSecici = {
     sil: 'Delete',
     gpsIleEkle: 'Add via GPS',
     ilIlceSecerekEkle: '+ Add by Selecting Province/District',
+    konumEkle: '+ Add Location',
+    ulkeSec: 'Select Country',
+    sehirSec: 'Select City',
+    turkiyeIlIlceSecerek: 'Turkey (by Province / District)',
   },
   id: {
     sehriDegistir: 'Ubah Kota',
@@ -789,6 +818,10 @@ const konumSecici = {
     sil: 'Hapus',
     gpsIleEkle: 'Tambah via GPS',
     ilIlceSecerekEkle: '+ Tambah dengan Memilih Provinsi/Kabupaten',
+    konumEkle: '+ Tambah Lokasi',
+    ulkeSec: 'Pilih Negara',
+    sehirSec: 'Pilih Kota',
+    turkiyeIlIlceSecerek: 'Turki (pilih Provinsi / Kabupaten)',
   },
   fr: {
     sehriDegistir: 'Changer de ville',
@@ -797,6 +830,10 @@ const konumSecici = {
     sil: 'Supprimer',
     gpsIleEkle: 'Ajouter via GPS',
     ilIlceSecerekEkle: '+ Ajouter en choisissant province/district',
+    konumEkle: '+ Ajouter un emplacement',
+    ulkeSec: 'Sélectionner le pays',
+    sehirSec: 'Sélectionner la ville',
+    turkiyeIlIlceSecerek: 'Turquie (par province / district)',
   },
 };
 

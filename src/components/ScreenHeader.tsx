@@ -56,7 +56,7 @@ export default function ScreenHeader({
             accessibilityRole="button"
             accessibilityLabel={t('geri')}
           >
-            <Icon name="geri" size={22} color={colors.textOnDark} />
+            <Icon name="geri" size={27} color={colors.textOnDark} />
             <Text style={styles.geriYazi} numberOfLines={1}>
               {t('geri')}
             </Text>
@@ -67,7 +67,7 @@ export default function ScreenHeader({
 
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
-            {icon && <Icon name={icon} size={18} color={colors.copperLight} />}
+            {icon && <Icon name={icon} size={21} color={colors.copperLight} />}
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
@@ -116,25 +116,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   // Geri butonu: ikon + büyük fontlu "Geri" yazısı yan yana, aynı hizada.
+  // Madde 10b (bu tur): kullanıcı geri ok ikonunun ve yazısının hâlâ küçük
+  // kaldığını bildirdi — ok 22→27, yazı 16→18 yapıldı; `minWidth`/`height`
+  // 44'e çıkarılarak büyüyen ikonla dokunma alanı orantılı kaldı.
   geriBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    minWidth: 40,
-    height: 40,
+    minWidth: 44,
+    height: 44,
     paddingRight: spacing.xs,
   },
   geriYazi: {
     fontFamily: typography.bodyBold,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.textOnDark,
   },
   titleWrap: { flex: 1, alignItems: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  // Madde 8 (bu tur): sayfa başlıkları (İmsakiye, Vaktinde Kıl, Kıble, Şehir
+  // Değiştir vb.) ve yanlarındaki ikonlar okunurluk için büyütüldü (18→21).
   title: {
     fontFamily: typography.displaySemibold,
     color: colors.textOnDark,
-    fontSize: 18,
+    fontSize: 21,
   },
   subtitle: {
     fontFamily: typography.bodyMedium,

@@ -73,8 +73,12 @@ export default function EsmaulHusnaScreen({ onClose }: Props) {
 
   return (
     <View style={styles.wrap}>
+      {/* Madde 12 (bu tur): başlık `t('adEsmaulHusna')` yerine sabit Türkçe
+          "Esmâü'l-Hüsnâ" metniydi — sözlükte doğru çeviriler (EN "Names of
+          Allah", ID "Asmaul Husna", FR "Noms d'Allah") zaten tanımlıyken bu
+          ekran onları hiç okumuyordu. */}
       <ScreenHeader
-        title="Esmâü'l-Hüsnâ"
+        title={t('adEsmaulHusna')}
         subtitle={t('esmaAltBaslik')}
         icon="esma"
         onClose={onClose}

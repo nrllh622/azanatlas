@@ -28,19 +28,21 @@ import Icon from '../components/Icon';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { useCeviri } from '../i18n/DilContext';
+import { veriSec } from '../lib/veriSec';
 
 const STORAGE_KEY = 'azanatlas_tesbih_v1';
 
 /** Namaz sonrası tesbihatta okunan zikirler ve alışılmış sayıları.
-    `anlam`/`anlamEn`: Arapça/Latin yazılış DEĞİŞMEZ (her dilde aynı), yalnızca
-    kısa anlam açıklaması aktif dile göre seçiliyor. */
+    `anlam`/`anlamEn`/`anlamId`/`anlamFr`: Arapça/Latin yazılış DEĞİŞMEZ (her
+    dilde aynı), yalnızca kısa anlam açıklaması aktif dile göre seçiliyor
+    (madde 10a/13 — bu tur: id/fr alanları da eklendi, bkz. `veriSec()`). */
 const ZIKIRLER = [
-  { id: 'subhanallah', arabic: 'سُبْحَانَ اللّٰه', latin: 'Sübhânallâh', anlam: 'Allah her türlü eksiklikten uzaktır', anlamEn: 'Glory be to Allah, free from all imperfection', hedef: 33 },
-  { id: 'elhamdulillah', arabic: 'اَلْحَمْدُ لِلّٰه', latin: 'Elhamdülillâh', anlam: 'Hamd Allah’a mahsustur', anlamEn: 'All praise belongs to Allah', hedef: 33 },
-  { id: 'allahuekber', arabic: 'اَللّٰهُ اَكْبَر', latin: 'Allâhü ekber', anlam: 'Allah en büyüktür', anlamEn: 'Allah is the greatest', hedef: 33 },
-  { id: 'lailahe', arabic: 'لَا إِلٰهَ إِلَّا اللّٰه', latin: 'Lâ ilâhe illallâh', anlam: 'Allah’tan başka ilah yoktur', anlamEn: 'There is no god but Allah', hedef: 100 },
-  { id: 'istigfar', arabic: 'أَسْتَغْفِرُ اللّٰه', latin: 'Estağfirullâh', anlam: 'Allah’tan bağışlanma dilerim', anlamEn: 'I seek forgiveness from Allah', hedef: 100 },
-  { id: 'salavat', arabic: 'اَللّٰهُمَّ صَلِّ عَلٰى مُحَمَّد', latin: 'Allâhümme salli alâ Muhammed', anlam: 'Peygamber’e salât ü selam', anlamEn: 'O Allah, send blessings upon Muhammad', hedef: 100 },
+  { id: 'subhanallah', arabic: 'سُبْحَانَ اللّٰه', latin: 'Sübhânallâh', anlam: 'Allah her türlü eksiklikten uzaktır', anlamEn: 'Glory be to Allah, free from all imperfection', anlamId: 'Mahasuci Allah dari segala kekurangan', anlamFr: 'Gloire à Allah, exempt de toute imperfection', hedef: 33 },
+  { id: 'elhamdulillah', arabic: 'اَلْحَمْدُ لِلّٰه', latin: 'Elhamdülillâh', anlam: 'Hamd Allah’a mahsustur', anlamEn: 'All praise belongs to Allah', anlamId: 'Segala puji hanya milik Allah', anlamFr: 'Toute louange appartient à Allah', hedef: 33 },
+  { id: 'allahuekber', arabic: 'اَللّٰهُ اَكْبَر', latin: 'Allâhü ekber', anlam: 'Allah en büyüktür', anlamEn: 'Allah is the greatest', anlamId: 'Allah Mahabesar', anlamFr: 'Allah est le plus grand', hedef: 33 },
+  { id: 'lailahe', arabic: 'لَا إِلٰهَ إِلَّا اللّٰه', latin: 'Lâ ilâhe illallâh', anlam: 'Allah’tan başka ilah yoktur', anlamEn: 'There is no god but Allah', anlamId: 'Tiada Tuhan selain Allah', anlamFr: 'Il n’y a de divinité qu’Allah', hedef: 100 },
+  { id: 'istigfar', arabic: 'أَسْتَغْفِرُ اللّٰه', latin: 'Estağfirullâh', anlam: 'Allah’tan bağışlanma dilerim', anlamEn: 'I seek forgiveness from Allah', anlamId: 'Aku memohon ampun kepada Allah', anlamFr: 'Je demande pardon à Allah', hedef: 100 },
+  { id: 'salavat', arabic: 'اَللّٰهُمَّ صَلِّ عَلٰى مُحَمَّد', latin: 'Allâhümme salli alâ Muhammed', anlam: 'Peygamber’e salât ü selam', anlamEn: 'O Allah, send blessings upon Muhammad', anlamId: 'Ya Allah, limpahkanlah selawat kepada Muhammad', anlamFr: 'Ô Allah, envoie Tes bénédictions sur Muhammad', hedef: 100 },
 ];
 
 interface Props {
@@ -85,11 +87,6 @@ export default function TesbihScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { vibrationEnabled } = useGeneralSettings();
   const { t, dil } = useCeviri();
-  // Zikir anlamı verisi şimdilik yalnızca tr/en olarak yazılı. Faz-1'e
-  // eklenen id/fr arayüzü tam çevrildi, ama bu veri içeriği henüz id/fr'ye
-  // çevrilmedi — Türkçe DIŞINDAKİ her dilde (en/id/fr) İngilizce metne
-  // düşülüyor.
-  const veriDili = dil === 'tr' ? 'tr' : 'en';
   const [zikirId, setZikirId] = useState(ZIKIRLER[0].id);
   const [sayac, setSayac] = useState(0);
   const [tur, setTur] = useState(0);
@@ -198,10 +195,17 @@ export default function TesbihScreen({ onClose }: Props) {
         <View style={styles.zikirKart}>
           <Text style={styles.zikirArapca}>{zikir.arabic}</Text>
           <Text style={styles.zikirLatin}>{zikir.latin}</Text>
-          <Text style={styles.zikirAnlam}>{veriDili === 'en' ? zikir.anlamEn : zikir.anlam}</Text>
+          <Text style={styles.zikirAnlam}>{veriSec(dil, zikir.anlam, zikir.anlamEn, zikir.anlamId, zikir.anlamFr)}</Text>
         </View>
 
-        {/* Sayaç — ekranın büyük bölümü dokunma alanı */}
+        {/* Sayaç — ekranın büyük bölümü dokunma alanı.
+            Madde 3 (bu tur): kullanıcı "Geri Al"/"Sıfırla" butonlarının
+            ekranın altına scroll yapmadan sığmadığını bildirdi — dairesel
+            sayaç 208dp'lik sabit boyutuyla en büyük tek bloktu. Aşağıda
+            `boyut={172}` ile küçültüldü, `sayacAlan`'ın dikey iç boşluğu ve
+            üst boşlukları da daraltıldı — toplamda ekranın tamamı artık
+            scroll'suz sığıyor (ScrollView yine de en küçük telefonlar için
+            güvenlik ağı olarak duruyor). */}
         <Pressable
           onPress={artir}
           style={({ pressed }) => [styles.sayacAlan, pressed && styles.sayacAlanBasili]}
@@ -209,7 +213,7 @@ export default function TesbihScreen({ onClose }: Props) {
           accessibilityLabel={t('sayaciArtirEtiketi', sayac, zikir.hedef)}
         >
           <View style={styles.halkaKap}>
-            <IlerlemeHalkasi oran={sayac / zikir.hedef} />
+            <IlerlemeHalkasi oran={sayac / zikir.hedef} boyut={172} />
             <View style={styles.sayacIc}>
               <Text style={styles.sayacRakam}>{sayac}</Text>
               <Text style={styles.sayacHedef}>/ {zikir.hedef}</Text>
@@ -286,17 +290,17 @@ const styles = StyleSheet.create({
   zikirKart: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    padding: spacing.lg,
+    padding: spacing.md,
     alignItems: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     ...elevation.card,
   },
   zikirArapca: {
     fontFamily: typography.displayFamily,
-    fontSize: 28,
+    fontSize: 24,
     color: colors.primaryDark,
     textAlign: 'center',
-    lineHeight: 46,
+    lineHeight: 38,
   },
   zikirLatin: {
     fontFamily: typography.bodyBold,
@@ -317,25 +321,25 @@ const styles = StyleSheet.create({
   sayacAlan: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
     backgroundColor: colors.white,
     borderRadius: radius.xl,
     ...elevation.card,
   },
   sayacAlanBasili: { backgroundColor: colors.primarySoft },
   halkaKap: {
-    width: 208,
-    height: 208,
+    width: 172,
+    height: 172,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sayacIc: { alignItems: 'center' },
   sayacRakam: {
     fontFamily: typography.displayFamily,
-    fontSize: 64,
+    fontSize: 52,
     color: colors.primaryDark,
-    lineHeight: 76,
+    lineHeight: 60,
   },
   sayacHedef: {
     fontFamily: typography.bodyMedium,
@@ -347,7 +351,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.bodyMedium,
     fontSize: fontSize.body,
     color: colors.textMuted,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
 
   turKart: {
@@ -358,13 +362,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     ...elevation.card,
   },
   turEtiket: { flex: 1, fontFamily: typography.bodyMedium, fontSize: fontSize.body, color: colors.textMuted },
   turDeger: { fontFamily: typography.bodyBold, fontSize: fontSize.title, color: colors.primaryDark },
 
-  eylemSatir: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  eylemSatir: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   geriAlBtn: {
     flex: 1,
     backgroundColor: colors.white,
