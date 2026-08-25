@@ -76,6 +76,14 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   // `SimplePickerModal` çağrılarındaki `.map(...)` dönüşümleri (madde 7,
   // bu tur).
   const { dil, diliDegistir, t } = useCeviri();
+  // Hesaplama yöntemi/mezhep/yüksek açı/ölçü birimi etiketleri yalnızca
+  // tr/label ve en/labelEn olarak yazılı (CalculationSettingsContext.tsx).
+  // Önceden `dil === 'en'` kontrolü kullanılıyordu — bu, id/fr seçiliyken
+  // İngilizce'ye DEĞİL, yanlışlıkla Türkçe'ye düşüyordu (`dil === 'en'`
+  // false olduğu için hep `label`, yani Türkçe seçiliyordu). Diğer veri
+  // içerikleriyle (ayet/tarih/zikir/tema/dini gün) aynı `veriDili` deseni
+  // kullanılarak düzeltildi: Türkçe DIŞINDAKİ her dilde İngilizce'ye düşer.
+  const veriDili = dil === 'tr' ? 'tr' : 'en';
   const { settings, setPreAlert, setOnTime, setFlag } = useNotificationSettings();
   const {
     autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
@@ -112,16 +120,16 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   // Madde 7 (i18n taraması, bu tur): CALC_METHODS/MADHAB_OPTIONS/
   // HIGH_LAT_OPTIONS/DISTANCE_UNIT_OPTIONS artık `labelEn` de taşıyor
   // (bkz. CalculationSettingsContext.tsx) — dile göre seçiliyor.
-  const methodLabel = (dil === 'en'
+  const methodLabel = (veriDili === 'en'
     ? CALC_METHODS.find((m) => m.id === methodId)?.labelEn
     : CALC_METHODS.find((m) => m.id === methodId)?.label) ?? '';
-  const madhabLabel = (dil === 'en'
+  const madhabLabel = (veriDili === 'en'
     ? MADHAB_OPTIONS.find((m) => m.id === madhab)?.labelEn
     : MADHAB_OPTIONS.find((m) => m.id === madhab)?.label) ?? '';
-  const highLatLabel = (dil === 'en'
+  const highLatLabel = (veriDili === 'en'
     ? HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.labelEn
     : HIGH_LAT_OPTIONS.find((m) => m.id === highLatRule)?.label) ?? '';
-  const distanceUnitLabel = (dil === 'en'
+  const distanceUnitLabel = (veriDili === 'en'
     ? DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.labelEn
     : DISTANCE_UNIT_OPTIONS.find((m) => m.id === distanceUnit)?.label) ?? '';
 
@@ -377,7 +385,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={methodPickerVisible}
         title={t('hesaplamaYontemiBaslik')}
-        options={CALC_METHODS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
+        options={CALC_METHODS.map((m) => ({ id: m.id, label: veriDili === 'en' ? m.labelEn : m.label }))}
         selectedId={methodId}
         onSelect={(id) => setMethodId(id as any)}
         onClose={() => setMethodPickerVisible(false)}
@@ -386,7 +394,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={madhabPickerVisible}
         title={t('ikindiHesabi')}
-        options={MADHAB_OPTIONS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
+        options={MADHAB_OPTIONS.map((m) => ({ id: m.id, label: veriDili === 'en' ? m.labelEn : m.label }))}
         selectedId={madhab}
         onSelect={(id) => setMadhab(id as any)}
         onClose={() => setMadhabPickerVisible(false)}
@@ -395,7 +403,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={highLatPickerVisible}
         title={t('yuksekAciHesabi')}
-        options={HIGH_LAT_OPTIONS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
+        options={HIGH_LAT_OPTIONS.map((m) => ({ id: m.id, label: veriDili === 'en' ? m.labelEn : m.label }))}
         selectedId={highLatRule}
         onSelect={(id) => setHighLatRule(id as any)}
         onClose={() => setHighLatPickerVisible(false)}
@@ -413,7 +421,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
       <SimplePickerModal
         visible={distanceUnitPickerVisible}
         title={t('olcuBirimleri')}
-        options={DISTANCE_UNIT_OPTIONS.map((m) => ({ id: m.id, label: dil === 'en' ? m.labelEn : m.label }))}
+        options={DISTANCE_UNIT_OPTIONS.map((m) => ({ id: m.id, label: veriDili === 'en' ? m.labelEn : m.label }))}
         selectedId={distanceUnit}
         onSelect={(id) => setDistanceUnit(id as any)}
         onClose={() => setDistanceUnitPickerVisible(false)}

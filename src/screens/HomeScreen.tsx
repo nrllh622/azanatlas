@@ -400,12 +400,20 @@ export default function HomeScreen() {
   // -------------------------------------------------------------------
   let sekmeIcerigi: React.ReactNode;
 
+  // Madde 1 (bu tur, 6. kez tekrarlanan uyarı): kullanıcı HER ekranda bir
+  // Geri butonu istiyor. İmsakiye/Keşfet/Kıble sekmeleri önceden `onClose`
+  // GEÇMİYORDU (yalnızca alt navigasyondan erişilen "sekme" sayıldıkları
+  // için) — bu yüzden ScreenHeader'daki Geri butonu bu üç ekranda hiç
+  // görünmüyordu; Ayarlar'da ise zaten `onClose={() => setTab('home')}`
+  // veriliyordu, o yüzden yalnızca orada görünüyordu. Artık üçü de Ayarlar
+  // ile birebir aynı deseni kullanıyor — sekmedeyken bile Geri butonuna
+  // basılınca Ana Sayfa'ya dönüyor.
   if (tab === 'imsakiye') {
-    sekmeIcerigi = <ImsakiyeScreen />;
+    sekmeIcerigi = <ImsakiyeScreen onClose={() => setTab('home')} />;
   } else if (tab === 'kesfet') {
-    sekmeIcerigi = <KesfetScreen onNavigate={kesfetYonlendir} />;
+    sekmeIcerigi = <KesfetScreen onNavigate={kesfetYonlendir} onClose={() => setTab('home')} />;
   } else if (tab === 'qibla') {
-    sekmeIcerigi = <QiblaScreen />;
+    sekmeIcerigi = <QiblaScreen onClose={() => setTab('home')} />;
   } else if (tab === 'settings') {
     sekmeIcerigi = (
       <SettingsScreen
@@ -518,7 +526,7 @@ export default function HomeScreen() {
             <View style={styles.siradakiKap}>
               <View style={styles.siradakiAdSatir}>
                 <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
-                <Icon name={vakitIcon(next.key)} size={20} color={colors.copperLight} />
+                <Icon name={vakitIcon(next.key)} size={16} color={colors.copperLight} />
                 <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
@@ -574,14 +582,20 @@ export default function HomeScreen() {
               Bugün kandil/bayram ise vurgulu kart; değilse yaklaşan günü
               sade bir satır olarak gösteriyoruz. Böylece kart her gün
               görünüyor ama yalnızca gerçekten özel günlerde öne çıkıyor. */}
+          {/* Madde 3 (bu tur): "Mevlid Kandili" / "Peygamber Efendimizin doğum
+              yıldönümü" gibi dini gün verisi zaten `ad`/`adEn` ve
+              `aciklama`/`aciklamaEn` şeklinde iki dilli tutuluyordu
+              (diniGunler.ts) — ama bu ekran hep Türkçe `ad`/`aciklama`
+              alanını okuyordu, `veriDili`'ye hiç bakmıyordu. Artık ayet/
+              tarih kartlarıyla aynı `veriDili` deseni kullanılıyor. */}
           {diniGun ? (
             <View style={styles.diniGunKart}>
               <IslamicPattern color={colors.cream} opacity={0.10} tile={38} />
               <View style={styles.diniGunIc}>
                 <Icon name="hilal" size={22} color={colors.copperLight} />
                 <View style={styles.diniGunMetin}>
-                  <Text style={styles.diniGunAd}>{diniGun.ad}</Text>
-                  <Text style={styles.diniGunAciklama}>{diniGun.aciklama}</Text>
+                  <Text style={styles.diniGunAd}>{veriDili === 'en' ? diniGun.adEn : diniGun.ad}</Text>
+                  <Text style={styles.diniGunAciklama}>{veriDili === 'en' ? diniGun.aciklamaEn : diniGun.aciklama}</Text>
                 </View>
               </View>
             </View>
@@ -589,7 +603,7 @@ export default function HomeScreen() {
             <View style={styles.yaklasanSatir}>
               <Icon name="hilal" size={17} color={colors.copper} />
               <Text style={styles.yaklasanYazi}>
-                {t('kalanGunKaldi', yaklasan.gun.ad, yaklasan.kalanGun)}
+                {t('kalanGunKaldi', veriDili === 'en' ? yaklasan.gun.adEn : yaklasan.gun.ad, yaklasan.kalanGun)}
               </Text>
             </View>
           ) : null}
@@ -606,7 +620,18 @@ export default function HomeScreen() {
           {kerahat.active && (
             <View style={styles.uyariSerit}>
               <Icon name="uyari" size={15} color={colors.white} />
-              <Text style={styles.uyariSeritYazi}>{t('mekruhVakti', kerahat.reason)}</Text>
+              {/* Madde 3 (bu tur): önceden `kerahat.reason` (kerahat.ts'teki
+                  @deprecated, HER ZAMAN Türkçe sabit metin) kullanılıyordu —
+                  bu yüzden dil değişse bile bu uyarı hep Türkçe kalıyordu.
+                  Artık çeviri-dostu `kerahat.tur` anahtarına göre doğru
+                  dildeki metin seçiliyor. */}
+              <Text style={styles.uyariSeritYazi}>
+                {t('mekruhVakti', t(
+                  kerahat.tur === 'gunes-dogarken' ? 'kerahatSebepGunesDogarken'
+                    : kerahat.tur === 'zeval' ? 'kerahatSebepZeval'
+                    : 'kerahatSebepGunesBatarken'
+                ))}
+              </Text>
             </View>
           )}
 
@@ -959,40 +984,43 @@ const styles = StyleSheet.create({
   },
 
   siradakiKap: { marginTop: 2 },
+  // DÜZELTME (4. tur, 6. kez tekrarlanan uyarı): önceki turda "SIRADAKİ
+  // VAKİT" + ikon + vakit adı + saat dördü de fontSize 26'da AYNI satıra
+  // konmuştu, kod olarak doğruydu — ama fiilen bir telefon ekranında
+  // "SIRADAKİ VAKİT" (14 karakter) + ikon + "Akşam" + "19:57" toplam
+  // genişliği 26pt'de satır genişliğini AŞIYORDU, bu yüzden `flexWrap:
+  // 'wrap'` devreye girip saat bir SONRAKİ satıra düşüyordu — ekranda hâlâ
+  // "hizasız" görünmesinin asıl sebebi buydu (font boyutları eşitti ama
+  // satır fiziksel olarak sığmıyordu). Çözüm: bu satırdaki fontSize'ı
+  // 26'dan 19'a indirmek — dördü hâlâ BİRBİRİYLE AYNI boyutta (kullanıcının
+  // istediği gibi), ama artık dar telefon ekranlarında da (Fransızca
+  // "PROCHAINE PRIÈRE" gibi en uzun çeviri dahil) satıra sığıyor.
   siradakiEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 19,
+    lineHeight: 24,
     color: colors.copperLight,
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
     includeFontPadding: false,
   },
-  // DÜZELTME (3. tur): "SIRADAKİ VAKİT", ikon, vakit adı ve saatin DÖRDÜ DE
-  // aynı satırda — bkz. JSX'teki düzeltme notu. `flexWrap:'wrap'` dar
-  // ekranlarda (veya uzun çeviri metinlerinde, örn. İngilizce "NEXT PRAYER")
-  // taşmayı satır kaydırarak karşılıyor, kesmiyor.
   siradakiAdSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     marginTop: spacing.xs,
   },
-  // DÜZELTME (3. tur): "SIRADAKİ VAKİT" etiketi de dahil TÜM satırdaki
-  // metinler AYNI font ailesi (displaySemibold), AYNI fontSize VE AYNI
-  // lineHeight kullanıyor. `includeFontPadding: false` (Android) fontun
-  // kendi iç boşluğundan kaynaklanan görünmez kaymayı da ortadan kaldırıyor.
   siradakiAd: {
     fontFamily: typography.displaySemibold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 19,
+    lineHeight: 24,
     color: colors.white,
     includeFontPadding: false,
   },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 19,
+    lineHeight: 24,
     color: colors.copperLight,
     includeFontPadding: false,
   },
@@ -1375,13 +1403,13 @@ const styles = StyleSheet.create({
   // zemin artık primaryBright olmadığından o çakışma senaryosu hiç
   // oluşmuyor bile (bkz. DoluIkon.tsx'teki A1 notu).
   navIkonKapAktif: { backgroundColor: colors.copperLight },
-  // Madde 5 (bu tur): alt navigasyon yazıları fontSize.micro (11) çok küçük
-  // kalıyordu — fontSize.tiny (12.5) ile büyütüldü. En uzun etiket
-  // ("İmsakiye") 58dp'lik navIkonKap genişliğinde bu boyutta hâlâ rahat
-  // sığıyor, taşma riski yok.
+  // Madde 5 (bu tur, 2. büyütme): alt navigasyon yazıları önce fontSize.micro
+  // (11) → fontSize.tiny (12.5) yapılmıştı, kullanıcı hâlâ küçük buldu —
+  // şimdi fontSize.small (14) yapıldı. `numberOfLines={1}` zaten JSX'te var,
+  // en uzun etiket ("İmsakiye") bu boyutta da taşmıyor.
   navYazi: {
     fontFamily: typography.bodyMedium,
-    fontSize: fontSize.tiny,
+    fontSize: fontSize.small,
     color: colors.textOnDarkMuted,
   },
   navYaziAktif: { fontFamily: typography.bodyBold, color: colors.copperLight },
