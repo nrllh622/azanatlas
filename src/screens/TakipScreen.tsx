@@ -179,8 +179,14 @@ export default function TakipScreen({ onClose }: Props) {
         <Text style={[styles.bolumBaslik, { marginTop: spacing.lg }]}>{t('son4Hafta')}</Text>
         <View style={styles.izgaraKart}>
           <View style={styles.izgaraBaslikSatir}>
-            {GUN_KISALTMA.map((g) => (
-              <Text key={g} style={styles.izgaraBaslik}>
+            {/* Madde 4 (bu tur): `key={g}` KISALTILMIŞ metni (ör. "Pa", "Cu")
+                key olarak kullanıyordu — Türkçe'de Pazartesi/Pazar ikisi de
+                "Pa", Cuma/Cumartesi ikisi de "Cu" olduğundan iki çift key
+                çakışıyor ve React "two children with same key" uyarısı
+                veriyordu. `g` yalnızca 2 harfli kısaltmayı taşıdığı için
+                benzersizliği garanti etmiyor; index her zaman benzersiz. */}
+            {GUN_KISALTMA.map((g, i) => (
+              <Text key={i} style={styles.izgaraBaslik}>
                 {g}
               </Text>
             ))}

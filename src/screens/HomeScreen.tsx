@@ -249,20 +249,26 @@ export default function HomeScreen() {
     return gecen ?? vakitler[vakitler.length - 1];
   }, [vakitler, now]);
 
-  // Takip ikonundaki kırmızı nokta için: bugün vakti ZATEN GİRMİŞ olan farz
-  // namazlardan kaçının henüz "kılındı" işaretlenmediği. Önceden bu nokta
-  // yanlışlıkla `kazaTotal > 0` (Kaza sayısı) ile kontrol ediliyordu — Takip
-  // değeri sıfır olsa bile Kaza borcu varsa nokta çıkıyordu. Artık Takip'in
-  // KENDİ verisine bakıyor: yalnızca gerçekten "bugün kaçırılmış/bekleyen"
-  // bir vakit varsa (>0) nokta gösteriliyor.
+  // Takip ikonundaki kırmızı nokta için: bugün TAMAMEN GEÇMİŞ (yani şu anki
+  // aktif vakitten ÖNCEKİ) farz namazlardan kaçının henüz "kılındı"
+  // işaretlenmediği. Önceden bu nokta yanlışlıkla `kazaTotal > 0` (Kaza
+  // sayısı) ile kontrol ediliyordu. Bir düzeltme daha sonra `current.key`'i
+  // (şu an içinde bulunulan, kılma süresi HÂLÂ DEVAM EDEN vakit) de
+  // "bekleyen" sayıyordu — kullanıcı henüz o vakti kılmaya fırsat bulmadan
+  // (örn. öğle vakti yeni girmişken) bile nokta çıkıyordu, bu yanıltıcıydı.
+  // Artık yalnızca `current`'tan ÖNCEKİ takip edilebilir vakitler sayılıyor
+  // — aktif vaktin kılma süresi bitene kadar ona dokunulmuyor.
   const takipBekleyen = useMemo(() => {
+    const currentIndex = vakitler.findIndex((v) => v.key === current.key);
     return TAKIP_VAKITLERI.reduce((sayac, vakitKey) => {
-      const girdi = vakitler.find((v) => v.key === vakitKey);
-      const vaktiGirdi = girdi && girdi.date.getTime() <= now.getTime();
+      const girdiIndex = vakitler.findIndex((v) => v.key === vakitKey);
+      // Yalnızca current'tan KESİN ÖNCE gelen (indeksi küçük) vakitler
+      // "tamamen geçmiş" sayılır; current'ın kendisi ve sonrası hariç.
+      const tamamenGecti = girdiIndex !== -1 && currentIndex !== -1 && girdiIndex < currentIndex;
       const kilindi = bugunKilinanlar.includes(vakitKey);
-      return vaktiGirdi && !kilindi ? sayac + 1 : sayac;
+      return tamamenGecti && !kilindi ? sayac + 1 : sayac;
     }, 0);
-  }, [vakitler, now, bugunKilinanlar]);
+  }, [vakitler, current, bugunKilinanlar]);
 
   const kerahat = useMemo(
     () => getKerahatInfo(vakitler, now, kerahatMinutes),
@@ -525,7 +531,14 @@ export default function HomeScreen() {
             <View style={styles.siradakiKap}>
               <View style={styles.siradakiSatir}>
                 <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
-                <Icon name={vakitIcon(next.key)} size={18} color={colors.copperLight} />
+                {/* Madde 2b (bu tur): İkon `alignItems:'baseline'` hizalı bir
+                    satırın içinde tek başına aşağı kayıyordu (Text değil,
+                    baseline'ı olmayan bir View/SVG). Ayrı bir sabit-yükseklikli
+                    kapta `alignItems:'center'` ile sarmalandı, bu da onu
+                    kardeş metinlerin hizasına ortalıyor. */}
+                <View style={styles.siradakiIkonKap}>
+                  <Icon name={vakitIcon(next.key)} size={18} color={colors.copperLight} />
+                </View>
                 <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
@@ -620,23 +633,28 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* Madde 5 (bu tur): kullanıcı isteğiyle Ana Sayfa'daki mekruh
-              (kerahat) vakti uyarı şeridi KALDIRILDI — Keraat/Kuşluk/Zeval
-              vakitlerinde artık ekranda hiçbir uyarı gösterilmiyor. Kod
-              SİLİNMEDİ, aşağıda satır satır `//` ile yorumlandı; kullanıcı
-              ileride tekrar açmak isteyebilir. `kerahat` değişkeni (yukarıda
-              `getKerahatInfo` ile hesaplanıyor) hâlâ mevcut, yalnızca burada
-              KULLANILMIYOR — bildirim tarafı (`kerahatNotifyEnabled`,
-              notificationScheduler.ts) bu değişiklikten ETKİLENMEDİ, ayrıca
-              bkz. o dosyadaki Zeval bildirimi kaldırma notu. */}
-          {/*
-          {kerahat.active && (
+          {/* Madde 1 (bu tur — önceki turda tamamı kaldırılmıştı): kullanıcı
+              yalnızca ZEVAL vaktinde şeridin gizli kalmasını istedi; Güneş
+              doğarken/batarken kerahat uyarısı ESKİ HALİYLE geri getirildi.
+              `kerahat.tur !== 'zeval'` koşulu Zeval'i dışlıyor — bildirim
+              tarafı (notificationScheduler.ts, Zeval bildirimi) bu ekran
+              şeridinden bağımsız, ondan etkilenmiyor. Sebep metni artık
+              `kerahat.tur`'a göre çevrilen anahtarlardan geliyor (sabit
+              Türkçe string yerine), böylece İngilizce modda da doğru dilde
+              gösteriliyor. */}
+          {kerahat.active && kerahat.tur !== 'zeval' && (
             <View style={styles.uyariSerit}>
               <Icon name="uyari" size={15} color={colors.white} />
-              <Text style={styles.uyariSeritYazi}>{t('mekruhVakti', kerahat.reason)}</Text>
+              <Text style={styles.uyariSeritYazi}>
+                {t(
+                  'mekruhVakti',
+                  kerahat.tur === 'gunes-dogarken'
+                    ? t('kerahatSeritGunesDogarken')
+                    : t('kerahatSeritGunesBatarken')
+                )}
+              </Text>
             </View>
           )}
-          */}
 
           {isRamazan && aksam && (
             <View style={styles.iftarSerit}>
@@ -1008,12 +1026,15 @@ const styles = StyleSheet.create({
     color: colors.copperLight,
     letterSpacing: 1.4,
   },
+  // Madde 2 (bu tur): kullanıcı vakit adının ("İkindi") saat yazısıyla
+  // ("16:57") AYNI boyutta olmasını istedi — önceden 22px/32px olarak
+  // farklıydı, artık ikisi de 32px.
   siradakiAd: {
     flexShrink: 1,
     fontFamily: typography.displayFamily,
-    fontSize: 22,
+    fontSize: 32,
     color: colors.white,
-    lineHeight: 30,
+    lineHeight: 40,
   },
   // Kullanıcı bu satırı iki pakettir "hâlâ küçük" diye tekrarladı. 26px
   // yetersiz kaldı — 32'ye çıkarıldı (vakit adı biraz küçültülerek satırın
@@ -1025,6 +1046,14 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: colors.copperLight,
   },
+  // Madde 2b (bu tur): ikon artık kendi kabında ortalanıyor (bkz. JSX'teki
+  // `siradakiIkonKap` sarmalayıcı) — satırın `alignItems:'baseline'`
+  // hizasından bağımsız olarak metinlerle aynı dikey hizada duruyor.
+  siradakiIkonKap: {
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   // Madde 6 (bu tur): "KALAN SÜRE" etiketi ve sayaç artık TEK satırda,
   // `alignItems: 'baseline'` ile hizalı ("KALAN SÜRE 03:26:08") — önceki
   // düzende etiket üstte, sayaç ayrı bir alt satırdaydı.
@@ -1033,10 +1062,15 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: spacing.xs + 2,
     marginTop: spacing.xs,
+    flexWrap: 'wrap',
   },
+  // Madde 2 (bu tur): "KALAN SÜRE" etiketi de sayaçla ("03:26:08") AYNI
+  // boyutta olsun istendi — önceden fontSize.micro/38 olarak çok farklıydı,
+  // artık ikisi de 38px. Büyük harf + letterSpacing ile etiket karakteri
+  // korunuyor.
   kalanSureEtiket: {
     fontFamily: typography.bodyBold,
-    fontSize: fontSize.micro,
+    fontSize: 38,
     color: colors.copperLight,
     letterSpacing: 1.4,
     opacity: 0.9,

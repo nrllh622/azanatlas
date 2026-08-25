@@ -117,6 +117,18 @@ const anaSayfa = {
     gunlukSeri: (n: number) => `${n} günlük seri`,
     gunlukSeriEtiketi: (n: number) => `${n} günlük seri. Takip ekranını aç`,
     mekruhVakti: (sebep: string) => `Mekruh vakti — ${sebep}`,
+    // Madde 1 (bu tur): kerahat şeridi geri getirildiğinde `kerahat.reason`
+    // (kerahat.ts içinde SABİT Türkçe string) yerine bunlar kullanılıyor —
+    // böylece İngilizce modda da doğru dilde gösterilir. Zeval kasıtlı
+    // olarak burada YOK: kullanıcı isteğiyle yalnızca Zeval'de şerit hiç
+    // gösterilmiyor (bkz. HomeScreen.tsx, `kerahat.tur !== 'zeval'`).
+    // DİKKAT: isim `bildirimler` bölümündeki `kerahatGunesDoarken`/
+    // `kerahatGunesBatarken` (bildirim metinleri, tam cümle) ile
+    // KASITLI OLARAK FARKLI — `SOZLUK` birleşiminde `bildirimler`,
+    // `anaSayfa`'dan SONRA spread edildiği için aynı isim burada aynı
+    // anahtarı sessizce ezerdi (bu hata bir kere yapılıp fark edildi).
+    kerahatSeritGunesDogarken: 'Güneş doğarken',
+    kerahatSeritGunesBatarken: 'Güneş batarken',
     iftaraKalan: (sure: string) => `İftara kalan süre: ${sure}`,
     diyanetUlasilamadi: 'Diyanet verisine ulaşılamadı, geçici olarak yerel hesaplama gösteriliyor.',
     simdi: 'Şimdi',
@@ -156,6 +168,8 @@ const anaSayfa = {
     gunlukSeri: (n: number) => `${n}-day streak`,
     gunlukSeriEtiketi: (n: number) => `${n}-day streak. Open Tracking screen`,
     mekruhVakti: (sebep: string) => `Disliked time — ${sebep}`,
+    kerahatSeritGunesDogarken: 'While the sun is rising',
+    kerahatSeritGunesBatarken: 'While the sun is setting',
     iftaraKalan: (sure: string) => `Time to Iftar: ${sure}`,
     diyanetUlasilamadi: 'Could not reach Diyanet data, showing local calculation temporarily.',
     simdi: 'Now',

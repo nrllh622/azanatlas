@@ -1,8 +1,15 @@
 // src/lib/kerahat.ts
 import { VakitEntry } from './prayerCalculator';
 
+/** Hangi klasik kerahat vaktinde olunduğu — HomeScreen bunu kullanarak
+ *  Zeval'i ekran uyarısından ayrı tutabiliyor (bkz. `tur` kullanımı). */
+export type KerahatTuru = 'gunes-dogarken' | 'zeval' | 'gunes-batarken';
+
 export interface KerahatInfo {
   active: boolean;
+  tur?: KerahatTuru;
+  /** @deprecated Çeviri anahtarına taşındı — bkz. `tur`. Geriye dönük
+   *  uyumluluk için tutuluyor, yeni kod `tur` kullanmalı. */
   reason?: string;
 }
 
@@ -39,20 +46,22 @@ export function getKerahatInfo(
   if (gunes) {
     const bas = gunes.date.getTime();
     const son = bas + pencereMs;
-    if (nowMs >= bas && nowMs <= son) return { active: true, reason: 'Güneş doğarken' };
+    if (nowMs >= bas && nowMs <= son) {
+      return { active: true, tur: 'gunes-dogarken', reason: 'Güneş doğarken' };
+    }
   }
 
   if (ogle) {
     const bas = ogle.date.getTime() - ZEVAL_DAKIKA * 60 * 1000;
     if (nowMs >= bas && nowMs <= ogle.date.getTime()) {
-      return { active: true, reason: 'Zeval vakti (öğleye yakın)' };
+      return { active: true, tur: 'zeval', reason: 'Zeval vakti (öğleye yakın)' };
     }
   }
 
   if (aksam) {
     const bas = aksam.date.getTime() - pencereMs;
     if (nowMs >= bas && nowMs < aksam.date.getTime()) {
-      return { active: true, reason: 'Güneş batarken' };
+      return { active: true, tur: 'gunes-batarken', reason: 'Güneş batarken' };
     }
   }
 
