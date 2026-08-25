@@ -492,25 +492,21 @@ export default function HomeScreen() {
             </View>
 
             {/* Sıradaki vakit + geri sayım
-                DÜZELTME (bu tur — 3 madde):
-                1) Vakit adı ve saat artık AYNI punto/font kullanıyor (ikisi de
-                   siradakiSaat stiliyle) — önceden vakit adı 22px, saat 32px
-                   olduğu için taban çizgileri kayıyordu.
-                2) İkon artık ad/saat satırıyla YAN YANA değil, kendi başına
-                   ÜSTTE ayrı bir satırda — önceden satır 32px'lik saate göre
-                   uzadıkça 22px'lik ikon görsel olarak "aşağı düşmüş" gibi
-                   duruyordu; ikonu ayrı satıra almak hem bu kaymayı ortadan
-                   kaldırıyor hem de önceki tasarımlardaki "ikon vaktin
-                   üstünde" yerleşimini geri getiriyor.
-                3) "KALAN SÜRE" etiketi ile geri sayım artık üst-alt değil,
-                   "Sıradaki Vakit" satırıyla aynı düzen dilinde YAN YANA ve
-                   dikeyde ortalanmış (kalanSureSatir). */}
+                DÜZELTME (bu tur — kullanıcı geri bildirimi 2. tur):
+                1) İkon artık "Akşam" vakit adının HEMEN YANINDA (solunda),
+                   ayrı bir satırda değil — tek satırda "🌆 Akşam  19:57".
+                2) Vakit adı + saat + "KALAN SÜRE" etiketi + geri sayımın
+                   TAMAMI artık `typography.displaySemibold` (Cairo SemiBold)
+                   kullanıyor. Önceki turda "aynı fontSize" yeterli
+                   sanılmıştı ama `kalanSureEtiket` (Manrope/bodyBold) ile
+                   `geriSayim` (Cairo/displayFamily) FARKLI FONT AİLESİ
+                   kullanıyordu — aynı punto olsa da iki farklı yazı tipi
+                   göze belirgin boyut farkı gibi görünüyordu. Şimdi dördü
+                   de aynı font ailesi + aynı fontSize + aynı lineHeight. */}
             <View style={styles.siradakiKap}>
               <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
-              <View style={styles.siradakiIkon}>
-                <Icon name={vakitIcon(next.key)} size={22} color={colors.copperLight} />
-              </View>
               <View style={styles.siradakiAdSatir}>
+                <Icon name={vakitIcon(next.key)} size={22} color={colors.copperLight} />
                 <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
@@ -735,12 +731,16 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                   )}
-                  {/* DÜZELTME (bu tur): Takip ikonundaki kırmızı nokta yanlışlıkla
-                      kazaTotal'a (Kaza borcuna) bağlıydı — Takip'in kendi değeriyle
-                      hiçbir ilgisi yoktu, Kaza borcu > 0 olduğunda Takip ikonunda da
-                      anlamsızca beliriyordu. Takip'in kendine ait bir "bildirim
-                      sayısı" kavramı olmadığı için bu gösterge tamamen kaldırıldı —
-                      Kaza'nın kendi rozeti (yukarıda) zaten tek başına yeterli. */}
+                  {/* DÜZELTME (2. tur): önceki turda bu nokta yanlışlıkla
+                      kazaTotal'a (Kaza borcuna) bağlıydı, o yüzden tamamen
+                      kaldırılmıştı. Kullanıcı şimdi netleştirdi: Takip
+                      ikonunda KENDİ değerine (namaz takip serisi, `seri`)
+                      bağlı bir gösterge istiyor — seri > 0 iken (yani
+                      kullanıcı en az bir gün namaz işaretlemişse) nokta
+                      görünsün. */}
+                  {arac.hedef === 'takip' && seri > 0 && (
+                    <View style={styles.hizliNokta} />
+                  )}
                 </View>
                 <Text style={styles.hizliAd}>{t(arac.adAnahtari)}</Text>
               </TouchableOpacity>
@@ -948,53 +948,60 @@ const styles = StyleSheet.create({
     color: colors.copperLight,
     letterSpacing: 1.4,
   },
-  // İkon artık ad/saat satırının DIŞINDA, kendi başına üstte — bkz. JSX'teki
-  // düzeltme notu. Ayrı bir satır olduğu için ad/saat metniyle hizalanma
-  // sorunu yaşamıyor.
-  siradakiIkon: {
-    marginTop: spacing.xs,
-  },
+  // İkon artık "Akşam" vakit adının hemen solunda, aynı satırda.
   siradakiAdSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
-  // DÜZELTME (bu tur): vakit adı ve saat artık BİREBİR AYNI punto/font
-  // kullanıyor (önceden 22px/32px farklıydı, taban çizgileri kayıyordu).
-  // `alignItems: 'baseline'` ile ikisi de aynı metin hizasında duruyor.
+  // DÜZELTME (2. tur): vakit adı ve saat AYNI font ailesi (displaySemibold),
+  // AYNI fontSize VE AYNI lineHeight kullanıyor — sadece fontSize eşitlemek
+  // yetmiyordu, satır yüksekliği farklı kaldığı sürece taban çizgisi yine
+  // kayabiliyordu. `includeFontPadding: false` (Android) fontun kendi iç
+  // boşluğundan kaynaklanan görünmez kaymayı da ortadan kaldırıyor.
   siradakiAd: {
     fontFamily: typography.displaySemibold,
-    fontSize: 28,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.white,
+    includeFontPadding: false,
   },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 28,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.copperLight,
+    includeFontPadding: false,
   },
-  // DÜZELTME (bu tur): "KALAN SÜRE" etiketi ile geri sayım artık üst-alt
-  // değil, "Sıradaki Vakit" satırıyla aynı düzen dilinde YAN YANA ve
-  // `alignItems: 'baseline'` ile aynı hizada. İkisi de aynı fontSize.
+  // DÜZELTME (2. tur): "KALAN SÜRE" etiketi ile geri sayım artık İKİSİ DE
+  // `displaySemibold` (önceden etiket Manrope/bodyBold, sayaç Cairo/
+  // displayFamily kullanıyordu — aynı fontSize'da bile farklı font ailesi
+  // göze belirgin boyut farkı gibi görünüyordu). Aynı lineHeight ile de
+  // taban çizgisi kayması engellendi.
   kalanSureSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: spacing.sm,
     marginTop: spacing.sm,
   },
   kalanSureEtiket: {
-    fontFamily: typography.bodyBold,
-    fontSize: 28,
+    fontFamily: typography.displaySemibold,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.copperLight,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
+    includeFontPadding: false,
   },
   geriSayim: {
-    fontFamily: typography.displayFamily,
-    fontSize: 28,
+    fontFamily: typography.displaySemibold,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.white,
-    letterSpacing: 1,
+    letterSpacing: 0.6,
+    includeFontPadding: false,
   },
 
   ilerlemeRay: {
@@ -1172,6 +1179,17 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   hizliRozetYazi: { fontFamily: typography.bodyBold, fontSize: 9, color: colors.white },
+  hizliNokta: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: colors.copperVivid,
+    borderWidth: 1.5,
+    borderColor: colors.white,
+  },
 
   // ---------- REKLAM ALANI ----------
   // Artık gerçek `BannerReklam` bileşenine geçirilen konum stili — yükseklik
@@ -1336,9 +1354,13 @@ const styles = StyleSheet.create({
   // zemin artık primaryBright olmadığından o çakışma senaryosu hiç
   // oluşmuyor bile (bkz. DoluIkon.tsx'teki A1 notu).
   navIkonKapAktif: { backgroundColor: colors.copperLight },
+  // Madde 5 (bu tur): alt navigasyon yazıları fontSize.micro (11) çok küçük
+  // kalıyordu — fontSize.tiny (12.5) ile büyütüldü. En uzun etiket
+  // ("İmsakiye") 58dp'lik navIkonKap genişliğinde bu boyutta hâlâ rahat
+  // sığıyor, taşma riski yok.
   navYazi: {
     fontFamily: typography.bodyMedium,
-    fontSize: fontSize.micro,
+    fontSize: fontSize.tiny,
     color: colors.textOnDarkMuted,
   },
   navYaziAktif: { fontFamily: typography.bodyBold, color: colors.copperLight },
