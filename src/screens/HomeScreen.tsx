@@ -147,6 +147,13 @@ function geriSayimBicimle(ms: number): string {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { t, vakitAdi, dil } = useCeviri();
+  // Günün Ayeti / İslam Tarihinde Bugün verisi şimdilik yalnızca tr/en
+  // olarak yazılı. Faz-1'e eklenen id/fr arayüzü tam çevrildi, ama bu veri
+  // içeriği (ayet meali/kaynağı, tarih olayı başlığı/açıklaması) henüz
+  // id/fr'ye çevrilmedi — Türkçe DIŞINDAKİ her dilde (en/id/fr) İngilizce
+  // metne düşülüyor; sessizce Türkçe göstermek yerine en azından anlaşılır
+  // bir dilde kalınması tercih edildi.
+  const veriDili = dil === 'tr' ? 'tr' : 'en';
   const { location, locations, activeId, setActiveId } = useLocationContext();
   const { settings, setOnTime } = useNotificationSettings();
   const {
@@ -421,8 +428,15 @@ export default function HomeScreen() {
             Konum/bildirim ikonları koyu zemine uygun biçimde yeniden
             tasarlandı: dolgulu daireler yerine ince kenarlıklı, yarı saydam
             "cam" düğmeler — parlak beyaz dolgu koyu zeminde çok sert
-            dururdu, bu yumuşak versiyon hem okunaklı hem tema rengine sadık. */}
-        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.xs }]}>
+            dururdu, bu yumuşak versiyon hem okunaklı hem tema rengine sadık.
+            Madde (bu tur): kullanıcı Konum/Bildirim ikonlarının ekranın en
+            üstüne çok yakın durduğunu belirtti — paddingTop, `insets.top`
+            üzerine yalnızca `spacing.xs` (4dp) ekliyordu, bu da status bar
+            ile ikon arasında neredeyse hiç boşluk bırakmıyordu. `spacing.md`
+            (16dp) yapılarak belirgin, görünür bir boşluk sağlandı. Bu aynı
+            zamanda kalıcı kurala uyuyor: hiçbir üst/alt buton ekran kenarına
+            yapışık durmayacak. */}
+        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.md }]}>
           <IslamicPattern color={colors.cream} opacity={0.07} tile={44} />
           <TouchableOpacity
             style={styles.konumBlok}
@@ -492,21 +506,19 @@ export default function HomeScreen() {
             </View>
 
             {/* Sıradaki vakit + geri sayım
-                DÜZELTME (bu tur — kullanıcı geri bildirimi 2. tur):
-                1) İkon artık "Akşam" vakit adının HEMEN YANINDA (solunda),
-                   ayrı bir satırda değil — tek satırda "🌆 Akşam  19:57".
-                2) Vakit adı + saat + "KALAN SÜRE" etiketi + geri sayımın
-                   TAMAMI artık `typography.displaySemibold` (Cairo SemiBold)
-                   kullanıyor. Önceki turda "aynı fontSize" yeterli
-                   sanılmıştı ama `kalanSureEtiket` (Manrope/bodyBold) ile
-                   `geriSayim` (Cairo/displayFamily) FARKLI FONT AİLESİ
-                   kullanıyordu — aynı punto olsa da iki farklı yazı tipi
-                   göze belirgin boyut farkı gibi görünüyordu. Şimdi dördü
-                   de aynı font ailesi + aynı fontSize + aynı lineHeight. */}
+                DÜZELTME (3. tur — kullanıcı 5. kez aynı şeyi belirtti):
+                Önceki iki turda "SIRADAKİ VAKİT" etiketi hâlâ AYRI, KÜÇÜK
+                bir satırda bırakılmıştı — yalnızca vakit adı+saat ikilisi
+                birbirine eşitlenmişti, kullanıcının asıl isteği bu değildi.
+                Şimdi "SIRADAKİ VAKİT", ikon, vakit adı ve saatin DÖRDÜ DE
+                TEK SATIRDA, aynı font ailesi + aynı fontSize + aynı
+                lineHeight ile yan yana. Aynı kural "KALAN SÜRE" + geri
+                sayım çifti için de geçerli — ikisi zaten aynı satırdaydı,
+                şimdi ilk satırla da aynı punto ölçeğine getirildi. */}
             <View style={styles.siradakiKap}>
-              <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
               <View style={styles.siradakiAdSatir}>
-                <Icon name={vakitIcon(next.key)} size={22} color={colors.copperLight} />
+                <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
+                <Icon name={vakitIcon(next.key)} size={20} color={colors.copperLight} />
                 <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
@@ -763,8 +775,8 @@ export default function HomeScreen() {
               <Icon name="ayet" size={16} color={colors.copperLight} />
               <Text style={styles.ayetBaslik}>{t('gununAyeti')}</Text>
             </View>
-            <Text style={styles.ayetMetin}>{dil === 'en' ? ayet.mealEn : ayet.meal}</Text>
-            <Text style={styles.ayetKaynak}>{dil === 'en' ? ayet.kaynakEn : ayet.kaynak}</Text>
+            <Text style={styles.ayetMetin}>{veriDili === 'en' ? ayet.mealEn : ayet.meal}</Text>
+            <Text style={styles.ayetKaynak}>{veriDili === 'en' ? ayet.kaynakEn : ayet.kaynak}</Text>
           </View>
 
           {/* ── İSLAM TARİHİNDE BUGÜN ──
@@ -783,8 +795,8 @@ export default function HomeScreen() {
             <View style={styles.tarihIcerik}>
               <Text style={styles.tarihYil}>{tarihOlayi.olay.yil}</Text>
               <View style={styles.tarihMetin}>
-                <Text style={styles.tarihOlayBaslik}>{dil === 'en' ? tarihOlayi.olay.baslikEn : tarihOlayi.olay.baslik}</Text>
-                <Text style={styles.tarihAciklama}>{dil === 'en' ? tarihOlayi.olay.aciklamaEn : tarihOlayi.olay.aciklama}</Text>
+                <Text style={styles.tarihOlayBaslik}>{veriDili === 'en' ? tarihOlayi.olay.baslikEn : tarihOlayi.olay.baslik}</Text>
+                <Text style={styles.tarihAciklama}>{veriDili === 'en' ? tarihOlayi.olay.aciklamaEn : tarihOlayi.olay.aciklama}</Text>
                 {!tarihOlayi.bugunMu && (
                   <Text style={styles.tarihGoreceli}>
                     {tarihOlayi.gunFarki > 0
@@ -813,7 +825,12 @@ export default function HomeScreen() {
           bir bakır (copperLight) şerit + dolgulu pil daralıp dikdörtgene
           dönüşüyor. Şerit, her sekmenin kendi genişliğine eşit bölünmüş bir
           üst satırda, yalnızca aktif sekmenin payında görünür oluyor. */}
-      <View style={[styles.altNavKap, { paddingBottom: insets.bottom + spacing.xs }]}>
+      {/* Kalıcı kural: alt navigasyon butonları da ekranın en altına
+          yapışık durmamalı. `insets.bottom` sıfıra yakın olan cihazlarda
+          (gesture bar/home-indicator'ı olmayan telefonlar) yalnızca
+          `spacing.xs` (4dp) neredeyse hiç boşluk bırakmıyordu — `spacing.sm`
+          (8dp) ile her cihazda görünür bir taban boşluğu garanti edildi. */}
+      <View style={[styles.altNavKap, { paddingBottom: insets.bottom + spacing.sm }]}>
         <View style={styles.serit}>
           {SEKMELER.map((s) => (
             <View key={s.id} style={styles.seritPay}>
@@ -943,24 +960,28 @@ const styles = StyleSheet.create({
 
   siradakiKap: { marginTop: 2 },
   siradakiEtiket: {
-    fontFamily: typography.bodyBold,
-    fontSize: fontSize.tiny,
+    fontFamily: typography.displaySemibold,
+    fontSize: 26,
+    lineHeight: 32,
     color: colors.copperLight,
-    letterSpacing: 1.4,
+    letterSpacing: 0.4,
+    includeFontPadding: false,
   },
-  // İkon artık "Akşam" vakit adının hemen solunda, aynı satırda.
+  // DÜZELTME (3. tur): "SIRADAKİ VAKİT", ikon, vakit adı ve saatin DÖRDÜ DE
+  // aynı satırda — bkz. JSX'teki düzeltme notu. `flexWrap:'wrap'` dar
+  // ekranlarda (veya uzun çeviri metinlerinde, örn. İngilizce "NEXT PRAYER")
+  // taşmayı satır kaydırarak karşılıyor, kesmiyor.
   siradakiAdSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
-  // DÜZELTME (2. tur): vakit adı ve saat AYNI font ailesi (displaySemibold),
-  // AYNI fontSize VE AYNI lineHeight kullanıyor — sadece fontSize eşitlemek
-  // yetmiyordu, satır yüksekliği farklı kaldığı sürece taban çizgisi yine
-  // kayabiliyordu. `includeFontPadding: false` (Android) fontun kendi iç
-  // boşluğundan kaynaklanan görünmez kaymayı da ortadan kaldırıyor.
+  // DÜZELTME (3. tur): "SIRADAKİ VAKİT" etiketi de dahil TÜM satırdaki
+  // metinler AYNI font ailesi (displaySemibold), AYNI fontSize VE AYNI
+  // lineHeight kullanıyor. `includeFontPadding: false` (Android) fontun
+  // kendi iç boşluğundan kaynaklanan görünmez kaymayı da ortadan kaldırıyor.
   siradakiAd: {
     fontFamily: typography.displaySemibold,
     fontSize: 26,

@@ -34,7 +34,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, NativeModules } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import * as Updates from 'expo-updates';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import IslamicPattern from '../components/IslamicPattern';
@@ -44,37 +45,6 @@ import {
 } from '../theme';
 import { temayiKaydet, kayitliTemayiOku } from '../lib/temaDeposu';
 import { useCeviri } from '../i18n/DilContext';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// expo-updates — NEDEN STATİK import EDİLMİYOR
-//
-// `import * as Updates from 'expo-updates'` derleme zamanında çözülen bir
-// statik importtur; modül grafiği yüklenirken (yani uygulama açılışında,
-// HomeScreen → ... → TemaScreen zinciri kurulurken) hemen çalıştırılır.
-// Expo Go'da (veya native tarafı henüz derlenmemiş bir build'de) native
-// `ExpoUpdates` modülü kayıtlı değildir; paketin JS tarafı modül
-// yüklenirken bu native modülü SENKRON olarak arar ve bulamayınca throw
-// eder — "Uncaught Error: Cannot find native module 'ExpoUpdates'" ile
-// UYGULAMA HİÇ AÇILMADAN çöker (aynı kalıp `BannerReklam.tsx`'teki reklam
-// SDK çökmesiyle birebir aynı kök nedene sahip).
-//
-// Çözüm: paketi hiç `require` ETMEDEN önce native modülün gerçekten bağlı
-// olup olmadığı `NativeModules` üzerinden kontrol ediliyor. Bağlı değilse
-// (Expo Go) paketin JS dosyalarına hiç girilmiyor, `Updates` null kalıyor
-// — `yenidenBaslat()` bu durumda zaten kullanıcıyı elle kapatıp açması
-// için bilgilendiriyordu, davranış değişmiyor.
-// ─────────────────────────────────────────────────────────────────────────────
-let Updates: any = null;
-const nativeUpdatesModuluBagli = !!(NativeModules as any)?.ExpoUpdates;
-if (nativeUpdatesModuluBagli) {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Updates = require('expo-updates');
-  } catch {
-    // Ekstra güvenlik ağı — native modül kayıtlı görünse bile beklenmeyen
-    // bir hata olursa sessizce atlanır, Updates null kalır.
-  }
-}
 
 interface Props {
   onClose?: () => void;
@@ -165,12 +135,11 @@ export default function TemaScreen({ onClose }: Props) {
   const yenidenBaslat = async () => {
     setYenidenBasliyor(true);
     try {
-      if (!Updates) throw new Error('expo-updates native modülü bağlı değil');
       await Updates.reloadAsync();
     } catch {
-      // Expo Go'da veya development build dışı ortamlarda expo-updates
-      // native modülü hiç bağlı değildir — bu durumda kullanıcıyı elle
-      // kapatıp açması için bilgilendiriyoruz, uygulamayı kilitlemiyoruz.
+      // Expo Go'da veya development build dışı ortamlarda reloadAsync
+      // native modülü bulamayabilir — bu durumda kullanıcıyı elle kapatıp
+      // açması için bilgilendiriyoruz, uygulamayı kilitlemiyoruz.
       setYenidenBasliyor(false);
       setOnayAcik(false);
     }
@@ -198,8 +167,15 @@ export default function TemaScreen({ onClose }: Props) {
   };
 
   const anahtarlar = Object.keys(PALETLER) as PaletAdi[];
-  const paletAdi = (p: (typeof PALETLER)[PaletAdi]) => (dil === 'en' ? p.adEn : p.ad);
-  const paletAciklama = (p: (typeof PALETLER)[PaletAdi]) => (dil === 'en' ? p.aciklamaEn : p.aciklama);
+  // Palet adı/açıklaması verisi şimdilik yalnızca tr/en olarak yazılı.
+  // Faz-1'e eklenen id/fr arayüzü tam çevrildi, ancak bu veri içeriği
+  // (11 palet × ad+açıklama) henüz id/fr'ye çevrilmedi — bu yüzden
+  // Türkçe DIŞINDAKİ her dilde (en/id/fr) İngilizce metne düşülüyor;
+  // sessizce Türkçe göstermek yerine en azından anlaşılır bir dilde
+  // kalınması tercih edildi.
+  const veriDili = dil === 'tr' ? 'tr' : 'en';
+  const paletAdi = (p: (typeof PALETLER)[PaletAdi]) => (veriDili === 'en' ? p.adEn : p.ad);
+  const paletAciklama = (p: (typeof PALETLER)[PaletAdi]) => (veriDili === 'en' ? p.aciklamaEn : p.aciklama);
 
   return (
     <View style={styles.wrap}>
@@ -284,7 +260,7 @@ export default function TemaScreen({ onClose }: Props) {
               </View>
               <Text style={styles.modalBaslik}>{t('temaDegisti')}</Text>
               <Text style={styles.modalYazi}>
-                {t('temaKaydedildiYeniden', dil === 'en' ? PALETLER[secili].adEn : PALETLER[secili].ad)}
+                {t('temaKaydedildiYeniden', veriDili === 'en' ? PALETLER[secili].adEn : PALETLER[secili].ad)}
               </Text>
 
               <TouchableOpacity

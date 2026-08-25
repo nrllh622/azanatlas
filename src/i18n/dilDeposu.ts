@@ -14,11 +14,19 @@ import { DilKodu, VARSAYILAN_DIL, sistemDiliniTahminEt } from './ceviriler';
 
 const ANAHTAR = 'azanatlas_dil_v1';
 
+// Geçerli dil kodlarının listesi — Faz-1 diline yeni bir dil eklendiğinde
+// (bkz. `ceviriler.ts`'teki `DilKodu`) yalnızca burası güncellenmesi
+// gerekiyor. Önceden yalnızca 'tr'/'en' hardcoded kontrol ediliyordu; bu,
+// kullanıcı Endonezce/Fransızca seçse bile uygulama yeniden açıldığında
+// kayıtlı seçimin tanınmayıp sessizce varsayılan dile (tr) dönmesine yol
+// açan bir hataydı — Faz-1 dilleri eklenirken fark edilip düzeltildi.
+const GECERLI_DILLER: DilKodu[] = ['tr', 'en', 'id', 'fr'];
+
 /** Kayıtlı dili okur; hiç seçim yapılmadıysa cihaz diline göre tahmin eder. */
 export async function kayitliDiliOku(): Promise<DilKodu> {
   try {
     const deger = await AsyncStorage.getItem(ANAHTAR);
-    if (deger === 'tr' || deger === 'en') return deger;
+    if (deger && (GECERLI_DILLER as string[]).includes(deger)) return deger as DilKodu;
   } catch {
     // yoksay — tahmine düş
   }

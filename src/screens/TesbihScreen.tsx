@@ -85,6 +85,11 @@ export default function TesbihScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
   const { vibrationEnabled } = useGeneralSettings();
   const { t, dil } = useCeviri();
+  // Zikir anlamı verisi şimdilik yalnızca tr/en olarak yazılı. Faz-1'e
+  // eklenen id/fr arayüzü tam çevrildi, ama bu veri içeriği henüz id/fr'ye
+  // çevrilmedi — Türkçe DIŞINDAKİ her dilde (en/id/fr) İngilizce metne
+  // düşülüyor.
+  const veriDili = dil === 'tr' ? 'tr' : 'en';
   const [zikirId, setZikirId] = useState(ZIKIRLER[0].id);
   const [sayac, setSayac] = useState(0);
   const [tur, setTur] = useState(0);
@@ -193,7 +198,7 @@ export default function TesbihScreen({ onClose }: Props) {
         <View style={styles.zikirKart}>
           <Text style={styles.zikirArapca}>{zikir.arabic}</Text>
           <Text style={styles.zikirLatin}>{zikir.latin}</Text>
-          <Text style={styles.zikirAnlam}>{dil === 'en' ? zikir.anlamEn : zikir.anlam}</Text>
+          <Text style={styles.zikirAnlam}>{veriDili === 'en' ? zikir.anlamEn : zikir.anlam}</Text>
         </View>
 
         {/* Sayaç — ekranın büyük bölümü dokunma alanı */}

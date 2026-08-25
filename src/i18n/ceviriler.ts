@@ -40,21 +40,19 @@
 // KAPATIP AÇMAYA gerek yok.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type DilKodu = 'tr' | 'en';
+// Faz-1 (bu paket): Türkçe, İngilizce, Endonezce, Fransızca. Sıradaki fazlar
+// (Arapça, Urduca, Bengalce, Hausa, Swahili, Farsça, Kürtçe lehçeleri)
+// onaylanmış yol haritasına göre ayrı paketlerde eklenecek — bkz. proje
+// devir dosyası / pazar stratejisi raporu.
+export type DilKodu = 'tr' | 'en' | 'id' | 'fr';
 
 export const VARSAYILAN_DIL: DilKodu = 'tr';
 
-// ÖNEMLİ: Bu sözlük KASITLI OLARAK aktif dile göre değişmez — her dil
-// seçeneği HER ZAMAN KENDİ DİLİNDE yazılı görünmeli ("Türkçe" ve "English"
-// sabit kalır, uygulamanın o an hangi dilde olduğu fark etmez). Kullanıcı
-// "uygulama Türkçe iken İngilizce butonu 'English' yazıyor" diye şikayet
-// ettiğinde bu ZATEN doğru/istenen davranıştır — SettingsScreen.tsx'teki
-// `DIL_ADLARI[kod]` render'ı `dil` state'ine hiç bakmaz, yalnızca `kod`'a
-// (yani hangi buton olduğuna) bakar. Bu satırları `dil`'e göre çeviren bir
-// mantığa ASLA çevirme — o zaman kullanıcı hedef dili göremez.
 export const DIL_ADLARI: Record<DilKodu, string> = {
   tr: 'Türkçe',
   en: 'English',
+  id: 'Bahasa Indonesia',
+  fr: 'Français',
 };
 
 /**
@@ -84,11 +82,6 @@ const ortak = {
     kapatBuyuk: 'KAPAT',
     vazgecBuyuk: 'VAZGEÇ',
     tamamBuyuk: 'TAMAM',
-    // Madde 7 (i18n taraması, bu tur): Ayarlar'daki dil seçimi bölüm başlığı
-    // daha önce SettingsScreen.tsx'te literal string olarak yazılıydı —
-    // t()'ye alındı. Metin bilinçli olarak HER İKİ dilde de aynı (kendi
-    // adını iki dilde birden gösteren tek bölüm başlığı).
-    dilBolumBasligi: 'Dil / Language',
   },
   en: {
     kapat: 'Close',
@@ -101,7 +94,30 @@ const ortak = {
     kapatBuyuk: 'CLOSE',
     vazgecBuyuk: 'CANCEL',
     tamamBuyuk: 'OK',
-    dilBolumBasligi: 'Dil / Language',
+  },
+  id: {
+    kapat: 'Tutup',
+    geri: 'Kembali',
+    kaydet: 'Simpan',
+    iptal: 'Batal',
+    tamam: 'OK',
+    ayarlar: 'Pengaturan',
+    yukleniyor: 'Memuat…',
+    kapatBuyuk: 'TUTUP',
+    vazgecBuyuk: 'BATAL',
+    tamamBuyuk: 'OK',
+  },
+  fr: {
+    kapat: 'Fermer',
+    geri: 'Retour',
+    kaydet: 'Enregistrer',
+    iptal: 'Annuler',
+    tamam: 'OK',
+    ayarlar: 'Paramètres',
+    yukleniyor: 'Chargement…',
+    kapatBuyuk: 'FERMER',
+    vazgecBuyuk: 'ANNULER',
+    tamamBuyuk: 'OK',
   },
 };
 
@@ -117,18 +133,6 @@ const anaSayfa = {
     gunlukSeri: (n: number) => `${n} günlük seri`,
     gunlukSeriEtiketi: (n: number) => `${n} günlük seri. Takip ekranını aç`,
     mekruhVakti: (sebep: string) => `Mekruh vakti — ${sebep}`,
-    // Madde 1 (bu tur): kerahat şeridi geri getirildiğinde `kerahat.reason`
-    // (kerahat.ts içinde SABİT Türkçe string) yerine bunlar kullanılıyor —
-    // böylece İngilizce modda da doğru dilde gösterilir. Zeval kasıtlı
-    // olarak burada YOK: kullanıcı isteğiyle yalnızca Zeval'de şerit hiç
-    // gösterilmiyor (bkz. HomeScreen.tsx, `kerahat.tur !== 'zeval'`).
-    // DİKKAT: isim `bildirimler` bölümündeki `kerahatGunesDoarken`/
-    // `kerahatGunesBatarken` (bildirim metinleri, tam cümle) ile
-    // KASITLI OLARAK FARKLI — `SOZLUK` birleşiminde `bildirimler`,
-    // `anaSayfa`'dan SONRA spread edildiği için aynı isim burada aynı
-    // anahtarı sessizce ezerdi (bu hata bir kere yapılıp fark edildi).
-    kerahatSeritGunesDogarken: 'Güneş doğarken',
-    kerahatSeritGunesBatarken: 'Güneş batarken',
     iftaraKalan: (sure: string) => `İftara kalan süre: ${sure}`,
     diyanetUlasilamadi: 'Diyanet verisine ulaşılamadı, geçici olarak yerel hesaplama gösteriliyor.',
     simdi: 'Şimdi',
@@ -168,8 +172,6 @@ const anaSayfa = {
     gunlukSeri: (n: number) => `${n}-day streak`,
     gunlukSeriEtiketi: (n: number) => `${n}-day streak. Open Tracking screen`,
     mekruhVakti: (sebep: string) => `Disliked time — ${sebep}`,
-    kerahatSeritGunesDogarken: 'While the sun is rising',
-    kerahatSeritGunesBatarken: 'While the sun is setting',
     iftaraKalan: (sure: string) => `Time to Iftar: ${sure}`,
     diyanetUlasilamadi: 'Could not reach Diyanet data, showing local calculation temporarily.',
     simdi: 'Now',
@@ -190,11 +192,83 @@ const anaSayfa = {
     sekmeAyarlar: 'Settings',
     aracTakip: 'Tracking',
     aracTesbih: 'Tasbih',
-    aracEsma: 'Names of Allah',
+    aracEsma: 'Names',
     aracKaza: 'Makeup',
     ocak: 'January', subat: 'February', mart: 'March', nisan: 'April',
     mayis: 'May', haziran: 'June', temmuz: 'July', agustos: 'August',
     eylul: 'September', ekim: 'October', kasim: 'November', aralik: 'December',
+  },
+  id: {
+    konumDegistirEtiketi: 'Ubah lokasi',
+    bildirimAyarlariEtiketi: 'Pengaturan notifikasi',
+    kalanSure: 'SISA WAKTU',
+    siradakiVakit: 'WAKTU BERIKUTNYA',
+    diyanetTakvimi: 'Kalender Diyanet',
+    yerelHesaplama: 'Perhitungan lokal',
+    gunlukSeri: (n: number) => `Rentetan ${n} hari`,
+    gunlukSeriEtiketi: (n: number) => `Rentetan ${n} hari. Buka layar Pelacakan`,
+    mekruhVakti: (sebep: string) => `Waktu makruh — ${sebep}`,
+    iftaraKalan: (sure: string) => `Waktu menuju Iftar: ${sure}`,
+    diyanetUlasilamadi: 'Data Diyanet tidak dapat dijangkau, sementara menampilkan perhitungan lokal.',
+    simdi: 'Sekarang',
+    kilindiOlarakIsaretle: (vakit: string) => `Tandai salat ${vakit} sudah dikerjakan`,
+    vaktiBildirimi: (vakit: string) => `Notifikasi waktu ${vakit}`,
+    islamTarihindeBugun: 'Hari Ini dalam Sejarah Islam',
+    islamTarihinden: 'Dari Sejarah Islam',
+    yilDonumineGunVar: (n: number) => `${n} hari menuju hari peringatan`,
+    yilDonumuGunOnceydi: (n: number) => `Hari peringatan telah berlalu ${n} hari lalu`,
+    gununAyeti: 'Ayat Hari Ini',
+    kalanGunKaldi: (ad: string, n: number) => `${n} hari menuju ${ad}`,
+    oncekiKonum: 'Lokasi sebelumnya',
+    sonrakiKonum: 'Lokasi berikutnya',
+    sekmeAnaSayfa: 'Beranda',
+    sekmeImsakiye: 'Jadwal Salat',
+    sekmeKesfet: 'Jelajahi',
+    sekmeKible: 'Kiblat',
+    sekmeAyarlar: 'Pengaturan',
+    aracTakip: 'Pelacakan',
+    aracTesbih: 'Tasbih',
+    aracEsma: 'Asmaul Husna',
+    aracKaza: 'Qadha',
+    ocak: 'Januari', subat: 'Februari', mart: 'Maret', nisan: 'April',
+    mayis: 'Mei', haziran: 'Juni', temmuz: 'Juli', agustos: 'Agustus',
+    eylul: 'September', ekim: 'Oktober', kasim: 'November', aralik: 'Desember',
+  },
+  fr: {
+    konumDegistirEtiketi: 'Changer de lieu',
+    bildirimAyarlariEtiketi: 'Paramètres de notification',
+    kalanSure: 'TEMPS RESTANT',
+    siradakiVakit: 'PROCHAINE PRIÈRE',
+    diyanetTakvimi: 'Calendrier Diyanet',
+    yerelHesaplama: 'Calcul local',
+    gunlukSeri: (n: number) => `Série de ${n} jours`,
+    gunlukSeriEtiketi: (n: number) => `Série de ${n} jours. Ouvrir l'écran de suivi`,
+    mekruhVakti: (sebep: string) => `Heure déconseillée — ${sebep}`,
+    iftaraKalan: (sure: string) => `Temps avant l'Iftar : ${sure}`,
+    diyanetUlasilamadi: "Impossible d'accéder aux données Diyanet, le calcul local est affiché temporairement.",
+    simdi: 'Maintenant',
+    kilindiOlarakIsaretle: (vakit: string) => `Marquer la prière de ${vakit} comme accomplie`,
+    vaktiBildirimi: (vakit: string) => `Notification de la prière de ${vakit}`,
+    islamTarihindeBugun: "Ce jour dans l'histoire islamique",
+    islamTarihinden: "De l'histoire islamique",
+    yilDonumineGunVar: (n: number) => `${n} jours avant l'anniversaire`,
+    yilDonumuGunOnceydi: (n: number) => `L'anniversaire était il y a ${n} jours`,
+    gununAyeti: 'Verset du jour',
+    kalanGunKaldi: (ad: string, n: number) => `${n} jours avant ${ad}`,
+    oncekiKonum: 'Lieu précédent',
+    sonrakiKonum: 'Lieu suivant',
+    sekmeAnaSayfa: 'Accueil',
+    sekmeImsakiye: 'Horaires',
+    sekmeKesfet: 'Explorer',
+    sekmeKible: 'Qibla',
+    sekmeAyarlar: 'Réglages',
+    aracTakip: 'Suivi',
+    aracTesbih: 'Tasbih',
+    aracEsma: 'Noms',
+    aracKaza: 'Rattrapage',
+    ocak: 'Janvier', subat: 'Février', mart: 'Mars', nisan: 'Avril',
+    mayis: 'Mai', haziran: 'Juin', temmuz: 'Juillet', agustos: 'Août',
+    eylul: 'Septembre', ekim: 'Octobre', kasim: 'Novembre', aralik: 'Décembre',
   },
 };
 
@@ -286,6 +360,86 @@ const ayarlar = {
     ezanSabah: 'Fajr Adhan', ezanOgle: 'Dhuhr Adhan', ezanIkindi: 'Asr Adhan',
     ezanAksam: 'Maghrib Adhan', ezanYatsi: 'Isha Adhan',
   },
+  id: {
+    ayarlarAltBaslik: 'Semua preferensi di satu tempat',
+    vaktindeKil: 'Salat Tepat Waktu',
+    hatirlaticilar: 'Pengingat',
+    hesaplamaYontemiBaslik: 'Metode Perhitungan',
+    otomatik: 'Otomatis',
+    konumAliniyor: 'Mengambil lokasi…',
+    konumTekrarDene: 'Coba lokasi lagi',
+    konumaGore: 'Berdasarkan lokasi',
+    ikindiHesabi: 'Perhitungan Asar',
+    yuksekAciHesabi: 'Aturan Lintang Tinggi',
+    kerahatVaktiSuresi: 'Durasi Waktu Makruh',
+    dk: (n: number) => `${n} mnt`,
+    kerahatVaktindeUyar: 'Peringatkan Saat Waktu Makruh',
+    kisisellestirmeBaslik: 'Personalisasi',
+    hicriGunDuzeltme: 'Penyesuaian Hari Hijriah',
+    hicriGunDegisimiAksam: 'Ganti Hari Hijriah Saat Waktu Magrib',
+    olcuBirimleri: 'Satuan Ukuran',
+    genelBaslik: 'Umum',
+    titresim: 'Getaran',
+    yuzustuSesKapat: 'Bisukan Saat Ponsel Menghadap Bawah',
+    bildirimCubuguWidgeti: 'Widget Bilah Notifikasi',
+    ezanDuasi: 'Doa Setelah Azan',
+    sabahEzaniImsakVaktinde: 'Putar Azan Subuh Saat Waktu Imsak',
+    vakitlerdenOnceUyarilar: 'Peringatan Sebelum Waktu Salat',
+    dakikaOnce: (n: number) => `${n} menit sebelumnya`,
+    sesiDegistir: (etiket: string) => `Ubah Suara · ${etiket}`,
+    vakitZamanindaUyarilar: 'Peringatan Tepat Waktu Salat',
+    kerahatVaktiDakika: 'Waktu Makruh (menit)',
+    dakika: (n: number) => `${n} menit`,
+    uyariSesi: (etiket: string) => `Suara Peringatan ${etiket}`,
+    konumIzniVerilmedi: 'Izin lokasi tidak diberikan. Anda dapat mengaktifkannya secara manual lewat Pengaturan Ponsel > Aplikasi > AzanAtlas > Izin.',
+    konumBasariylaAlindi: 'Lokasi berhasil didapatkan — Mode otomatis aktif.',
+    konumAlinamadi: 'Lokasi tidak dapat diperoleh. Periksa apakah GPS dan layanan lokasi aktif.',
+    gpsKonumu: 'Lokasi GPS',
+    fromImsak: 'Dari Imsak', fromGunes: 'Dari Terbit', fromOgle: 'Dari Zuhur',
+    fromIkindi: 'Dari Asar', fromAksam: 'Dari Magrib', fromYatsi: 'Dari Isya',
+    ezanSabah: 'Azan Subuh', ezanOgle: 'Azan Zuhur', ezanIkindi: 'Azan Asar',
+    ezanAksam: 'Azan Magrib', ezanYatsi: 'Azan Isya',
+  },
+  fr: {
+    ayarlarAltBaslik: 'Toutes les préférences au même endroit',
+    vaktindeKil: 'Prier à l\'heure',
+    hatirlaticilar: 'Rappels',
+    hesaplamaYontemiBaslik: 'Méthode de calcul',
+    otomatik: 'Automatique',
+    konumAliniyor: 'Localisation en cours…',
+    konumTekrarDene: 'Réessayer la localisation',
+    konumaGore: 'Selon la position',
+    ikindiHesabi: 'Calcul de l\'Asr',
+    yuksekAciHesabi: 'Règle des hautes latitudes',
+    kerahatVaktiSuresi: 'Durée de l\'heure déconseillée',
+    dk: (n: number) => `${n} min`,
+    kerahatVaktindeUyar: 'Avertir pendant l\'heure déconseillée',
+    kisisellestirmeBaslik: 'Personnalisation',
+    hicriGunDuzeltme: 'Ajustement du jour hégirien',
+    hicriGunDegisimiAksam: 'Changer le jour hégirien au Maghrib',
+    olcuBirimleri: 'Unités de mesure',
+    genelBaslik: 'Général',
+    titresim: 'Vibration',
+    yuzustuSesKapat: 'Couper le son face contre table',
+    bildirimCubuguWidgeti: 'Widget de la barre de notification',
+    ezanDuasi: 'Invocation après l\'appel à la prière',
+    sabahEzaniImsakVaktinde: 'Jouer l\'appel du Fajr à l\'heure de l\'Imsak',
+    vakitlerdenOnceUyarilar: 'Alertes avant les heures de prière',
+    dakikaOnce: (n: number) => `${n} minutes avant`,
+    sesiDegistir: (etiket: string) => `Changer le son · ${etiket}`,
+    vakitZamanindaUyarilar: 'Alertes à l\'heure de la prière',
+    kerahatVaktiDakika: 'Heure déconseillée (minutes)',
+    dakika: (n: number) => `${n} minutes`,
+    uyariSesi: (etiket: string) => `Son d'alerte ${etiket}`,
+    konumIzniVerilmedi: 'Autorisation de localisation non accordée. Vous pouvez l\'activer manuellement via Paramètres du téléphone > Applications > AzanAtlas > Autorisations.',
+    konumBasariylaAlindi: 'Position obtenue avec succès — Mode automatique actif.',
+    konumAlinamadi: 'Impossible d\'obtenir la position. Vérifiez que le GPS et les services de localisation sont activés.',
+    gpsKonumu: 'Position GPS',
+    fromImsak: 'Depuis l\'Imsak', fromGunes: 'Depuis le lever', fromOgle: 'Depuis le Dhuhr',
+    fromIkindi: 'Depuis l\'Asr', fromAksam: 'Depuis le Maghrib', fromYatsi: 'Depuis l\'Isha',
+    ezanSabah: 'Appel du Fajr', ezanOgle: 'Appel du Dhuhr', ezanIkindi: 'Appel de l\'Asr',
+    ezanAksam: 'Appel du Maghrib', ezanYatsi: 'Appel de l\'Isha',
+  },
 };
 
 // ── KAZA TAKİBİ ──
@@ -315,6 +469,32 @@ const kaza = {
     kazaSayisiniAzalt: (etiket: string) => `Decrease ${etiket} makeup count`,
     kazaSayisiniArtir: (etiket: string) => `Increase ${etiket} makeup count`,
     kazaNotu: 'Counters are kept on this device only. Lower the count with the minus button as you make up your prayers.',
+  },
+  id: {
+    kazaTakibi: 'Pelacakan Qadha',
+    toplamKaza: (n: number) => `Total ${n} qadha`,
+    kazaBorcuYok: 'Tidak ada utang qadha',
+    toplamKazaBorcu: 'total utang qadha',
+    kazaBorcuGorunmuyor: 'Anda tidak memiliki utang qadha',
+    namaz: 'Salat',
+    oruc: 'Puasa',
+    vitir: 'Witir',
+    kazaSayisiniAzalt: (etiket: string) => `Kurangi jumlah qadha ${etiket}`,
+    kazaSayisiniArtir: (etiket: string) => `Tambah jumlah qadha ${etiket}`,
+    kazaNotu: 'Penghitung hanya disimpan di perangkat ini. Kurangi jumlahnya dengan tombol minus saat Anda mengqadha salat.',
+  },
+  fr: {
+    kazaTakibi: 'Suivi des rattrapages',
+    toplamKaza: (n: number) => `${n} rattrapages au total`,
+    kazaBorcuYok: 'Aucun rattrapage dû',
+    toplamKazaBorcu: 'total des rattrapages dus',
+    kazaBorcuGorunmuyor: 'vous n\'avez aucun rattrapage dû',
+    namaz: 'Prière',
+    oruc: 'Jeûne',
+    vitir: 'Witr',
+    kazaSayisiniAzalt: (etiket: string) => `Diminuer le nombre de rattrapages de ${etiket}`,
+    kazaSayisiniArtir: (etiket: string) => `Augmenter le nombre de rattrapages de ${etiket}`,
+    kazaNotu: 'Les compteurs sont conservés uniquement sur cet appareil. Diminuez le nombre avec le bouton moins au fur et à mesure de vos rattrapages.',
   },
 };
 
@@ -362,6 +542,48 @@ const kesfet = {
     aciklamaTumAyarlar: 'All settings',
     kesfetSeriRozeti: (n: number) => `${n}d`,
   },
+  id: {
+    kesfetAltBaslik: 'Semua alat',
+    grupIbadet: 'Ibadah',
+    grupHatirlatmaAyarlar: 'Pengingat dan Pengaturan',
+    aciklamaYonBul: 'Temukan arah',
+    aciklamaZikirmatik: 'Penghitung dzikir',
+    adEsmaulHusna: 'Asmaul Husna',
+    aciklama99GuzelIsim: '99 nama indah',
+    aciklamaAylikTakvim: 'Kalender bulanan',
+    adIbadetTakibi: 'Pelacakan Ibadah',
+    aciklamaGunlukSeri: 'Rentetan harian',
+    aciklamaBorcSayaci: 'Penghitung utang',
+    aciklamaTekrarliUyari: 'Peringatan berulang',
+    aciklamaOzelUyarilar: 'Peringatan khusus',
+    adTema: 'Tema',
+    aciklamaRenkDuzeni: '11 palet warna',
+    adKonum: 'Lokasi',
+    aciklamaSehirSec: 'Pilih kota',
+    aciklamaTumAyarlar: 'Semua pengaturan',
+    kesfetSeriRozeti: (n: number) => `${n}h`,
+  },
+  fr: {
+    kesfetAltBaslik: 'Tous les outils',
+    grupIbadet: 'Adoration',
+    grupHatirlatmaAyarlar: 'Rappels et réglages',
+    aciklamaYonBul: 'Trouver la direction',
+    aciklamaZikirmatik: 'Compteur de dhikr',
+    adEsmaulHusna: 'Noms d\'Allah',
+    aciklama99GuzelIsim: '99 beaux noms',
+    aciklamaAylikTakvim: 'Calendrier mensuel',
+    adIbadetTakibi: 'Suivi des prières',
+    aciklamaGunlukSeri: 'Série quotidienne',
+    aciklamaBorcSayaci: 'Compteur de dette',
+    aciklamaTekrarliUyari: 'Alerte répétée',
+    aciklamaOzelUyarilar: 'Alertes personnalisées',
+    adTema: 'Thème',
+    aciklamaRenkDuzeni: '11 palettes de couleurs',
+    adKonum: 'Position',
+    aciklamaSehirSec: 'Choisir une ville',
+    aciklamaTumAyarlar: 'Tous les réglages',
+    kesfetSeriRozeti: (n: number) => `${n}j`,
+  },
 };
 
 // ── ESMÂÜ'L-HÜSNÂ ──
@@ -377,6 +599,18 @@ const esma = {
     esmaAramaYerTutucu: 'Search name or meaning',
     esmaAramayiTemizle: 'Clear search',
     esmaSonucBulunamadi: 'No names match your search.',
+  },
+  id: {
+    esmaAltBaslik: '99 nama indah Allah',
+    esmaAramaYerTutucu: 'Cari nama atau makna',
+    esmaAramayiTemizle: 'Hapus pencarian',
+    esmaSonucBulunamadi: 'Tidak ada nama yang cocok dengan pencarian Anda.',
+  },
+  fr: {
+    esmaAltBaslik: 'Les 99 plus beaux noms d\'Allah',
+    esmaAramaYerTutucu: 'Rechercher un nom ou une signification',
+    esmaAramayiTemizle: 'Effacer la recherche',
+    esmaSonucBulunamadi: 'Aucun nom ne correspond à votre recherche.',
   },
 };
 
@@ -402,6 +636,26 @@ const hatirlaticilarEkrani = {
     uyariSesiBaslik: 'Alert Sound',
     dkOnce: (n: number) => `${n} min. before`,
   },
+  id: {
+    sahurUyarisi: 'Peringatan Sahur',
+    teheccutUyandirma: 'Bangun Tahajud',
+    pazartesiPersembeOrucuBaslik: 'Puasa Senin/Kamis',
+    cumaNamaziHatirlatma: 'Pengingat Salat Jumat',
+    birGunOnceHatirlat: 'Ingatkan sehari sebelumnya',
+    kacDakikaOnce: 'Berapa Menit Sebelumnya',
+    uyariSesiBaslik: 'Suara Peringatan',
+    dkOnce: (n: number) => `${n} mnt. sebelumnya`,
+  },
+  fr: {
+    sahurUyarisi: 'Alerte Suhoor',
+    teheccutUyandirma: 'Réveil pour le Tahajjud',
+    pazartesiPersembeOrucuBaslik: 'Jeûne du lundi/jeudi',
+    cumaNamaziHatirlatma: 'Rappel de la prière du vendredi',
+    birGunOnceHatirlat: 'Rappeler la veille',
+    kacDakikaOnce: 'Combien de minutes avant',
+    uyariSesiBaslik: 'Son d\'alerte',
+    dkOnce: (n: number) => `${n} min. avant`,
+  },
 };
 
 // ── VAKTİNDE KIL ──
@@ -412,11 +666,6 @@ const vaktindeKilEkrani = {
   tr: {
     vaktindeKilBilgi:
       'Vaktinde Kıl açıkken, bir namaz vakti girdikten belirlediğin gecikme süresi kadar sonra, eğer o vakti henüz kılmadıysan sana hatırlatma bildirimi gönderir. Bir sonraki vakit girene kadar, belirlediğin sıklıkla bu hatırlatma tekrarlanır. Bildirimdeki "Kıldım" butonuna dokunursan, o vakit için kalan hatırlatmalar durur.',
-    // Madde 7 (i18n taraması, bu tur): bu hadis alıntısı daha önce
-    // VaktindeKilScreen.tsx'te hardcoded Türkçe idi.
-    vaktindeKilHadis:
-      'Allah katında en hayırlı amel, vaktinde kılınan namazdır. Sonra anne babaya iyilik, sonra da Allah yolunda cihad etmektir.',
-    vaktindeKilHadisKaynak: 'Buhârî',
     ilkUyariGecikmesi: 'İlk Uyarı Gecikmesi',
     uyariSikligi: 'Uyarı Sıklığı',
     dakikadaBir: (n: number) => `${n} dakikada bir`,
@@ -426,14 +675,29 @@ const vaktindeKilEkrani = {
   en: {
     vaktindeKilBilgi:
       'When Pray on Time is on, it sends you a reminder notification after your chosen delay once a prayer time begins, if you haven’t marked it as performed yet. This reminder repeats at your chosen frequency until the next prayer time begins. Tapping "Done" on the notification stops the remaining reminders for that prayer.',
-    vaktindeKilHadis:
-      'The most beloved deed to Allah is prayer performed on time, then kindness to parents, then striving in the way of Allah.',
-    vaktindeKilHadisKaynak: 'Sahih al-Bukhari',
     ilkUyariGecikmesi: 'First Alert Delay',
     uyariSikligi: 'Alert Frequency',
     dakikadaBir: (n: number) => `Every ${n} minutes`,
     bip: 'Beep',
     dong: 'Chime',
+  },
+  id: {
+    vaktindeKilBilgi:
+      'Saat Salat Tepat Waktu aktif, setelah waktu salat masuk dan Anda belum menandainya sebagai dikerjakan, aplikasi akan mengirim notifikasi pengingat setelah jeda waktu yang Anda tentukan. Pengingat ini berulang sesuai frekuensi yang Anda tentukan hingga waktu salat berikutnya masuk. Menekan tombol "Sudah" pada notifikasi akan menghentikan sisa pengingat untuk waktu tersebut.',
+    ilkUyariGecikmesi: 'Jeda Peringatan Pertama',
+    uyariSikligi: 'Frekuensi Peringatan',
+    dakikadaBir: (n: number) => `Setiap ${n} menit`,
+    bip: 'Bip',
+    dong: 'Dong',
+  },
+  fr: {
+    vaktindeKilBilgi:
+      'Lorsque Prier à l\'heure est activé, l\'application vous envoie une notification de rappel après le délai choisi une fois qu\'une heure de prière commence, si vous ne l\'avez pas encore marquée comme accomplie. Ce rappel se répète selon la fréquence choisie jusqu\'à la prochaine heure de prière. Toucher "Fait" sur la notification arrête les rappels restants pour cette prière.',
+    ilkUyariGecikmesi: 'Délai de la première alerte',
+    uyariSikligi: 'Fréquence des alertes',
+    dakikadaBir: (n: number) => `Toutes les ${n} minutes`,
+    bip: 'Bip',
+    dong: 'Carillon',
   },
 };
 
@@ -449,6 +713,16 @@ const imsakiyeEkrani = {
     yerelHesaplamaUlasilamadi: 'Local calculation (Diyanet data unavailable)',
     bugun: 'Today',
   },
+  id: {
+    diyanetTakvimiVerisi: 'Data Kalender Diyanet',
+    yerelHesaplamaUlasilamadi: 'Perhitungan lokal (data Diyanet tidak dapat dijangkau)',
+    bugun: 'Hari Ini',
+  },
+  fr: {
+    diyanetTakvimiVerisi: 'Données du calendrier Diyanet',
+    yerelHesaplamaUlasilamadi: 'Calcul local (données Diyanet indisponibles)',
+    bugun: 'Aujourd\'hui',
+  },
 };
 
 // Gün adları (haftanın günleri) — İmsakiye cetvelinde kullanılıyor.
@@ -460,6 +734,14 @@ const gunAdlari = {
   en: {
     pazar: 'Sunday', pazartesi: 'Monday', sali: 'Tuesday', carsamba: 'Wednesday',
     persembe: 'Thursday', cuma: 'Friday', cumartesi: 'Saturday',
+  },
+  id: {
+    pazar: 'Minggu', pazartesi: 'Senin', sali: 'Selasa', carsamba: 'Rabu',
+    persembe: 'Kamis', cuma: 'Jumat', cumartesi: 'Sabtu',
+  },
+  fr: {
+    pazar: 'Dimanche', pazartesi: 'Lundi', sali: 'Mardi', carsamba: 'Mercredi',
+    persembe: 'Jeudi', cuma: 'Vendredi', cumartesi: 'Samedi',
   },
 };
 
@@ -483,6 +765,22 @@ const konumSecici = {
     sil: 'Delete',
     gpsIleEkle: 'Add via GPS',
     ilIlceSecerekEkle: '+ Add by Selecting Province/District',
+  },
+  id: {
+    sehriDegistir: 'Ubah Kota',
+    ilSec: 'Pilih Provinsi',
+    ilceSec: 'Pilih Kabupaten',
+    sil: 'Hapus',
+    gpsIleEkle: 'Tambah via GPS',
+    ilIlceSecerekEkle: '+ Tambah dengan Memilih Provinsi/Kabupaten',
+  },
+  fr: {
+    sehriDegistir: 'Changer de ville',
+    ilSec: 'Sélectionner la province',
+    ilceSec: 'Sélectionner le district',
+    sil: 'Supprimer',
+    gpsIleEkle: 'Ajouter via GPS',
+    ilIlceSecerekEkle: '+ Ajouter en choisissant province/district',
   },
 };
 
@@ -522,12 +820,6 @@ const bildirimler = {
     cumaGovde: 'Cuma namazına hazırlan.',
     vaktindeKilBaslik: (vakitAdi: string) => `${vakitAdi} Namazı`,
     vaktindeKilGovde: (vakitAdi: string) => `${vakitAdi} namazını henüz kılmadıysan vaktinde kılmayı unutma.`,
-    // Madde 7 (i18n taraması, bu tur): "Vaktinde Kıl" bildirimindeki aksiyon
-    // butonu metinleri (bkz. vaktindeKilActions.ts) daha önce hardcoded
-    // Türkçe idi ve `dil` parametresi hiç almıyordu — İngilizce arayüzde
-    // bile "KILDIM" / "Sonra hatırlat" görünüyordu.
-    vaktindeKilButonuKildim: '✓  KILDIM',
-    vaktindeKilButonuSonraHatirlat: 'Sonra hatırlat',
   },
   en: {
     bildirimVaktiBaslik: (vakitAdi: string) => `${vakitAdi} Time`,
@@ -554,8 +846,58 @@ const bildirimler = {
     cumaGovde: 'Get ready for Friday prayer.',
     vaktindeKilBaslik: (vakitAdi: string) => `${vakitAdi} Prayer`,
     vaktindeKilGovde: (vakitAdi: string) => `If you haven't prayed ${vakitAdi} yet, don't forget to pray it on time.`,
-    vaktindeKilButonuKildim: '✓  PRAYED',
-    vaktindeKilButonuSonraHatirlat: 'Remind me later',
+  },
+  id: {
+    bildirimVaktiBaslik: (vakitAdi: string) => `Waktu ${vakitAdi}`,
+    bildirimVaktiGirdiGovde: (vakitAdi: string) => `Sekarang waktu ${vakitAdi}.`,
+    bildirimOnUyariBaslik: (vakitAdi: string, dk: number) => `${dk} Menit Menuju ${vakitAdi}`,
+    bildirimOnUyariGovde: (vakitAdi: string) => `Waktu ${vakitAdi} akan segera tiba.`,
+    kerahatVaktiBaslik: 'Waktu Makruh',
+    kerahatGunesDoarken: 'Makruh melaksanakan salat saat matahari terbit.',
+    kerahatGunesBatarken: 'Makruh melaksanakan salat saat matahari terbenam.',
+    kerahatZeval: 'Waktu zawal — makruh melaksanakan salat pada periode ini.',
+    titresimli: 'Bergetar',
+    titresimsiz: 'Tanpa Getar',
+    bildirimleriTitresimli: 'Notifikasi AzanAtlas (Bergetar)',
+    bildirimleriTitresimsiz: 'Notifikasi AzanAtlas (Tanpa Getar)',
+    sahurUyarisiBaslik: 'Peringatan Sahur',
+    sahurUyarisiGovde: (dk: number) => `${dk} menit menuju waktu Imsak.`,
+    teheccutBaslik: 'Bangun Tahajud',
+    teheccutGovde: 'Waktu bangun untuk salat Tahajud.',
+    pazartesiPersembeBaslik: 'Puasa Senin/Kamis',
+    pazartesiPersembeGovde: 'Jangan lupa niat dan sahur.',
+    yarinOrucGunuBaslik: 'Besok Hari Puasa',
+    yarinOrucGunuGovde: 'Besok adalah puasa Senin/Kamis — jangan lupa.',
+    cumaBaslik: 'Pengingat Salat Jumat',
+    cumaGovde: 'Bersiaplah untuk salat Jumat.',
+    vaktindeKilBaslik: (vakitAdi: string) => `Salat ${vakitAdi}`,
+    vaktindeKilGovde: (vakitAdi: string) => `Jika belum melaksanakan salat ${vakitAdi}, jangan lupa untuk salat tepat waktu.`,
+  },
+  fr: {
+    bildirimVaktiBaslik: (vakitAdi: string) => `Heure du ${vakitAdi}`,
+    bildirimVaktiGirdiGovde: (vakitAdi: string) => `C'est maintenant l'heure du ${vakitAdi}.`,
+    bildirimOnUyariBaslik: (vakitAdi: string, dk: number) => `${dk} minutes avant le ${vakitAdi}`,
+    bildirimOnUyariGovde: (vakitAdi: string) => `L'heure du ${vakitAdi} approche.`,
+    kerahatVaktiBaslik: 'Heure déconseillée',
+    kerahatGunesDoarken: 'Il est déconseillé (makrouh) de prier pendant le lever du soleil.',
+    kerahatGunesBatarken: 'Il est déconseillé (makrouh) de prier pendant le coucher du soleil.',
+    kerahatZeval: 'Heure du zawal — la prière est déconseillée (makrouh) durant cette période.',
+    titresimli: 'Vibration',
+    titresimsiz: 'Sans vibration',
+    bildirimleriTitresimli: 'Notifications AzanAtlas (Vibration)',
+    bildirimleriTitresimsiz: 'Notifications AzanAtlas (Sans vibration)',
+    sahurUyarisiBaslik: 'Rappel Suhoor',
+    sahurUyarisiGovde: (dk: number) => `${dk} minutes avant l'Imsak.`,
+    teheccutBaslik: 'Réveil pour le Tahajjud',
+    teheccutGovde: 'Heure de se réveiller pour la prière du Tahajjud.',
+    pazartesiPersembeBaslik: 'Jeûne du lundi/jeudi',
+    pazartesiPersembeGovde: 'N\'oubliez pas de faire votre intention et le suhoor.',
+    yarinOrucGunuBaslik: 'Jour de jeûne demain',
+    yarinOrucGunuGovde: 'Demain est un jour de jeûne du lundi/jeudi — n\'oubliez pas.',
+    cumaBaslik: 'Rappel de la prière du vendredi',
+    cumaGovde: 'Préparez-vous pour la prière du vendredi.',
+    vaktindeKilBaslik: (vakitAdi: string) => `Prière du ${vakitAdi}`,
+    vaktindeKilGovde: (vakitAdi: string) => `Si vous n'avez pas encore prié le ${vakitAdi}, n'oubliez pas de le prier à l'heure.`,
   },
 };
 
@@ -578,6 +920,24 @@ const tesbih = {
     sayaciArtirEtiketi: (sayac: number, hedef: number) => `Increase counter. Currently ${sayac}, target ${hedef}`,
     sonSayimiGeriAlEtiketi: 'Undo last count',
     sayaciSifirlaEtiketi: 'Reset counter and rounds',
+  },
+  id: {
+    dokunSaymakIcin: 'Ketuk untuk menghitung',
+    tamamlananTur: 'Putaran selesai',
+    geriAl: 'Urungkan',
+    sifirla: 'Reset',
+    sayaciArtirEtiketi: (sayac: number, hedef: number) => `Tambah hitungan. Saat ini ${sayac}, target ${hedef}`,
+    sonSayimiGeriAlEtiketi: 'Urungkan hitungan terakhir',
+    sayaciSifirlaEtiketi: 'Reset penghitung dan putaran',
+  },
+  fr: {
+    dokunSaymakIcin: 'Touchez pour compter',
+    tamamlananTur: 'Tours terminés',
+    geriAl: 'Annuler',
+    sifirla: 'Réinitialiser',
+    sayaciArtirEtiketi: (sayac: number, hedef: number) => `Augmenter le compteur. Actuellement ${sayac}, objectif ${hedef}`,
+    sonSayimiGeriAlEtiketi: 'Annuler le dernier compte',
+    sayaciSifirlaEtiketi: 'Réinitialiser le compteur et les tours',
   },
 };
 
@@ -619,6 +979,42 @@ const takip = {
     kayitYok: 'No record',
     takipNotu: 'Records are kept on this device only; nothing is sent to a server. Tapping "Done" on a notification also marks that prayer here.',
   },
+  id: {
+    besVaktiNamaz: 'Lima waktu salat',
+    kesintisizSeri: 'Rentetan berkelanjutan',
+    gun: 'hari',
+    seriBaslarSonrasi: 'Rentetan Anda dimulai pada hari Anda menyelesaikan lima waktu salat.',
+    seriDevamAciklama: 'Jumlah hari berturut-turut Anda menyelesaikan lima waktu salat.',
+    son28GundeKilinanVakit: 'salat dikerjakan\ndalam 28 hari terakhir',
+    bugun: 'Hari Ini',
+    bugüneDon: 'Kembali ke hari ini',
+    namaziEtiketi: (vakitAdi: string) => `Salat ${vakitAdi}`,
+    gelecekGunUyarisi: 'Hari yang akan datang tidak dapat ditandai.',
+    son4Hafta: '4 minggu terakhir',
+    gunVakitKilindiEtiketi: (gun: number, ay: string, n: number) => `${gun} ${ay}, ${n} waktu dikerjakan`,
+    besVaktiTam: 'Lima waktu lengkap',
+    kismen: 'Sebagian',
+    kayitYok: 'Tidak ada catatan',
+    takipNotu: 'Catatan hanya disimpan di perangkat ini; tidak dikirim ke server mana pun. Menekan tombol "Sudah" pada notifikasi juga menandai salat tersebut di sini.',
+  },
+  fr: {
+    besVaktiNamaz: 'Les cinq prières quotidiennes',
+    kesintisizSeri: 'Série actuelle',
+    gun: 'jours',
+    seriBaslarSonrasi: 'Votre série commence le jour où vous accomplissez les cinq prières.',
+    seriDevamAciklama: 'Le nombre de jours consécutifs où vous avez accompli les cinq prières.',
+    son28GundeKilinanVakit: 'prières accomplies\nces 28 derniers jours',
+    bugun: 'Aujourd\'hui',
+    bugüneDon: 'Retour à aujourd\'hui',
+    namaziEtiketi: (vakitAdi: string) => `Prière du ${vakitAdi}`,
+    gelecekGunUyarisi: 'Un jour futur ne peut pas être marqué.',
+    son4Hafta: '4 dernières semaines',
+    gunVakitKilindiEtiketi: (gun: number, ay: string, n: number) => `${gun} ${ay}, ${n} prières accomplies`,
+    besVaktiTam: 'Cinq prières complètes',
+    kismen: 'Partiel',
+    kayitYok: 'Aucun enregistrement',
+    takipNotu: 'Les enregistrements sont conservés uniquement sur cet appareil ; rien n\'est envoyé à un serveur. Toucher "Fait" sur une notification marque aussi cette prière ici.',
+  },
 };
 
 // ── TEMA SEÇİMİ ──
@@ -651,6 +1047,32 @@ const temaEkrani = {
     yenidenBaslatiliyor: 'Restarting…',
     simdiYenidenBaslat: 'Restart Now',
     dahaSonraBtn: 'Later',
+  },
+  id: {
+    renkDuzeni: (n: number) => `${n} palet warna`,
+    seciminizKaydedildi: 'Pilihan Anda telah disimpan. Tema baru akan diterapkan saat Anda menutup dan membuka kembali aplikasi.',
+    temaAciklamaParagrafi: 'Semua tema berasal dari tradisi seni Islam. Keterbacaan teks setiap tema diukur secara terpisah — apa pun yang Anda pilih, teks tetap jelas.',
+    temaEtiketi: (ad: string, aciklama: string) => `Tema ${ad}. ${aciklama}`,
+    suAnKullanimda: 'Sedang digunakan',
+    temaNotu: 'Jendela konfirmasi terbuka saat Anda memilih tema. Jika tidak ingin langsung memulai ulang, aplikasi tetap terbuka seperti biasa, dan tema baru diterapkan pada peluncuran normal berikutnya.',
+    temaDegisti: 'Tema berubah',
+    temaKaydedildiYeniden: (ad: string) => `Tema ${ad} telah disimpan. Aplikasi perlu dimulai ulang agar perubahan diterapkan.`,
+    yenidenBaslatiliyor: 'Memulai ulang…',
+    simdiYenidenBaslat: 'Mulai Ulang Sekarang',
+    dahaSonraBtn: 'Nanti',
+  },
+  fr: {
+    renkDuzeni: (n: number) => `${n} palettes de couleurs`,
+    seciminizKaydedildi: 'Votre sélection a été enregistrée. Le nouveau thème s\'appliquera la prochaine fois que vous fermerez et rouvrirez l\'application.',
+    temaAciklamaParagrafi: 'Tous les thèmes sont issus de la tradition artistique islamique. La lisibilité du texte de chacun a été mesurée individuellement — quel que soit votre choix, le texte reste clair.',
+    temaEtiketi: (ad: string, aciklama: string) => `Thème ${ad}. ${aciklama}`,
+    suAnKullanimda: 'Actuellement utilisé',
+    temaNotu: 'Une fenêtre de confirmation s\'ouvre lorsque vous choisissez un thème. Si vous ne souhaitez pas redémarrer immédiatement, l\'application reste ouverte telle quelle, et le nouveau thème s\'applique au prochain lancement normal.',
+    temaDegisti: 'Thème changé',
+    temaKaydedildiYeniden: (ad: string) => `Le thème ${ad} a été enregistré. L\'application doit redémarrer pour appliquer le changement.`,
+    yenidenBaslatiliyor: 'Redémarrage…',
+    simdiYenidenBaslat: 'Redémarrer maintenant',
+    dahaSonraBtn: 'Plus tard',
   },
 };
 
@@ -700,6 +1122,50 @@ const kibleEkrani = {
     mil: 'mi',
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'W',
   },
+  id: {
+    kible: 'Kiblat',
+    pusulaDogrulugu: 'Akurasi Kompas',
+    pusulaDogruluguGiris: 'Akurasi kompas sepenuhnya bergantung pada sensor magnetik ponsel Anda. Langkah-langkah di bawah ini secara nyata meningkatkan akurasi di sebagian besar ponsel.',
+    pusulaAdim1: 'Jauhkan ponsel dari magnet, speaker, dan permukaan logam. Casing bermagnet adalah penyebab gangguan kompas terbesar.',
+    pusulaAdim2: 'Pegang ponsel secara datar dan gerakkan membentuk angka delapan (8) di udara beberapa kali. Ini memungkinkan perangkat mengkalibrasi ulang sensornya.',
+    pusulaAdim3: 'Gunakan di luar ruangan jika memungkinkan. Di dalam gedung, lift, dan tempat parkir dapat mengganggu medan magnet.',
+    pusulaAdim4: 'Pegang ponsel sejajar dengan tanah (seperti meletakkannya di meja). Memiringkannya akan mengacaukan pembacaan.',
+    pusulaHazirlaniyor: 'Menyiapkan kompas…',
+    kibleYonundesiniz: 'Anda menghadap Kiblat',
+    sagaDonun: 'Putar ke kanan',
+    solaDonun: 'Putar ke kiri',
+    kibleAcisi: 'Sudut kiblat',
+    kabeyeUzaklik: 'Jarak ke Kakbah',
+    gunesleKibleAni: 'Waktu keselarasan matahari-kiblat',
+    pusulaSensorunaErisilemedi: 'Sensor kompas tidak dapat diakses.',
+    pusulaOkumasiBekleniyor: 'Menunggu pembacaan kompas. Pegang ponsel secara datar dan putar sedikit.',
+    manyetikKuzeyeGoreGosteriliyor: 'Ditampilkan relatif terhadap utara magnetik. Memberikan izin lokasi menghasilkan pembacaan yang lebih akurat relatif terhadap utara sejati.',
+    pusulaDogruGostermiyorMu: 'Kompas tidak menunjuk dengan benar?',
+    mil: 'mi',
+    yonKuzey: 'U', yonDogu: 'T', yonGuney: 'S', yonBati: 'B',
+  },
+  fr: {
+    kible: 'Qibla',
+    pusulaDogrulugu: 'Précision de la boussole',
+    pusulaDogruluguGiris: 'La précision de la boussole dépend entièrement du capteur magnétique de votre téléphone. Les étapes ci-dessous améliorent nettement la précision sur la plupart des téléphones.',
+    pusulaAdim1: 'Éloignez le téléphone des aimants, haut-parleurs et surfaces métalliques. Les coques magnétiques sont la principale cause d\'interférence de la boussole.',
+    pusulaAdim2: 'Tenez le téléphone à plat et déplacez-le en formant un huit (8) dans les airs plusieurs fois. Cela permet à l\'appareil de recalibrer son capteur.',
+    pusulaAdim3: 'Utilisez-le à l\'extérieur si possible. Les intérieurs, ascenseurs et parkings perturbent le champ magnétique.',
+    pusulaAdim4: 'Tenez le téléphone parallèle au sol (comme si vous le posiez sur une table). L\'incliner fausse la lecture.',
+    pusulaHazirlaniyor: 'Préparation de la boussole…',
+    kibleYonundesiniz: 'Vous êtes orienté vers la Qibla',
+    sagaDonun: 'Tournez à droite',
+    solaDonun: 'Tournez à gauche',
+    kibleAcisi: 'Angle de la Qibla',
+    kabeyeUzaklik: 'Distance à la Kaaba',
+    gunesleKibleAni: 'Heure d\'alignement soleil-Qibla',
+    pusulaSensorunaErisilemedi: 'Impossible d\'accéder au capteur de la boussole.',
+    pusulaOkumasiBekleniyor: 'En attente de la lecture de la boussole. Tenez le téléphone à plat et tournez-le légèrement.',
+    manyetikKuzeyeGoreGosteriliyor: 'Affiché par rapport au nord magnétique. Autoriser la localisation donne une lecture plus précise par rapport au nord vrai.',
+    pusulaDogruGostermiyorMu: 'La boussole n\'indique pas correctement ?',
+    mil: 'mi',
+    yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'O',
+  },
 };
 
 // Vakit adları — pek çok ekranda ortak kullanılıyor (HomeScreen, Imsakiye,
@@ -711,6 +1177,14 @@ const vakitAdlari = {
   },
   en: {
     imsak: 'Imsak', sabah: 'Fajr', gunes: 'Sunrise', ogle: 'Dhuhr',
+    ikindi: 'Asr', aksam: 'Maghrib', yatsi: 'Isha',
+  },
+  id: {
+    imsak: 'Imsak', sabah: 'Subuh', gunes: 'Terbit', ogle: 'Zuhur',
+    ikindi: 'Asar', aksam: 'Magrib', yatsi: 'Isya',
+  },
+  fr: {
+    imsak: 'Imsak', sabah: 'Fajr', gunes: 'Lever du soleil', ogle: 'Dhuhr',
     ikindi: 'Asr', aksam: 'Maghrib', yatsi: 'Isha',
   },
 };
@@ -727,6 +1201,18 @@ export const SOZLUK = {
     ...hatirlaticilarEkrani.en, ...vaktindeKilEkrani.en, ...imsakiyeEkrani.en,
     ...gunAdlari.en, ...konumSecici.en, ...bildirimler.en, ...tesbih.en, ...takip.en,
     ...temaEkrani.en, ...kibleEkrani.en, vakit: vakitAdlari.en,
+  },
+  id: {
+    ...ortak.id, ...anaSayfa.id, ...ayarlar.id, ...kaza.id, ...kesfet.id, ...esma.id,
+    ...hatirlaticilarEkrani.id, ...vaktindeKilEkrani.id, ...imsakiyeEkrani.id,
+    ...gunAdlari.id, ...konumSecici.id, ...bildirimler.id, ...tesbih.id, ...takip.id,
+    ...temaEkrani.id, ...kibleEkrani.id, vakit: vakitAdlari.id,
+  },
+  fr: {
+    ...ortak.fr, ...anaSayfa.fr, ...ayarlar.fr, ...kaza.fr, ...kesfet.fr, ...esma.fr,
+    ...hatirlaticilarEkrani.fr, ...vaktindeKilEkrani.fr, ...imsakiyeEkrani.fr,
+    ...gunAdlari.fr, ...konumSecici.fr, ...bildirimler.fr, ...tesbih.fr, ...takip.fr,
+    ...temaEkrani.fr, ...kibleEkrani.fr, vakit: vakitAdlari.fr,
   },
 };
 

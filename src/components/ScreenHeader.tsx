@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon, { IconName } from './Icon';
 import IslamicPattern from './IslamicPattern';
 import { colors, spacing, typography, radius } from '../theme';
+import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   title: string;
@@ -31,20 +32,34 @@ export default function ScreenHeader({
   onRightPress,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { t } = useCeviri();
 
   return (
-    <View style={[styles.wrap, { paddingTop: insets.top + spacing.sm }]}>
+    // Kalıcı kural: hiçbir üst/alt buton ekran kenarına yapışık durmamalı.
+    // `insets.top` üzerine önceden yalnızca `spacing.sm` (8dp) ekleniyordu;
+    // görünürlüğü garanti altına almak için `spacing.md` (16dp) yapıldı.
+    <View style={[styles.wrap, { paddingTop: insets.top + spacing.md }]}>
       <IslamicPattern color={colors.cream} opacity={0.06} tile={40} />
       <View style={styles.row}>
         {onClose ? (
+          // Geri butonu artık yalnızca ikon değil, yanında büyük fontlu
+          // "Geri" yazısı da taşıyor — kullanıcı butonun daha belirgin ve
+          // metinli olmasını istedi. `sideBtn` yerine kendi genişliğine
+          // göre büyüyen `geriBtn` kullanılıyor; sağ taraf (rightIcon ya da
+          // boş View) hâlâ `sideBtn` (40dp) olduğundan başlık artık tam
+          // ortalanmıyor olabilir — bu, geri yazısının okunaklı olması için
+          // kabul edilen bir görsel ödün.
           <TouchableOpacity
             onPress={onClose}
-            style={styles.sideBtn}
+            style={styles.geriBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t('geri')}
           >
             <Icon name="geri" size={22} color={colors.textOnDark} />
+            <Text style={styles.geriYazi} numberOfLines={1}>
+              {t('geri')}
+            </Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.sideBtn} />
@@ -99,6 +114,20 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Geri butonu: ikon + büyük fontlu "Geri" yazısı yan yana, aynı hizada.
+  geriBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    minWidth: 40,
+    height: 40,
+    paddingRight: spacing.xs,
+  },
+  geriYazi: {
+    fontFamily: typography.bodyBold,
+    fontSize: 16,
+    color: colors.textOnDark,
   },
   titleWrap: { flex: 1, alignItems: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
