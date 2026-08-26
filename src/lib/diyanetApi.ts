@@ -55,18 +55,45 @@ interface VakitCacheEntry {
   cekilmeZamani: number;
 }
 
-async function fetchJsonWithTimeout(url: string): Promise<any | null> {
+async function fetchJsonOnce(url: string): Promise<any | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (__DEV__) console.log(`[diyanetApi] HTTP ${res.status}: ${url}`);
+      return null;
+    }
     return await res.json();
-  } catch {
+  } catch (e) {
+    if (__DEV__) console.log(`[diyanetApi] istek başarısız: ${url}`, e);
     return null;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// Madde 2 (bu tur): "Diyanet verisine ulaşılamadı" uyarısının kullanıcı
+// tarafından tekrarlı bildirilmesi üzerine araştırıldı — önceki turda kök
+// neden olarak bulunan il/ilçe adı normalize eşleştirmesi (bkz.
+// diyanetSehirIds.ts, resolveIlceId aşağıda) doğru ve gerekli bir düzeltmeydi
+// ama TEK başına yeterli değildi: `fetchJsonWithTimeout` tek seferlik bir
+// ağ denemesiydi, geçici bir ağ dalgalanmasında (zayıf mobil veri, DNS
+// gecikmesi, ilk açılışta henüz bağlantının oturmamış olması) TEK bir
+// başarısız istek tüm zinciri (`getDiyanetMonthlyVakitler` içindeki iki ayrı
+// çağrı — önce ilçe ID'si sonra aylık vakit) yerel hesaba düşürüyor ve
+// kullanıcı bunu her seferinde "hata" olarak görüyordu. Çözüm: her istek artık
+// kısa bir bekleme sonrası 1 kez YENİDEN deneniyor (toplam 2 deneme/istek) —
+// bu, ilk açılışta ya da zayıf bağlantıda başarı oranını belirgin şekilde
+// artırır. Ayrıca `__DEV__` altında konsola başarısızlık nedeni loglanıyor —
+// bir sonraki turda "hâlâ oluyor" bildirimi gelirse gerçek nedeni (network
+// hatası mı, HTTP durumu mu, yoksa eşleştirme mi) ayırt edebilmek için.
+async function fetchJsonWithTimeout(url: string): Promise<any | null> {
+  const ilk = await fetchJsonOnce(url);
+  if (ilk != null) return ilk;
+
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  return fetchJsonOnce(url);
 }
 
 // Türkçe karşılaştırma için normalize eder: büyük harfe çevirir, Türkçe'ye

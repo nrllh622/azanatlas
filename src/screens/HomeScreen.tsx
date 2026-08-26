@@ -618,7 +618,15 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
-          {location.countryCode === 'TR' && vakitKaynak === 'yerel' && (
+          {/* Madde 2 (bu tur): bu uyarı SADECE Diyanet gerçekten DENENİP
+              başarısız olduğunda anlamlı — `autoMethod` kapalıyken
+              (manuel mod) prayerCalculator.ts'teki getVakitlerWithDiyanetFallback
+              Diyanet'e hiç başvurmuyor (kullanıcının manuel madhab/yöntem
+              seçimini ezmemek için, bkz. o dosya). Önceden autoMethod
+              kontrolü yoktu; manuel moddaki kullanıcı hiçbir "hata"
+              olmadığı halde yanıltıcı şekilde "Diyanet verisine
+              ulaşılamadı" görüyordu. */}
+          {location.countryCode === 'TR' && autoMethod && vakitKaynak === 'yerel' && (
             <View style={styles.bilgiSerit}>
               <Icon name="bilgi" size={15} color={colors.textMuted} />
               <Text style={styles.bilgiSeritYazi}>

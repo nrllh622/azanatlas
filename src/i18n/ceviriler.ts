@@ -138,6 +138,12 @@ const anaSayfa = {
     kerahatSebepGunesBatarken: 'Güneş batarken',
     iftaraKalan: (sure: string) => `İftara kalan süre: ${sure}`,
     diyanetUlasilamadi: 'Diyanet verisine ulaşılamadı, geçici olarak yerel hesaplama gösteriliyor.',
+    // Madde 2 (bu tur): manuel moddayken (Otomatik kapalı) Diyanet'e hiç
+    // başvurulmuyor — bkz. prayerCalculator.ts. Bu, kullanıcının kendi
+    // mezhep/yöntem seçimine SAYGI gösterildiği anlamına gelir, bir "hata"
+    // değildir. Önceden bu durumda da "ulaşılamadı" metni gösteriliyordu —
+    // yanıltıcıydı. Artık ayrı, nötr bir etiket kullanılıyor.
+    yerelHesaplamaManuel: 'Yerel hesaplama — manuel ayarların kullanılıyor.',
     simdi: 'Şimdi',
     kilindiOlarakIsaretle: (vakit: string) => `${vakit} namazını kıldım olarak işaretle`,
     vaktiBildirimi: (vakit: string) => `${vakit} vakti bildirimi`,
@@ -180,6 +186,7 @@ const anaSayfa = {
     kerahatSebepGunesBatarken: 'While the sun is setting',
     iftaraKalan: (sure: string) => `Time to Iftar: ${sure}`,
     diyanetUlasilamadi: 'Could not reach Diyanet data, showing local calculation temporarily.',
+    yerelHesaplamaManuel: 'Local calculation — using your manual settings.',
     simdi: 'Now',
     kilindiOlarakIsaretle: (vakit: string) => `Mark ${vakit} prayer as performed`,
     vaktiBildirimi: (vakit: string) => `${vakit} prayer notification`,
@@ -222,6 +229,7 @@ const anaSayfa = {
     kerahatSebepGunesBatarken: 'Saat matahari terbenam',
     iftaraKalan: (sure: string) => `Waktu menuju Iftar: ${sure}`,
     diyanetUlasilamadi: 'Data Diyanet tidak dapat dijangkau, sementara menampilkan perhitungan lokal.',
+    yerelHesaplamaManuel: 'Perhitungan lokal — menggunakan pengaturan manual Anda.',
     simdi: 'Sekarang',
     kilindiOlarakIsaretle: (vakit: string) => `Tandai salat ${vakit} sudah dikerjakan`,
     vaktiBildirimi: (vakit: string) => `Notifikasi waktu ${vakit}`,
@@ -267,6 +275,7 @@ const anaSayfa = {
     kerahatSebepGunesBatarken: 'Pendant le coucher du soleil',
     iftaraKalan: (sure: string) => `Temps avant l'Iftar : ${sure}`,
     diyanetUlasilamadi: "Impossible d'accéder aux données Diyanet, le calcul local est affiché temporairement.",
+    yerelHesaplamaManuel: 'Calcul local — vos paramètres manuels sont utilisés.',
     simdi: 'Maintenant',
     kilindiOlarakIsaretle: (vakit: string) => `Marquer la prière de ${vakit} comme accomplie`,
     vaktiBildirimi: (vakit: string) => `Notification de la prière de ${vakit}`,

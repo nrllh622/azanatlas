@@ -18,12 +18,12 @@
 // (locations, addLocation, autoMethod) doğrudan güncelleyebilmek için bu
 // şart.
 //
-// GPS AKIŞI: LocationPickerScreen.tsx'teki `useGps` ile BİREBİR aynı
-// mantık (izin → servis açık mı kontrolü → gerekirse native "Konumu
-// Etkinleştir" diyaloğu → reverseGeocode → bilinen il/ilçeye onarım) —
-// Madde 1 (bu tur, LocationPickerScreen.tsx) ile kazanılan düzeltme burada
-// da tekrarlanıyor, aksi halde onboarding'de aynı "ikinci tıklamada çalışma"
-// hatası tekrar yaşanırdı.
+// GPS AKIŞI: LocationPickerScreen.tsx ile AYNI ortak `lib/gpsKonum.ts`
+// fonksiyonu (`konumAl`) kullanılıyor — retry'lı deneme + son bilinen
+// konuma düşme dahil. Madde 1 (bu tur): "ikinci tıklamada çalışıyor"
+// hatasının asıl kök nedeni bulunup (native diyalog kapanır kapanmaz konum
+// sağlayıcının henüz ısınmamış olması) ortak yardımcıya taşındı — bkz. o
+// dosyadaki ayrıntılı açıklama.
 //
 // BİLDİRİM İZNİ: `lib/notificationScheduler.ts`'teki mevcut
 // `requestNotificationPermission()` çağrılıyor — bildirim planlamasıyla
@@ -34,9 +34,8 @@
 // açılabiliyor (izinler daha sonra Ayarlar'dan istenebilir).
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
 import Icon from '../components/Icon';
 import IslamicPattern from '../components/IslamicPattern';
 import { colors, spacing, radius, typography, fontSize, lineHeight, elevation } from '../theme';
@@ -45,49 +44,13 @@ import { useLocationContext } from '../context/LocationContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
 import { useNotificationSettings, OnTimeVakitKey } from '../context/NotificationSettingsContext';
 import { requestNotificationPermission } from '../lib/notificationScheduler';
-import { TURKEY_PROVINCES } from '../data/turkeyLocations';
+import { konumAl } from '../lib/gpsKonum';
 
 interface Props {
   onTamamlandi: () => void;
 }
 
 type Adim = 'karsilama' | 'konum' | 'bildirim' | 'tamam';
-
-// LocationPickerScreen.tsx'teki `normalizeTrForMatch`/`resolveKnownIl` ile
-// AYNI mantık — GPS'ten dönen il adını uygulamanın bilinen 81 il listesine
-// "onarmak" için. Kod tekrarı burada bilinçli: LocationPickerScreen henüz
-// mount edilmemiş olabileceğinden (onboarding ana uygulamadan önce çalışır)
-// oradaki fonksiyonları import etmek yerine, iki dosyanın da bağımsız
-// çalışabilmesi için küçük ve saf bir yardımcı burada da tanımlandı.
-function normalizeTrForMatch(s: string): string {
-  return s
-    .toLocaleUpperCase('tr-TR')
-    .replace(/İ/g, 'I')
-    .replace(/Ş/g, 'S')
-    .replace(/Ğ/g, 'G')
-    .replace(/Ü/g, 'U')
-    .replace(/Ö/g, 'O')
-    .replace(/Ç/g, 'C')
-    .replace(/[^A-Z0-9]/g, '');
-}
-
-function resolveKnownIl(rawIl: string): string {
-  const norm = normalizeTrForMatch(rawIl);
-  const found = TURKEY_PROVINCES.find((p) => normalizeTrForMatch(p.name) === norm);
-  if (found) return found.name;
-  const partial = TURKEY_PROVINCES.find(
-    (p) => norm.includes(normalizeTrForMatch(p.name)) && p.name.length >= 3
-  );
-  return partial ? partial.name : rawIl;
-}
-
-function resolveKnownIlce(resolvedIl: string, rawIlce: string): string {
-  const province = TURKEY_PROVINCES.find((p) => p.name === resolvedIl);
-  if (!province || !rawIlce) return rawIlce;
-  const norm = normalizeTrForMatch(rawIlce);
-  const found = province.districts.find((d) => normalizeTrForMatch(d.name) === norm);
-  return found ? found.name : rawIlce;
-}
 
 const ONTIME_VAKITLER: OnTimeVakitKey[] = ['sabah', 'ogle', 'ikindi', 'aksam', 'yatsi'];
 
@@ -100,54 +63,36 @@ export default function OnboardingEkrani({ onTamamlandi }: Props) {
 
   const [adim, setAdim] = useState<Adim>('karsilama');
   const [konumYukleniyor, setKonumYukleniyor] = useState(false);
+  const [konumHata, setKonumHata] = useState<string | null>(null);
 
+  // Madde 1 (bu tur): ortak `konumAl()` — retry'lı deneme + son bilinen
+  // konuma düşme (bkz. lib/gpsKonum.ts). Onboarding akışı hiçbir zaman
+  // kilitlenmiyor: başarısız olursa da bir sonraki adıma geçilir, ama artık
+  // kullanıcı NEDEN geçildiğini görebiliyor (`konumHata`) — sessizce
+  // yutulmuyor.
   const konumuEtkinlestir = async () => {
     setKonumYukleniyor(true);
+    setKonumHata(null);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setKonumYukleniyor(false);
-        setAdim('bildirim');
+      const sonuc = await konumAl(t('gpsKonumu'));
+      if (!sonuc.basarili) {
+        if (sonuc.hataTuru === 'konumAlinamadi') {
+          setKonumHata(t('konumAlinamadi'));
+        }
         return;
       }
-
-      // Bkz. LocationPickerScreen.tsx'teki `useGps` — aynı gerekçe: "izin
-      // verildi" konum SERVİSİNİN açık olduğunu garanti etmez, Android'de
-      // gerekirse native "Konumu Etkinleştir" diyaloğu tetiklenir ve kullanıcı
-      // onayladığı AN aynı akış içinde devam edilir.
-      if (Platform.OS === 'android') {
-        const hizmetAcik = await Location.hasServicesEnabledAsync();
-        if (!hizmetAcik) {
-          await Location.enableNetworkProviderAsync();
-        }
-      }
-
-      const position = await Location.getCurrentPositionAsync({});
-      const [place] = await Location.reverseGeocodeAsync({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
-      const countryCode = place?.isoCountryCode || 'TR';
-      const rawIl = place?.region || place?.city || t('gpsKonumu');
-      const rawIlce = place?.subregion || place?.district || place?.city || '';
-      const il = countryCode === 'TR' ? resolveKnownIl(rawIl) : rawIl;
-      const ilce = countryCode === 'TR' ? resolveKnownIlce(il, rawIlce) : rawIlce;
-
       addLocation({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        il,
-        ilce,
-        countryCode,
+        latitude: sonuc.latitude!,
+        longitude: sonuc.longitude!,
+        il: sonuc.il!,
+        ilce: sonuc.ilce!,
+        countryCode: sonuc.countryCode!,
         isGps: true,
       });
       setAutoMethod(true);
-    } catch (e) {
-      // Konum alınamazsa akış kilitlenmez — varsayılan konumla (İstanbul)
-      // devam edilir, kullanıcı istediğinde Şehir Değiştir'den düzeltebilir.
+      setAdim('bildirim');
     } finally {
       setKonumYukleniyor(false);
-      setAdim('bildirim');
     }
   };
 
@@ -181,6 +126,7 @@ export default function OnboardingEkrani({ onTamamlandi }: Props) {
           </View>
           <Text style={styles.baslik}>{t('onbKonumBaslik')}</Text>
           <Text style={styles.metin}>{t('onbKonumMetin')}</Text>
+          {konumHata && <Text style={styles.konumHataYazi}>{konumHata}</Text>}
           <View style={styles.altBosluk} />
           <TouchableOpacity
             style={styles.btn}
@@ -294,6 +240,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     lineHeight: lineHeight.body,
+    paddingHorizontal: spacing.sm,
+  },
+  konumHataYazi: {
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.small,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.sm,
   },
   altBosluk: { flex: 1, minHeight: spacing.xl },

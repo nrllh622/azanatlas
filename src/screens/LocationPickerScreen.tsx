@@ -1,15 +1,18 @@
 // src/screens/LocationPickerScreen.tsx
 //
-// Madde 4 (devir dosyası — bu tur): bu ekran hâlâ kendi özel başlığını
+// Madde 4 (devir dosyası — önceki tur): bu ekran hâlâ kendi özel başlığını
 // çiziyordu (backArrow/header metinleri), ScreenHeader/IslamicPattern
 // kullanmıyordu — anasayfa dışındaki ekranlar arasında görsel tutarsızlık
 // yaratıyordu. Şimdi Ayarlar/Tesbih/Kıble gibi ekranlarla aynı ortak
 // başlık bileşenine ve token ölçeğine geçirildi.
+//
+// YENİ (bu tur, madde 1) — GPS izin/konum tespiti akışı ortak
+// `lib/gpsKonum.ts`'e taşındı (retry + son bilinen konuma düşme + görünür
+// hata mesajı) — bkz. o dosyadaki ayrıntılı kök neden açıklaması.
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
 import { colors, spacing, radius, typography, fontSize, lineHeight, elevation } from '../theme';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
@@ -19,6 +22,7 @@ import { GLOBAL_COUNTRIES, GlobalCountry } from '../data/globalLocations';
 import { useLocationContext } from '../context/LocationContext';
 import { useCalculationSettings } from '../context/CalculationSettingsContext';
 import { useCeviri } from '../i18n/DilContext';
+import { konumAl } from '../lib/gpsKonum';
 
 interface Props {
   onDone: () => void;
@@ -46,54 +50,6 @@ function getCoordsFor(il: string, ilce: string) {
   return PROVINCE_FALLBACK[il] || DEFAULT_FALLBACK;
 }
 
-// Madde 4 (bu tur): GPS ile konum alındığında Android'in native reverse-geocode
-// sonucu (`place.region`/`place.subregion`) uygulamanın kendi 81 il / ilçe
-// listesindeki (turkeyLocations.ts) YAZIM ile birebir aynı gelmeyebiliyor —
-// örn. "İstanbul İli", baştaki/sondaki boşluklar, ya da nadiren ilçe hiç
-// dönmeyebiliyor. Bu, GPS'ten dönen il adının diyanetSehirIds.ts'teki tam
-// eşleşme aramasında bulunamayıp "Diyanet verisine ulaşılamadı" uyarısına yol
-// açan asıl nedendi (diyanetSehirIds.ts'e ayrıca normalize edilmiş arama
-// eklendi — bkz. o dosya). Burada ayrıca GPS sonucunu, uygulamanın kendi
-// bilinen il/ilçe listesindeki EN YAKIN karşılığa "onarmak" için normalize
-// edilmiş bir eşleştirme yapılıyor; böylece hem Diyanet sorgusu hem de
-// uygulama içi il/ilçe gösterimi tutarlı ve güvenilir hale geliyor.
-function normalizeTrForMatch(s: string): string {
-  return s
-    .toLocaleUpperCase('tr-TR')
-    .replace(/İ/g, 'I')
-    .replace(/Ş/g, 'S')
-    .replace(/Ğ/g, 'G')
-    .replace(/Ü/g, 'U')
-    .replace(/Ö/g, 'O')
-    .replace(/Ç/g, 'C')
-    .replace(/[^A-Z0-9]/g, '');
-}
-
-// GPS'ten dönen ham il adını, uygulamanın bilinen 81 il listesindeki tam
-// karşılığına çözer. Bulamazsa ham adı olduğu gibi geri döner (en azından
-// bir isim gösterilsin diye) — yalnızca Diyanet sorgusu tarafı zaten kendi
-// normalize aramasına sahip olduğu için bu durumda da sessizce yerele düşer.
-function resolveKnownIl(rawIl: string): string {
-  const norm = normalizeTrForMatch(rawIl);
-  const found = TURKEY_PROVINCES.find((p) => normalizeTrForMatch(p.name) === norm);
-  if (found) return found.name;
-  const partial = TURKEY_PROVINCES.find(
-    (p) => norm.includes(normalizeTrForMatch(p.name)) && p.name.length >= 3
-  );
-  return partial ? partial.name : rawIl;
-}
-
-// GPS'ten dönen ham ilçe adını, çözülen ilin bilinen ilçe listesindeki tam
-// karşılığına çözer (varsa). Bulamazsa (ör. ilçe listesi henüz "Merkez" ile
-// temsil edilen 71 il için) ham adı olduğu gibi geri döner.
-function resolveKnownIlce(resolvedIl: string, rawIlce: string): string {
-  const province = TURKEY_PROVINCES.find((p) => p.name === resolvedIl);
-  if (!province || !rawIlce) return rawIlce;
-  const norm = normalizeTrForMatch(rawIlce);
-  const found = province.districts.find((d) => normalizeTrForMatch(d.name) === norm);
-  return found ? found.name : rawIlce;
-}
-
 // Madde 9 (bu tur): Türkiye dışındaki Faz-1 ülkeleri için manuel ülke→şehir
 // akışı eklendi. 'country' → 'city' yeni akış (globalLocations.ts); Türkiye
 // seçilirse mevcut 'province' → 'district' akışına (il/ilçe düzeyi) yönlenir
@@ -109,78 +65,40 @@ export default function LocationPickerScreen({ onDone }: Props) {
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<GlobalCountry | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsHata, setGpsHata] = useState<string | null>(null);
 
+  // Madde 1 (bu tur): asıl GPS/izin/retry mantığı ortak `lib/gpsKonum.ts`'e
+  // taşındı — bkz. o dosyadaki kök neden açıklaması ("ikinci tıklamada
+  // çalışıyor" hatasının asıl sebebi: native "Konumu Etkinleştir" diyaloğu
+  // kapanır kapanmaz konum sağlayıcının henüz ilk fix'i verememesiydi, önceki
+  // kodda bu tek denemede sessizce hataya düşüp kullanıcıya hiçbir şey
+  // göstermiyordu). Burada artık: retry'lı deneme + başarısızlıkta GÖRÜNÜR
+  // hata mesajı (`gpsHata`) gösteriliyor.
   const useGps = async () => {
     setGpsLoading(true);
+    setGpsHata(null);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setGpsLoading(false);
+      const sonuc = await konumAl(t('gpsKonumu'));
+      if (!sonuc.basarili) {
+        if (sonuc.hataTuru === 'konumAlinamadi') {
+          setGpsHata(t('konumAlinamadi'));
+        }
         return;
       }
-
-      // Madde 1 (bu tur): "İzin verildi" (`status === 'granted'`) yalnızca
-      // UYGULAMANIN konumu kullanma İZNİNİ gösterir — telefonun konum
-      // SERVİSİNİN (GPS'in) fiilen AÇIK olduğunu göstermez. Konum servisi
-      // kapalıyken önceki kod doğrudan `getCurrentPositionAsync`'e geçiyordu;
-      // bu ya reddediliyor ya da Android'in kendi "Konumu Etkinleştir"
-      // sistem diyaloğunu tetikliyordu — ama kod bu diyaloğun SONUCUNU hiç
-      // beklemiyordu, `catch` bloğu hatayı sessizce yutup `gpsLoading`'i
-      // kapatıyordu. Kullanıcı diyalogtan konumu açtığında uygulama bunu
-      // öğrenmiyordu; ikinci "GPS/Konum ile Ekle" basışında konum artık açık
-      // olduğu için akış baştan başlayıp çalışıyordu.
-      //
-      // Çözüm: Android'de önce `hasServicesEnabledAsync()` ile servisin açık
-      // olup olmadığı doğrudan sorgulanıyor. Kapalıysa,
-      // `enableNetworkProviderAsync()` çağrılıyor — bu, `expo-location`'ın
-      // Android'e özgü fonksiyonu; sistemin "Konumu Etkinleştir" diyaloğunu
-      // AÇAR ve kullanıcı "Evet" dediğinde promise'i RESOLVE ederek koda
-      // aynı çağrı içinde devam etme imkânı verir (kullanıcı reddederse
-      // reject eder, `catch` bloğuna düşer). Böylece kullanıcı diyalogda
-      // konumu etkinleştirdiği AN, ikinci bir buton basışına gerek kalmadan
-      // konum alınıp ekleniyor. iOS'ta bu API yoktur (iOS'ta konum servisi
-      // sistem ayarlarından kapatılır, uygulama içinden açtırılamaz) — bu
-      // yüzden yalnızca Android'de çalıştırılıyor.
-      if (Platform.OS === 'android') {
-        const hizmetAcik = await Location.hasServicesEnabledAsync();
-        if (!hizmetAcik) {
-          await Location.enableNetworkProviderAsync();
-        }
-      }
-
-      const position = await Location.getCurrentPositionAsync({});
-      const [place] = await Location.reverseGeocodeAsync({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
-      const countryCode = place?.isoCountryCode || 'TR';
-      const rawIl = place?.region || place?.city || t('gpsKonumu');
-      const rawIlce = place?.subregion || place?.district || place?.city || '';
-      // Madde 4 (bu tur): sadece Türkiye'deyken bilinen il/ilçe listesine göre
-      // "onarım" yapılır — bu normalize eşleştirme yalnızca TURKEY_PROVINCES
-      // için anlamlı (diğer ülkelerde ham ad zaten yeterli).
-      const il = countryCode === 'TR' ? resolveKnownIl(rawIl) : rawIl;
-      const ilce = countryCode === 'TR' ? resolveKnownIlce(il, rawIlce) : rawIlce;
       addLocation({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        il,
-        ilce,
-        countryCode,
+        latitude: sonuc.latitude!,
+        longitude: sonuc.longitude!,
+        il: sonuc.il!,
+        ilce: sonuc.ilce!,
+        countryCode: sonuc.countryCode!,
         isGps: true,
       });
-      // Madde 5 (bu tur): konum GPS ile değiştirildiğinde Ayarlar'daki
+      // Madde 5 (önceki tur): konum GPS ile değiştirildiğinde Ayarlar'daki
       // "Otomatik" hesaplama yöntemi de otomatik açılır — uygulama yeni
       // konumun ülkesine göre doğru yöntemi (ör. Türkiye→Diyanet) kendiliğinden
-      // seçip tüm vakitleri buna göre yeniden hesaplar (bkz. prayerCalculator.ts
-      // içindeki getMethodForCountry — autoMethod açıkken zaten ülkeye göre
-      // otomatik yöntem seçiyor, ekstra bir "yeniden hesapla" çağrısına gerek
-      // yok çünkü HomeScreen zaten location/autoMethod değiştiğinde useEffect
-      // ile yeniden hesaplıyor).
+      // seçip tüm vakitleri buna göre yeniden hesaplar.
       setAutoMethod(true);
       onDone();
-    } catch (e) {
-      // sessizce yut
     } finally {
       setGpsLoading(false);
     }
@@ -219,6 +137,12 @@ export default function LocationPickerScreen({ onDone }: Props) {
           )}
         />
         <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>
+          {gpsHata && (
+            <View style={styles.gpsHataKutusu}>
+              <Icon name="bilgi" size={14} color={colors.textMuted} />
+              <Text style={styles.gpsHataYazi}>{gpsHata}</Text>
+            </View>
+          )}
           <TouchableOpacity style={styles.actionBtn} onPress={useGps} disabled={gpsLoading} activeOpacity={0.85}>
             <View style={styles.actionBtnInner}>
               <Icon name="konum" size={16} color={colors.textOnDark} />
@@ -381,6 +305,16 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listIcerik: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   footer: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, gap: spacing.sm },
+  gpsHataKutusu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.creamDeep,
+    borderRadius: radius.md,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm,
+  },
+  gpsHataYazi: { flex: 1, fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.small },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

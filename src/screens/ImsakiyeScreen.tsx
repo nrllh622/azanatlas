@@ -137,9 +137,16 @@ export default function ImsakiyeScreen({ onClose }: Props) {
               color={kaynak === 'diyanet' ? colors.success : colors.textMuted}
             />
             <Text style={styles.kaynakCipYazi}>
+              {/* Madde 2 (bu tur): manuel moddayken (autoMethod kapalı)
+                  Diyanet'e hiç başvurulmuyor — bu bilinçli bir tercih,
+                  "ulaşılamadı" hatası değil (bkz. prayerCalculator.ts).
+                  Önceden autoMethod ayrımı yoktu; manuel moddaki kullanıcı
+                  hiç hata yokken yanıltıcı şekilde "ulaşılamadı" görüyordu. */}
               {kaynak === 'diyanet'
                 ? t('diyanetTakvimiVerisi')
-                : t('yerelHesaplamaUlasilamadi')}
+                : autoMethod
+                ? t('yerelHesaplamaUlasilamadi')
+                : t('yerelHesaplamaManuel')}
             </Text>
           </View>
         }
