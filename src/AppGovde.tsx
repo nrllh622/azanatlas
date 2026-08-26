@@ -21,11 +21,13 @@
 // sırada açılış animasyonu zaten ekranda.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NativeModules } from 'react-native';
+import { NativeModules, View } from 'react-native';
+import { colors } from './theme';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import HomeScreen from './screens/HomeScreen';
+import OnboardingEkrani from './screens/OnboardingEkrani';
 import { LocationProvider } from './context/LocationContext';
 import { NotificationSettingsProvider } from './context/NotificationSettingsContext';
 import { CalculationSettingsProvider } from './context/CalculationSettingsContext';
@@ -35,6 +37,7 @@ import { VaktindeKilProvider } from './context/VaktindeKilContext';
 import { RemindersProvider } from './context/RemindersContext';
 import { IbadetTakibiProvider } from './context/IbadetTakibiContext';
 import { DilProvider } from './i18n/DilContext';
+import { onboardingTamamlandiMi, onboardingTamamlandiOlarakIsaretle } from './lib/onboardingDeposu';
 
 /**
  * Reklam SDK'sını uygulama açılışında BİR KEZ başlatır.
@@ -60,11 +63,30 @@ function reklamSdkBaslat() {
   }
 }
 
+// Madde 4 (bu tur): İLK AÇILIŞ TANITIM + İZİN AKIŞI (OnboardingEkrani.tsx).
+//
+// Bu akış, kullanıcının konum/bildirim tercihlerini gerçek Context'lere
+// (LocationContext, NotificationSettingsContext) yazabilmesi için tüm
+// Provider'ların İÇİNDE, ama `HomeScreen` yerine geçici olarak render
+// ediliyor — yani `onboardingBitti` `true` olana kadar `HomeScreen` hiç
+// mount edilmiyor. `onboardingKontrolEdiliyor` (kayıtlı durum AsyncStorage'dan
+// okunana kadar) `null` tutuluyor ki daha önce tamamlamış bir kullanıcıya
+// bir anlığına da olsa onboarding ekranı YANIP SÖNMESİN.
 export default function AppGovde() {
   useEffect(() => {
     reklamSdkBaslat();
   }, []);
 
+  const [onboardingBitti, setOnboardingBitti] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    onboardingTamamlandiMi().then(setOnboardingBitti);
+  }, []);
+
+  const onboardingiTamamla = () => {
+    onboardingTamamlandiOlarakIsaretle();
+    setOnboardingBitti(true);
+  };
 
   return (
     <SafeAreaProvider>
@@ -83,8 +105,14 @@ export default function AppGovde() {
                     <IbadetTakibiProvider>
                       <NotificationSettingsProvider>
                         {/* Üst blok koyu olduğu için durum çubuğu açık renkte */}
-                        <StatusBar style="light" />
-                        <HomeScreen />
+                        <StatusBar style={onboardingBitti ? 'light' : 'dark'} />
+                        {onboardingBitti === null ? (
+                          <View style={{ flex: 1, backgroundColor: colors.cream }} />
+                        ) : onboardingBitti ? (
+                          <HomeScreen />
+                        ) : (
+                          <OnboardingEkrani onTamamlandi={onboardingiTamamla} />
+                        )}
                       </NotificationSettingsProvider>
                     </IbadetTakibiProvider>
                   </KazaProvider>

@@ -1243,6 +1243,77 @@ const kibleEkrani = {
   },
 };
 
+// ── ONBOARDING (Madde 4, bu tur) ──
+// İlk açılışta gösterilen tanıtım + izin talebi akışı (OnboardingEkrani.tsx).
+// Varyant A: Karşılama → Konum izni → Bildirim izni → Tamamlandı, adım
+// göstergesi olmadan doğrusal ilerleyen 4 kart.
+const onboarding = {
+  tr: {
+    onbKarsilamaBaslik: 'Selamünaleyküm',
+    onbKarsilamaMetin: 'Vaktinde ibadete, doğru vakitle.\nAzanAtlas’a hoş geldiniz.',
+    onbDevamEt: 'Devam Et',
+    onbKonumBaslik: 'Konumunuza göre\nen doğru vakit',
+    onbKonumMetin: 'Bulunduğunuz yere göre namaz vakitlerini otomatik ve anında hesaplayalım.',
+    onbKonumEtkinlestir: 'Konumu Etkinleştir',
+    onbListedenSec: 'Listeden Seç',
+    onbBildirimBaslik: 'Hiçbir vakti kaçırmayın',
+    onbBildirimMetin: 'Hangi vakitlerde haber verelim?',
+    onbBildirimIzinVer: 'İzin Ver',
+    onbTamamBaslik: 'Her şey hazır!',
+    onbTamamMetin: 'Namaz vakitleriniz artık\nkonumunuza göre hazır.',
+    onbBasla: 'Başla',
+    onbAtla: 'Atla',
+  },
+  en: {
+    onbKarsilamaBaslik: 'Peace be upon you',
+    onbKarsilamaMetin: 'Prayer on time, with the right time.\nWelcome to AzanAtlas.',
+    onbDevamEt: 'Continue',
+    onbKonumBaslik: 'The most accurate\ntimes for your location',
+    onbKonumMetin: "Let us calculate prayer times automatically and instantly based on your location.",
+    onbKonumEtkinlestir: 'Enable Location',
+    onbListedenSec: 'Choose from List',
+    onbBildirimBaslik: "Don't miss a single prayer time",
+    onbBildirimMetin: 'Which prayer times should we notify you about?',
+    onbBildirimIzinVer: 'Allow',
+    onbTamamBaslik: 'All set!',
+    onbTamamMetin: 'Your prayer times are now ready\nbased on your location.',
+    onbBasla: 'Get Started',
+    onbAtla: 'Skip',
+  },
+  id: {
+    onbKarsilamaBaslik: 'Assalamu’alaikum',
+    onbKarsilamaMetin: 'Beribadah tepat waktu, dengan waktu yang tepat.\nSelamat datang di AzanAtlas.',
+    onbDevamEt: 'Lanjutkan',
+    onbKonumBaslik: 'Waktu paling akurat\nsesuai lokasi Anda',
+    onbKonumMetin: 'Mari hitung waktu salat secara otomatis dan instan berdasarkan lokasi Anda.',
+    onbKonumEtkinlestir: 'Aktifkan Lokasi',
+    onbListedenSec: 'Pilih dari Daftar',
+    onbBildirimBaslik: 'Jangan lewatkan satu pun waktu salat',
+    onbBildirimMetin: 'Waktu salat mana yang ingin Anda dapatkan notifikasinya?',
+    onbBildirimIzinVer: 'Izinkan',
+    onbTamamBaslik: 'Semua siap!',
+    onbTamamMetin: 'Waktu salat Anda kini siap\nsesuai lokasi Anda.',
+    onbBasla: 'Mulai',
+    onbAtla: 'Lewati',
+  },
+  fr: {
+    onbKarsilamaBaslik: 'Salam alaykoum',
+    onbKarsilamaMetin: "La prière à l'heure, avec la bonne heure.\nBienvenue sur AzanAtlas.",
+    onbDevamEt: 'Continuer',
+    onbKonumBaslik: 'Les horaires les plus précis\npour votre position',
+    onbKonumMetin: 'Calculons les horaires de prière automatiquement et instantanément selon votre position.',
+    onbKonumEtkinlestir: 'Activer la position',
+    onbListedenSec: 'Choisir dans la liste',
+    onbBildirimBaslik: 'Ne manquez plus aucune prière',
+    onbBildirimMetin: 'Pour quelles prières souhaitez-vous être notifié ?',
+    onbBildirimIzinVer: 'Autoriser',
+    onbTamamBaslik: 'Tout est prêt !',
+    onbTamamMetin: 'Vos horaires de prière sont prêts\nselon votre position.',
+    onbBasla: 'Commencer',
+    onbAtla: 'Passer',
+  },
+};
+
 // Vakit adları — pek çok ekranda ortak kullanılıyor (HomeScreen, Imsakiye,
 // bildirimler vb.), bu yüzden ayrı bir bölüm.
 const vakitAdlari = {
@@ -1269,25 +1340,25 @@ export const SOZLUK = {
     ...ortak.tr, ...anaSayfa.tr, ...ayarlar.tr, ...kaza.tr, ...kesfet.tr, ...esma.tr,
     ...hatirlaticilarEkrani.tr, ...vaktindeKilEkrani.tr, ...imsakiyeEkrani.tr,
     ...gunAdlari.tr, ...konumSecici.tr, ...bildirimler.tr, ...tesbih.tr, ...takip.tr,
-    ...temaEkrani.tr, ...kibleEkrani.tr, vakit: vakitAdlari.tr,
+    ...temaEkrani.tr, ...kibleEkrani.tr, ...onboarding.tr, vakit: vakitAdlari.tr,
   },
   en: {
     ...ortak.en, ...anaSayfa.en, ...ayarlar.en, ...kaza.en, ...kesfet.en, ...esma.en,
     ...hatirlaticilarEkrani.en, ...vaktindeKilEkrani.en, ...imsakiyeEkrani.en,
     ...gunAdlari.en, ...konumSecici.en, ...bildirimler.en, ...tesbih.en, ...takip.en,
-    ...temaEkrani.en, ...kibleEkrani.en, vakit: vakitAdlari.en,
+    ...temaEkrani.en, ...kibleEkrani.en, ...onboarding.en, vakit: vakitAdlari.en,
   },
   id: {
     ...ortak.id, ...anaSayfa.id, ...ayarlar.id, ...kaza.id, ...kesfet.id, ...esma.id,
     ...hatirlaticilarEkrani.id, ...vaktindeKilEkrani.id, ...imsakiyeEkrani.id,
     ...gunAdlari.id, ...konumSecici.id, ...bildirimler.id, ...tesbih.id, ...takip.id,
-    ...temaEkrani.id, ...kibleEkrani.id, vakit: vakitAdlari.id,
+    ...temaEkrani.id, ...kibleEkrani.id, ...onboarding.id, vakit: vakitAdlari.id,
   },
   fr: {
     ...ortak.fr, ...anaSayfa.fr, ...ayarlar.fr, ...kaza.fr, ...kesfet.fr, ...esma.fr,
     ...hatirlaticilarEkrani.fr, ...vaktindeKilEkrani.fr, ...imsakiyeEkrani.fr,
     ...gunAdlari.fr, ...konumSecici.fr, ...bildirimler.fr, ...tesbih.fr, ...takip.fr,
-    ...temaEkrani.fr, ...kibleEkrani.fr, vakit: vakitAdlari.fr,
+    ...temaEkrani.fr, ...kibleEkrani.fr, ...onboarding.fr, vakit: vakitAdlari.fr,
   },
 };
 

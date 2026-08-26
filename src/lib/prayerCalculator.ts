@@ -155,12 +155,18 @@ export interface VakitSonucu {
 // Diyanet'in resmi verisini denemeye çalışan, olmazsa yerel hesaba (adhan)
 // sessizce düşen ASENKRON fonksiyon.
 //
-// Diyanet SADECE şu durumda denenir: ülke Türkiye, il/ilçe bilgisi mevcut,
-// VE kullanıcı fiilen "Diyanet Takvimi (Türkiye)" yöntemini kullanıyor —
-// ya "Otomatik Yöntem" açıksa (bu zaten TR için Turkey() metodunu seçiyor)
-// ya da manuel modda kendisi "Turkey" yöntemini seçtiyse. Kullanıcı bilerek
-// başka bir yöntem seçtiyse (ör. Ümmül Kurra, Karaçi) — Türkiye'deyken bile —
-// o tercihi ASLA Diyanet verisiyle ezmiyoruz; bu onun açık seçimidir.
+// Diyanet SADECE "Otomatik Yöntem" AÇIKKEN denenir (TR için zaten Turkey()
+// metodunu otomatik seçen mod). Manuel moddaysa (autoMethod === false)
+// Diyanet'e HİÇ başvurulmuyor — kullanıcı manuel moda geçtiği an İkindi
+// Hesabı (Şafi/Hanefi) kartı Ayarlar'da tıklanabilir hale geliyor
+// (SettingsScreen.tsx'teki `disabled={autoMethod}`); Diyanet'in resmi
+// takvimi mezhep ayrımı YAPMAZ (tek resmi vakit yayınlar), bu yüzden
+// kullanıcı manuel modda Hanefi seçse bile eskiden Diyanet verisi hâlâ
+// kullanılmaya devam ediyor, seçimi sessizce görmezden geliniyordu — Madde 3
+// (bu tur) kullanıcının bildirdiği "İkindi Hesabı'nı değiştirince saat
+// değişmiyor" hatasının kök nedeni buydu. Artık: Otomatik açıkken → Diyanet
+// (varsa) + yerel yedek; Otomatik kapalıyken → HER ZAMAN yerel `adhan`
+// hesabı, kullanıcının seçtiği madhab/yöntem/yüksek-açı ayarlarıyla birebir.
 export async function getVakitlerWithDiyanetFallback(
   latitude: number,
   longitude: number,
@@ -175,8 +181,7 @@ export async function getVakitlerWithDiyanetFallback(
 ): Promise<VakitSonucu> {
   const yerel = calculateVakitler(latitude, longitude, date, countryCode, autoMethod, methodId, madhabId, highLatRuleId);
 
-  const kullaniciDiyanetIstiyor = autoMethod || methodId === 'Turkey';
-  if (countryCode !== 'TR' || !il || !ilce || !kullaniciDiyanetIstiyor) {
+  if (countryCode !== 'TR' || !il || !ilce || !autoMethod) {
     return { vakitler: yerel, kaynak: 'yerel' };
   }
 

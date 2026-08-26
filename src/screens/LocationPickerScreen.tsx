@@ -7,7 +7,7 @@
 // başlık bileşenine ve token ölçeğine geçirildi.
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { colors, spacing, radius, typography, fontSize, lineHeight, elevation } from '../theme';
@@ -118,6 +118,36 @@ export default function LocationPickerScreen({ onDone }: Props) {
         setGpsLoading(false);
         return;
       }
+
+      // Madde 1 (bu tur): "İzin verildi" (`status === 'granted'`) yalnızca
+      // UYGULAMANIN konumu kullanma İZNİNİ gösterir — telefonun konum
+      // SERVİSİNİN (GPS'in) fiilen AÇIK olduğunu göstermez. Konum servisi
+      // kapalıyken önceki kod doğrudan `getCurrentPositionAsync`'e geçiyordu;
+      // bu ya reddediliyor ya da Android'in kendi "Konumu Etkinleştir"
+      // sistem diyaloğunu tetikliyordu — ama kod bu diyaloğun SONUCUNU hiç
+      // beklemiyordu, `catch` bloğu hatayı sessizce yutup `gpsLoading`'i
+      // kapatıyordu. Kullanıcı diyalogtan konumu açtığında uygulama bunu
+      // öğrenmiyordu; ikinci "GPS/Konum ile Ekle" basışında konum artık açık
+      // olduğu için akış baştan başlayıp çalışıyordu.
+      //
+      // Çözüm: Android'de önce `hasServicesEnabledAsync()` ile servisin açık
+      // olup olmadığı doğrudan sorgulanıyor. Kapalıysa,
+      // `enableNetworkProviderAsync()` çağrılıyor — bu, `expo-location`'ın
+      // Android'e özgü fonksiyonu; sistemin "Konumu Etkinleştir" diyaloğunu
+      // AÇAR ve kullanıcı "Evet" dediğinde promise'i RESOLVE ederek koda
+      // aynı çağrı içinde devam etme imkânı verir (kullanıcı reddederse
+      // reject eder, `catch` bloğuna düşer). Böylece kullanıcı diyalogda
+      // konumu etkinleştirdiği AN, ikinci bir buton basışına gerek kalmadan
+      // konum alınıp ekleniyor. iOS'ta bu API yoktur (iOS'ta konum servisi
+      // sistem ayarlarından kapatılır, uygulama içinden açtırılamaz) — bu
+      // yüzden yalnızca Android'de çalıştırılıyor.
+      if (Platform.OS === 'android') {
+        const hizmetAcik = await Location.hasServicesEnabledAsync();
+        if (!hizmetAcik) {
+          await Location.enableNetworkProviderAsync();
+        }
+      }
+
       const position = await Location.getCurrentPositionAsync({});
       const [place] = await Location.reverseGeocodeAsync({
         latitude: position.coords.latitude,
