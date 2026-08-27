@@ -39,9 +39,12 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       // için de paylaşıldığından silinmiyor.
       break;
     case 'WIDGET_CLICK':
-      // Widget'a dokunma davranışı (ör. uygulamayı açma) ileride
-      // `clickAction` ile eklenebilir; şimdilik widget yalnızca bilgi
-      // gösteriyor.
+      // DÜZELTME (madde 7, 6. tur): tıklama davranışı burada DEĞİL,
+      // `AzanAtlasWidget.tsx`'teki kök `FlexWidget`in `clickAction:
+      // 'OPEN_APP'` prop'u üzerinden tanımlanıyor — kütüphane bunu görünce
+      // dokunmayı otomatik olarak "uygulamayı aç"a bağlıyor, bu case'e
+      // elle kod yazmaya gerek kalmıyor. Widget artık TÜM yüzeyiyle
+      // tıklanabilir (boş durum dahil).
       break;
     default:
       break;

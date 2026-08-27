@@ -33,6 +33,7 @@ import {
   ScrollView,
   TouchableOpacity,
   BackHandler,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
@@ -68,6 +69,19 @@ import { getTariheBugunTamEslesme } from '../data/tariheBugun';
 import { widgetVerisiniGuncelle } from '../lib/widgetVeriDeposu';
 import { useCeviri } from '../i18n/DilContext';
 import { AY_ANAHTARLARI } from '../i18n/ceviriler';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MADDE 8 (6. tur) — GELİŞTİRİCİYE DESTEK OL (karşılıksız, harici bağış)
+//
+// Kullanıcının kararı: reklam kaldırma VAADİ OLMAYAN, tamamen karşılıksız
+// bir "beni kahve ısmarla" tarzı harici link. Bu yüzden Apple/Google'ın
+// IAP zorunluluğu (bkz. madde 8-9 araştırma notu) burada GEÇERLİ DEĞİL —
+// hiçbir dijital içerik/hizmet açılmıyor, saf bir bağış. `Linking.openURL`
+// ile tarayıcıda/uygulamada açılıyor, uygulama içinde ödeme akışı YOK.
+//
+// ⚠️ YER TUTUCU LİNK — YAYINLANMADAN ÖNCE GERÇEK HESAPLA DEĞİŞTİRİLMELİ.
+// Buy Me a Coffee / Ko-fi gibi bir hesap açılınca bu URL güncellenmeli.
+const GELISTIRICI_DESTEK_URL = 'https://buymeacoffee.com/azanatlas';
 
 import Icon, { IconName, vakitIcon } from '../components/Icon';
 import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
@@ -766,6 +780,24 @@ export default function HomeScreen() {
             })}
           </View>
 
+          {/* ============ GELİŞTİRİCİYE DESTEK OL (madde 8, 6. tur) ============
+              Vakitler ile Takip/Tesbih/Esmâ/Kaza satırı ARASINDA, kullanıcının
+              istediği tam konum. Karşılıksız harici bağış linki — reklam
+              kaldırma gibi bir vaat İÇERMİYOR (bkz. yukarıdaki gerekçe). */}
+          <TouchableOpacity
+            style={styles.destekKart}
+            onPress={() => Linking.openURL(GELISTIRICI_DESTEK_URL)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('destekOl')}
+          >
+            <Icon name="hilal" size={18} color={colors.copperVivid} />
+            <View style={styles.destekMetinKap}>
+              <Text style={styles.destekBaslik}>{t('destekOl')}</Text>
+              <Text style={styles.destekAciklama}>{t('destekOlAciklama')}</Text>
+            </View>
+          </TouchableOpacity>
+
           {/* ============ HIZLI ARAÇLAR (Muslim Pro'daki dörtlü satır) ============
               Bu kart bilinçli olarak REKLAM ALANININ ÜSTÜNDE, ilk ekranda
               kalacak şekilde konumlandı — Kıble/Tesbih/Esmâ/Kaza'ya scroll
@@ -1000,16 +1032,15 @@ const styles = StyleSheet.create({
   // (`borderBottomLeftRadius`/`borderBottomRightRadius: radius.lg`) ile
   // birebir aynı değer, uygulama genelinde tutarlı bir "alt köşe kavisi"
   // dili oluşsun diye.
-  // DÜZELTME (5. tur — madde 5): kullanıcı üst yeşil bloğun biraz daha
-  // aşağı doğru genişlemesini istedi. `hero`nun üst kenarı `ustSerit`e
-  // bitişik sabit kaldığı için `paddingVertical`i artırmak bloğun ALT
-  // kenarını (yuvarlatılmış köşelerin olduğu yer) aşağı iter — istenen etki
-  // bu. Eski backlog maddesi (Kıble/Tesbih/Esmâ/Kaza'nın scroll'suz
-  // görünmesi) göz önünde tutularak artış kasıtlı olarak ÜLÇÜLÜ tutuldu.
+  // DÜZELTME (6. tur — madde 5): 5. turdaki artış (6px→10px) kullanıcıya
+  // göre fark edilmedi — bu turda belirgin şekilde büyütüldü (10px→20px,
+  // yani orijinalin OT ÜÇ KATI). `hero`nun üst kenarı `ustSerit`e bitişik
+  // sabit kaldığı için `paddingVertical`i artırmak bloğun ALT kenarını
+  // (yuvarlatılmış köşelerin olduğu yer) aşağı iter — istenen etki bu.
   hero: {
     backgroundColor: colors.primary,
     overflow: 'hidden',
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.md + 4,
     borderBottomLeftRadius: radius.lg,
     borderBottomRightRadius: radius.lg,
   },
@@ -1027,16 +1058,15 @@ const styles = StyleSheet.create({
   // 26'dan 19'a indirmek — dördü hâlâ BİRBİRİYLE AYNI boyutta (kullanıcının
   // istediği gibi), ama artık dar telefon ekranlarında da (Fransızca
   // "PROCHAINE PRIÈRE" gibi en uzun çeviri dahil) satıra sığıyor.
-  // DÜZELTME (5. tur — madde 3): kullanıcı "SIRADAKİ VAKİT" + saat satırının
-  // hâlâ küçük durduğunu belirtti, biraz daha büyütülmesini istedi. `19`
-  // taşma sorununu çözmüştü (bkz. yukarıdaki not); `21`'e çıkarıldı — bu
-  // satır zaten `flexWrap: 'wrap'` ile korunuyor (aşağıdaki `siradakiAdSatir`),
+  // DÜZELTME (6. tur — madde 4): kullanıcı 21'in HÂLÂ yeterince büyümediğini
+  // belirtti — bu turda gözle görülür bir sıçrama yapıldı (21→24). Satır
+  // `flexWrap: 'wrap'` ile korunmaya devam ediyor (aşağıdaki `siradakiAdSatir`),
   // yani en uzun çeviri (Fransızca) bile taşma/kırpılma yaşamadan gerekirse
   // ikinci satıra sarar, "aşağıya taşma" (görsel bozulma) riski yok.
   siradakiEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.copperLight,
     letterSpacing: 0.3,
     includeFontPadding: false,
@@ -1055,15 +1085,15 @@ const styles = StyleSheet.create({
   },
   siradakiAd: {
     fontFamily: typography.displaySemibold,
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.white,
     includeFontPadding: false,
   },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 21,
-    lineHeight: 27,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.copperLight,
     includeFontPadding: false,
   },
@@ -1080,19 +1110,19 @@ const styles = StyleSheet.create({
   // bir boşluk bırakıyor. Taşma riskini azaltmak için fontSize 26→22'ye,
   // lineHeight 32→28'e indirildi ve `flexWrap` kaldırıldı — en uzun
   // çeviriler (ör. Fransızca "TEMPS RESTANT") için de tek satırda sığıyor.
-  // DÜZELTME (5. tur — madde 4): önceki turda `justifyContent:
-  // 'space-between'` etiketi solda, değeri kartın en sağına yaslıyordu —
-  // kart genişliği yüzünden aradaki boşluk gereğinden büyük duruyordu.
-  // Kullanıcı bu boşluğun azaltılmasını istedi; `flex-start` + küçük bir
-  // `gap` ile ikisi artık birbirine yakın duruyor. `flexWrap: 'wrap'`
-  // güvenlik payı olarak eklendi — fontSize büyüdüğü için en uzun çeviri
-  // (Fransızca "TEMPS RESTANT") + geri sayım değeri dar ekranda taşırsa
-  // kırpılmak yerine ikinci satıra sarar.
+  // DÜZELTME (6. tur — madde 3): 5. turda `space-between`den `gap:
+  // spacing.xs` (4px)'e geçilmişti — kullanıcı bunun bu kez TERSİNE aşırı
+  // gittiğini, ikisinin "neredeyse yapışmış" göründüğünü belirtti. `gap`
+  // `spacing.md` (16px)'e çıkarıldı — ne eski aşırı geniş `space-between`
+  // kadar açık, ne de 4px kadar bitişik; ikisi arasında görünür ama ölçülü
+  // bir boşluk. `flexWrap: 'wrap'` güvenlik payı olarak duruyor — fontSize
+  // büyük olduğu için en uzun çeviri (Fransızca "TEMPS RESTANT") + geri
+  // sayım değeri dar ekranda taşırsa kırpılmak yerine ikinci satıra sarar.
   kalanSureSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.md,
     marginTop: spacing.sm,
   },
   kalanSureEtiket: {
@@ -1255,6 +1285,33 @@ const styles = StyleSheet.create({
   },
   vakitSaatAktif: { color: colors.primaryGlow },
   zilBtn: { width: 26, alignItems: 'center' },
+
+  // ---------- GELİŞTİRİCİYE DESTEK OL (madde 8, 6. tur) ----------
+  // Vakitler kartı ile hızlı araçlar arasında, ince/düşük vurgulu bir
+  // şerit — ana içeriğin (namaz vakitleri) önüne geçmemesi için bilinçli
+  // olarak sade tutuldu; sadece bir simge + iki satır metin.
+  destekKart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryMist,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  destekMetinKap: { flex: 1 },
+  destekBaslik: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.small,
+    color: colors.textOnLight,
+  },
+  destekAciklama: {
+    fontFamily: typography.bodyFamily,
+    fontSize: fontSize.micro,
+    color: colors.textMuted,
+    marginTop: 1,
+  },
 
   // ---------- HIZLI ARAÇLAR ----------
   // Madde 5 (bu tur): vakit listesi ile bu kart arasındaki boşluk çok azdı

@@ -40,84 +40,55 @@
 //
 // `react-native-android-widget` React ağacını bir RESME dönüştürüp gösteriyor;
 // Android işletim sistemi widget güncellemesini 30 dakikadan sık işlemiyor.
-// Bu yüzden widget akan bir sayaç DEĞİL, "şu an hangi vakitteyiz + bugünün
-// tam listesi" gösteren STATİK bir görünüm sunuyor (Muslim Pro'nun widget'ı
-// da aynı sınırlamayla statiktir). Bu yüzden üst şeritte de bir "şu anki
-// saat" göstergesi YOK — 30 dakikaya kadar bayatlayabilecek bir saat,
-// kullanıcıyı yanıltır; onun yerine konum bilgisi gösteriliyor.
+// Bu yüzden widget akan bir sayaç DEĞİL, veri okunduğu anda statik olarak
+// hesaplanan "~X sa Y dk kaldı" gösteren bir anlık görüntü sunuyor (Muslim
+// Pro'nun widget'ı da aynı sınırlamayla statiktir).
+//
+// DÜZELTME (madde 7, 6. tur) — TASARIM DEĞİŞTİ: "KOMPAKT ŞERİT" (7 vaktin
+// tamamı) TAMAMEN KALDIRILDI. Kullanıcı açıkça widget'ın SADECE sıradaki
+// vakit + (statik) geri sayımı göstermesini istedi — detaylar (aylık
+// imsakiye, kaza takibi, tesbih vb.) widget'ta YOK, widget'a dokununca
+// uygulama açılıyor (`clickAction: 'OPEN_APP'`). Bunun iki gerekçesi var:
+// (1) kullanıcının kendi tercihi, (2) reklam geliri — widget'tan hiç
+// uygulamaya girmeden bilgi almak reklam gösterimini sıfırlıyordu; artık
+// widget'a her dokunuş uygulamayı açan doğal bir "geri çağırma" kapısı
+// (bkz. proje kökündeki madde 8-9 araştırma notu).
+// ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 import { PALETLER, PaletAdi, VARSAYILAN_PALET } from '../theme';
 import type { WidgetVakitVerisi } from '../lib/widgetVeriDeposu';
+import { siradakiVakitiBul } from '../lib/widgetVeriDeposu';
 
 interface Props {
   veri: WidgetVakitVerisi | null;
   paletAdi: PaletAdi;
 }
 
-const GUN_KISALTMA: Record<string, string> = {
+const VAKIT_ADI: Record<string, string> = {
   imsak: 'İmsak', sabah: 'Sabah', gunes: 'Güneş', ogle: 'Öğle',
   ikindi: 'İkindi', aksam: 'Akşam', yatsi: 'Yatsı',
 };
 
-// Kronolojik sırayla 4 + 3 — hiçbir vakit atlanmıyor (Güneş ve Yatsı dahil).
-const UST_SIRA: string[] = ['imsak', 'sabah', 'gunes', 'ogle'];
-const ALT_SIRA: string[] = ['ikindi', 'aksam', 'yatsi'];
-
-function VakitHucresi({
-  v,
-  C,
-}: {
-  v: { key: string; saat: string; aktif: boolean } | undefined;
-  C: Record<string, string>;
-}) {
-  if (!v) {
-    // Alt sırada 3 hücre olduğu için boş bir dördüncü hücre bırakılıyor,
-    // ızgara hizası bozulmasın diye (görünmez, aynı genişlikte).
-    return <FlexWidget style={{ flex: 1 }} />;
-  }
-  return (
-    <FlexWidget
-      style={{
-        flex: 1,
-        flexDirection: 'column',
-        alignItems: 'center',
-        paddingVertical: 4,
-        marginHorizontal: 2,
-        backgroundColor: v.aktif ? C.primary : 'transparent',
-        borderRadius: 8,
-      }}
-    >
-      <TextWidget
-        text={GUN_KISALTMA[v.key] ?? v.key}
-        style={{
-          color: v.aktif ? C.textOnDark : C.textOnDarkMuted,
-          fontSize: 10,
-          fontWeight: v.aktif ? 'bold' : 'normal',
-        }}
-        maxLines={1}
-      />
-      <TextWidget
-        text={v.saat}
-        style={{
-          color: v.aktif ? C.copperLight : C.textOnDark,
-          fontSize: 12,
-          fontWeight: 'bold',
-        }}
-        maxLines={1}
-      />
-    </FlexWidget>
-  );
+function kalanSureMetni(dakika: number): string {
+  if (dakika <= 0) return '';
+  const saat = Math.floor(dakika / 60);
+  const dk = dakika % 60;
+  if (saat <= 0) return `${dk} dk kaldı`;
+  if (dk === 0) return `${saat} sa kaldı`;
+  return `${saat} sa ${dk} dk kaldı`;
 }
 
 export function AzanAtlasWidget({ veri, paletAdi }: Props) {
   const palet = PALETLER[paletAdi] ?? PALETLER[VARSAYILAN_PALET];
   const C = palet.renkler;
 
+  // Boş durum da dahil, TÜM widget dokununca uygulamayı açıyor.
   if (!veri) {
     return (
       <FlexWidget
+        clickAction="OPEN_APP"
         style={{
           height: 'match_parent',
           width: 'match_parent',
@@ -133,71 +104,73 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
           style={{ color: C.textOnDark, fontSize: 14, fontWeight: 'bold' }}
         />
         <TextWidget
-          text="Uygulamayı açıp vakitleri yükleyin"
+          text="Vakitleri yüklemek için dokunun"
           style={{ color: C.textOnDarkMuted, fontSize: 11, marginTop: 4 }}
         />
       </FlexWidget>
     );
   }
 
-  const bul = (key: string) => veri.vakitler.find((v) => v.key === key);
+  const siradaki = siradakiVakitiBul(veri);
+  const vakitAdi = siradaki ? (VAKIT_ADI[siradaki.key] ?? siradaki.key) : '';
+  const kalanMetin = siradaki ? kalanSureMetni(siradaki.kalanDakika) : '';
 
   return (
     <FlexWidget
+      clickAction="OPEN_APP"
       style={{
         height: 'match_parent',
         width: 'match_parent',
         backgroundColor: C.primaryDark,
         borderRadius: 16,
-        padding: 10,
+        padding: 14,
         flexDirection: 'column',
+        justifyContent: 'center',
       }}
     >
-      {/* Marka adı — DOLU durumda da her zaman görünür, en üstte ve kalın
-          (önceki tasarımın asıl eksiği buydu). */}
+      {/* Marka adı + konum — tek satır, üstte, küçük. */}
       <FlexWidget
         style={{
           width: 'match_parent',
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 2,
+          marginBottom: 8,
         }}
       >
         <TextWidget
           text="AzanAtlas"
-          style={{ color: C.copperLight, fontSize: 14, fontWeight: 'bold' }}
+          style={{ color: C.copperLight, fontSize: 13, fontWeight: 'bold' }}
           maxLines={1}
         />
         <TextWidget
-          text={veri.hicriEtiketi}
-          style={{ color: C.textOnDarkMuted, fontSize: 9 }}
+          text={veri.konumEtiketi}
+          style={{ color: C.textOnDarkMuted, fontSize: 10 }}
           maxLines={1}
         />
       </FlexWidget>
 
-      {/* İkinci satır — konum */}
+      {/* SIRADAKİ VAKİT — tek, büyük, net odak noktası. */}
       <TextWidget
-        text={veri.konumEtiketi}
-        style={{ color: C.textOnDark, fontSize: 10 }}
+        text={vakitAdi}
+        style={{ color: C.textOnDarkMuted, fontSize: 12, fontWeight: 'normal' }}
+        maxLines={1}
+      />
+      <TextWidget
+        text={siradaki?.saat ?? '—'}
+        style={{ color: C.textOnDark, fontSize: 30, fontWeight: 'bold' }}
         maxLines={1}
       />
 
-      {/* Yedi vaktin TAMAMI — 4 + 3'lük iki satırlık ızgara, hiçbiri
-          kesilmiyor (Güneş ve Yatsı dahil). Aktif vakit vurgulanır. */}
-      <FlexWidget style={{ width: 'match_parent', flexDirection: 'column', marginTop: 6 }}>
-        <FlexWidget style={{ width: 'match_parent', flexDirection: 'row' }}>
-          {UST_SIRA.map((key) => (
-            <VakitHucresi key={key} v={bul(key)} C={C} />
-          ))}
-        </FlexWidget>
-        <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', marginTop: 2 }}>
-          {ALT_SIRA.map((key) => (
-            <VakitHucresi key={key} v={bul(key)} C={C} />
-          ))}
-          <VakitHucresi v={undefined} C={C} />
-        </FlexWidget>
-      </FlexWidget>
+      {/* Statik "kalan süre" — canlı sayaç değil, veri yenilendiğinde
+          tazelenen bir anlık görüntü (bkz. dosya başındaki gerekçe). */}
+      {!!kalanMetin && (
+        <TextWidget
+          text={kalanMetin}
+          style={{ color: C.copperLight, fontSize: 13, fontWeight: 'bold', marginTop: 2 }}
+          maxLines={1}
+        />
+      )}
     </FlexWidget>
   );
 }

@@ -99,3 +99,43 @@ export async function widgetVerisiniOku(): Promise<WidgetVakitVerisi | null> {
     return null;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIRADAKİ VAKİT + STATİK KALAN SÜRE (madde 7, 6. tur)
+//
+// Kullanıcı widget'ın SADECE sıradaki vakit + geri sayımı göstermesini,
+// detayların (7 vaktin tamamı) widget'ta YER ALMAMASINI istedi. Widget
+// dokunulunca uygulama açılsın ki detaylar (ve reklam gösterim fırsatı)
+// orada olsun — bkz. `AzanAtlasWidget.tsx` içindeki `clickAction`.
+//
+// "Geri sayım" burada CANLI/akan bir sayaç DEĞİL (dosyanın en üstündeki
+// "CANLI GEZ SAYIM NEDEN YOK?" notu hâlâ geçerli — Android widget'ları
+// saniyede bir güncellenemez). Bunun yerine, verinin OKUNDUĞU anda statik
+// olarak hesaplanan "~X sa Y dk kaldı" biçiminde bir anlık görüntü
+// gösteriliyor; widget her yenilendiğinde (Android'in izin verdiği en sık
+// aralıkta) bu değer tazelenir.
+export interface SiradakiVakitOzeti {
+  key: VakitKey;
+  saat: string;
+  /** "İmsak", "Öğle" gibi widget'ta göstermeye hazır kısa ad — çağıran taraf verir. */
+  kalanDakika: number;
+}
+
+/**
+ * Bugünün vakitleri arasından henüz gelmemiş İLK vakti + ona kalan dakikayı
+ * döndürür. Bugünün tüm vakitleri geçtiyse (Yatsı'dan sonraki saatler),
+ * yarının İmsak'ı burada bilinmediği için son vakit (Yatsı) "kalanDakika: 0"
+ * ile döndürülür — widget bu durumda "yeni gün için uygulamayı aç" gibi bir
+ * ikincil metin gösterir (bkz. `AzanAtlasWidget.tsx`).
+ */
+export function siradakiVakitiBul(veri: WidgetVakitVerisi): SiradakiVakitOzeti | null {
+  if (!veri.vakitler.length) return null;
+  const simdi = Date.now();
+  const gelecek = veri.vakitler.find((v) => new Date(v.zamanIso).getTime() > simdi);
+  if (gelecek) {
+    const kalanMs = new Date(gelecek.zamanIso).getTime() - simdi;
+    return { key: gelecek.key, saat: gelecek.saat, kalanDakika: Math.max(0, Math.round(kalanMs / 60000)) };
+  }
+  const son = veri.vakitler[veri.vakitler.length - 1];
+  return { key: son.key, saat: son.saat, kalanDakika: 0 };
+}

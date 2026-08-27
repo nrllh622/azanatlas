@@ -72,10 +72,18 @@ interface Props {
 }
 
 export default function BannerReklam({ style }: Props) {
+  // DÜZELTME (6. tur — madde 6): kullanıcı "Takip/Tesbih/Esma/Kaza" ile
+  // "Günün Ayeti" arasında gereksiz boşluk kalmaya devam ettiğini belirtti.
+  // Kök neden HomeScreen'deki marginlar değildi — bu bileşenin KENDİSİ,
+  // gerçek reklam yokken (Expo Go'da native modül hiç bulunamadığı için)
+  // SABİT 50dp'lik boş bir kutu ayırıyordu; kullanıcının gördüğü "boşluk"
+  // işte bu boş kutuydu. Artık native modül/reklam yokken HİÇBİR ŞEY
+  // render edilmiyor (`null`) — hiç yer kaplamıyor. Prod'da gerçek reklam
+  // yüklendiğinde içerik bir miktar aşağı kayar (reflow) ama bu, reklam
+  // SDK'larında standart ve kabul edilen bir davranıştır; kalıcı olarak
+  // boş yer ayırmaktan (kullanıcının asıl şikayeti) çok daha iyi bir denge.
   if (!BannerAd || !BANNER_UNIT_ID) {
-    // Native modül yok (Expo Go) — yer tutucu boşluk aynı yükseklikte
-    // kalsın diye boş bir View, içerik konumu değişmesin.
-    return <View style={[styles.bosluk, style]} />;
+    return null;
   }
 
   return (
@@ -90,6 +98,5 @@ export default function BannerReklam({ style }: Props) {
 }
 
 const styles = StyleSheet.create({
-  kap: { alignItems: 'center', justifyContent: 'center', minHeight: 50 },
-  bosluk: { height: 50 },
+  kap: { alignItems: 'center', justifyContent: 'center' },
 });
