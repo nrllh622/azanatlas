@@ -3,28 +3,23 @@
 // GPS ile konum alma akışının ORTAK mantığı — hem LocationPickerScreen.tsx
 // hem OnboardingEkrani.tsx tarafından kullanılır.
 //
-// KÖK NEDEN (bu tur, madde 1 — "GPS/Konum ile Ekle ikinci tıklamada
-// çalışıyor" hatası): Önceki turda `hasServicesEnabledAsync`/
+// KÖK NEDEN (madde 1, İKİNCİ TUR — "GPS/Konum ile Ekle ikinci tıklamada
+// çalışıyor" hatası HÂLÂ devam ediyor): Önceki turda `hasServicesEnabledAsync`/
 // `enableNetworkProviderAsync` eklenerek "izin verildi ama servis kapalı"
-// senaryosu çözülmüştü — ama gerçek cihazda hata DEVAM ediyordu. Kök neden
-// farklıymış: Android'de kullanıcı native "Konumu Etkinleştir" diyaloğunu
-// onayladığı AN, konum sağlayıcı (GPS/Network) donanımsal olarak henüz "warm
-// up" aşamasındadır — `enableNetworkProviderAsync()` promise'i resolve olur
-// olmaz hemen ardından çağrılan `getCurrentPositionAsync({})` çoğu zaman
-// birkaç saniye içinde ilk konum tespitini (fix) alamaz ve reddedilir/timeout
-// olur. Önceki kod bu hatayı `catch` bloğunda SESSİZCE yutuyordu — kullanıcı
-// hiçbir şey görmüyor, "GPS ile Ekle"ye tekrar bastığında (bu kez sağlayıcı
-// ısınmış olduğu için) çalışıyordu. Bu da "ikinci tıklamada çalışıyor" hissi
-// yaratıyordu.
+// senaryosu çözülmüş, ardından tek seferlik 1.2sn bekleme + tek yeniden
+// deneme eklenmişti — ama kullanıcı hatanın AYNEN devam ettiğini bildirdi.
+// Demek ki 1.2sn, konum sağlayıcının (GPS/Network) "warm up" süresi için
+// bazı cihazlarda/OEM'lerde yetersiz — bu süre cihaza göre birkaç saniyeye
+// kadar çıkabiliyor.
 //
-// ÇÖZÜM: (1) `getCurrentPositionAsync` başarısız olursa, kısa bir bekleme
-// (1.2sn) sonrasında YENİDEN denenir (toplam 2 deneme) — sağlayıcının ısınması
-// için zaman tanır. (2) İkinci deneme de başarısız olursa, `Location.
-// getLastKnownPositionAsync()` ile cihazın en son bilinen konumuna (varsa)
-// düşülür — bu, "hiç sonuç yok"tan iyidir ve genelde birkaç dakika/saat
-// içindeki gerçek konumdur. (3) Hepsi başarısız olursa artık SESSİZCE
-// yutulmuyor — çağıran taraf `basarili: false` alıp kullanıcıya görünür bir
-// hata mesajı (`t('konumAlinamadi')`) gösterebiliyor.
+// ÇÖZÜM (bu tur): Tek sabit bekleme yerine ARTAN ARALIKLI (backoff) bir
+// POLLING stratejisine geçildi — sağlayıcı erken hazır olursa erken döner,
+// geç hazır olursa daha uzun aralıklarla denemeye devam eder. Ayrıca her
+// denemede `accuracy: Balanced` ve `mayShowUserSettingsDialog: true` açıkça
+// belirtiliyor. Hepsi başarısız olursa `Location.getLastKnownPositionAsync()`
+// ile son bilinen konuma düşülür; o da yoksa çağıran taraf `basarili: false`
+// alıp kullanıcıya görünür bir hata mesajı (`t('konumAlinamadi')`)
+// gösterebiliyor — SESSİZCE yutulmuyor.
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { TURKEY_PROVINCES } from '../data/turkeyLocations';
@@ -71,23 +66,32 @@ export interface GpsKonumSonucu {
   countryCode?: string;
 }
 
-const YENIDEN_DENEME_BEKLEME_MS = 1200;
+// Denemeler arası bekleme aralıkları (ms) — artan (backoff): sağlayıcı erken
+// hazır olursa erken döner, geç hazır olursa daha uzun aralıklarla denemeye
+// devam eder. Toplam ~8 saniye (5 deneme + aralar) — bu, kullanıcının "GPS ile
+// Ekle"ye BİR KEZ basıp beklediği makul bir süre; sonrasında son bilinen
+// konuma / görünür hataya düşülür.
+const DENEME_ARALIKLARI_MS = [500, 1000, 1500, 2000, 2000];
+
+async function tekDenemeGetir(): Promise<Location.LocationObject | null> {
+  try {
+    return await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+      mayShowUserSettingsDialog: true,
+    });
+  } catch {
+    return null;
+  }
+}
 
 async function konumTespitEt(): Promise<Location.LocationObject | null> {
-  // 1. deneme
-  try {
-    return await Location.getCurrentPositionAsync({});
-  } catch {
-    // sağlayıcı henüz ısınıyor olabilir — kısa bekleme sonrası tekrar dene
-  }
+  const ilk = await tekDenemeGetir();
+  if (ilk) return ilk;
 
-  await new Promise((resolve) => setTimeout(resolve, YENIDEN_DENEME_BEKLEME_MS));
-
-  // 2. deneme
-  try {
-    return await Location.getCurrentPositionAsync({});
-  } catch {
-    // yine olmadıysa son bilinen konuma düş
+  for (const bekleme of DENEME_ARALIKLARI_MS) {
+    await new Promise((resolve) => setTimeout(resolve, bekleme));
+    const sonuc = await tekDenemeGetir();
+    if (sonuc) return sonuc;
   }
 
   try {

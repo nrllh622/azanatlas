@@ -14,11 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.azanatlas.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "AzanAtlas, bulunduğun konuma göre doğru ezan vakitlerini gösterebilmek için konumunu kullanır."
+        "NSLocationWhenInUseUsageDescription": "AzanAtlas, bulunduğun konuma göre doğru ezan vakitlerini gösterebilmek için konumunu kullanır.",
+        "NSUserTrackingUsageDescription": "Bu izin, sana daha ilgili reklamlar gösterebilmemiz için kullanılır. İzin vermesen de uygulamayı normal şekilde kullanabilirsin."
       }
     },
     "android": {
+      "package": "com.azanatlas.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

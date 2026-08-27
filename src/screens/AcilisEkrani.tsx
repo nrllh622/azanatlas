@@ -41,15 +41,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import Svg, { Path, Circle, G, Defs, Pattern, Rect, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
-import { colors, typography, fontSize, spacing } from '../theme';
+import { colors, typography, spacing } from '../theme';
 import { DilKodu, VARSAYILAN_DIL } from '../i18n/ceviriler';
 
 export type AcilisVaryanti =
   | 'girih' | 'safak' | 'hatem'
   | 'cami-siluet' | 'cami-hilal' | 'cami-altin'
-  | 'ufuk-cizgisi';
+  | 'ufuk-cizgisi'
+  | 'logo';
 
 interface Props {
   varyant?: AcilisVaryanti;
@@ -61,12 +62,27 @@ interface Props {
   dil?: DilKodu;
 }
 
-/** Açılış sloganı — yalnızca bu iki dil, ekran henüz tam çeviri sözlüğüne
- *  bağlı değil (bkz. Props.dil açıklaması). */
-const SLOGAN: Record<DilKodu, string> = {
-  tr: 'Namaz vakitleri, her yerde',
-  en: 'Prayer times, everywhere',
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// SLOGAN KALDIRILDI (10 maddelik listenin 7. maddesi)
+//
+// Kullanıcı açık talimat verdi: "AzanAtlas isminin altında ya da başka bir
+// yerde slogan yazma. Sadece uygulama ismi olsun." Önceden burada iki dilli
+// bir `SLOGAN` sabiti ve her varyantın altında ayrı bir `<Text>` ile
+// gösterilen slogan vardı — İKİSİ DE TAMAMEN KALDIRILDI, sadece 'logo'
+// varyantında değil, TÜM varyantlarda (girih/şafak/hatem/cami-* dahil),
+// çünkü talimat "başka bir yerde de yazma" diyor.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 'logo' varyantının kullandığı final logo görseli — App Store/Google
+ *  Play ikonlarıyla AYNI onaylı kaynak görsel (bkz. assets/splash-logo.png
+ *  içindeki köken notu). Görsel zaten "AzanAtlas" adını kendi içinde
+ *  barındırdığı için bu varyantta AYRICA bir `<Text>` adı render EDİLMİYOR
+ *  — aksi halde isim iki kez görünürdü. Raster PNG olduğu için (diğer
+ *  varyantlardaki SVG'lerin aksine) `colors` paletine göre renk
+ *  DEĞİŞTİRMEZ — talimattaki "bu değişiklik bütün temalar için yapılmalı,
+ *  yani her palette için AYNI görsel kullanılmalı" şartı bu sayede otomatik
+ *  sağlanıyor: hangi tema seçili olursa olsun aynı PNG gösterilir. */
+const LOGO_GORSEL = require('../../assets/splash-logo.png');
 
 const { width: EKRAN_G } = Dimensions.get('window');
 const SURE = 1600;
@@ -109,7 +125,11 @@ const CAMI_KAPI_YOL =
   'M150 200 L150 158 C150 148 158 141 168 141 L182 141 C192 141 200 148 200 158 L200 200 Z';
 
 export default function AcilisEkrani({ varyant = 'girih', onBitti, dil = VARSAYILAN_DIL }: Props) {
-  const slogan = SLOGAN[dil] ?? SLOGAN[VARSAYILAN_DIL];
+  // `dil` prop'u artık burada KULLANILMIYOR (slogan kaldırıldığı için tek
+  // kullanım yeriydi) — imza/çağrı uyumluluğu için (App.tsx hâlâ `dil`
+  // geçiriyor) prop olarak kabul edilmeye devam ediyor, ileride ekrana
+  // dile bağlı başka bir metin eklenirse hazır dursun diye kaldırılmadı.
+  void dil;
   // ÖNEMLİ: Renkler `StyleSheet.create` içinde DEĞİL, burada okunuyor.
   // Açılış ekranı, tema cihazdan okunmadan önce çizilir; stile kilitlenmiş
   // renkler varsayılan palete sabitlenirdi. Render anında okuyunca, tema
@@ -603,6 +623,54 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti, dil = VARSAYI
         );
 
       // ═══════════════════════════════════════════════════════════════════
+      // VARYANT 8 — LOGO (10 maddelik listenin 7. maddesi — YENİ VARSAYILAN)
+      // App Store/Google Play için onaylanan final logo görselinin kendisi,
+      // arkasından yumuşak bir halenin büyümesiyle birlikte belirir. Diğer
+      // varyantlardan farklı olarak SVG değil raster `Image` kullanır —
+      // görsel zaten final, elle çizilmiş bir motif değil, kullanıcının
+      // onayladığı BİTMİŞ logo. Ad ayrıca yazılmıyor (görselin içinde zaten
+      // "AzanAtlas" var) ve slogan hiç yok.
+      // ═══════════════════════════════════════════════════════════════════
+      case 'logo':
+        return (
+          <>
+            <Animated.View
+              style={{
+                position: 'absolute',
+                opacity: a1,
+                transform: [
+                  { scale: a1.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1.1] }) },
+                ],
+              }}
+            >
+              <Svg width={360} height={360} viewBox="0 0 100 100">
+                <Defs>
+                  <RadialGradient id="logoHale" cx="50%" cy="50%" r="55%">
+                    <Stop offset="0" stopColor={C.bright} stopOpacity={0.24} />
+                    <Stop offset="1" stopColor={C.bright} stopOpacity={0} />
+                  </RadialGradient>
+                </Defs>
+                <Circle cx="50" cy="50" r="46" fill="url(#logoHale)" />
+              </Svg>
+            </Animated.View>
+
+            <Animated.Image
+              source={LOGO_GORSEL}
+              resizeMode="contain"
+              style={{
+                width: Math.min(EKRAN_G * 0.62, 260),
+                height: Math.min(EKRAN_G * 0.62, 260),
+                opacity: a2,
+                transform: [
+                  { scale: a2.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) },
+                  { translateY: a2.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
+                ],
+              }}
+            />
+          </>
+        );
+
+      // ═══════════════════════════════════════════════════════════════════
       // VARYANT 3 — HATEM
       // Sekiz köşeli yıldız kendi ekseninde dönerek büyür; çevresinde ince
       // bir halka çizilir. En sade ve en hızlı algılanan varyant.
@@ -674,10 +742,16 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti, dil = VARSAYI
   // ediyor — bu üçü değişmedi.
   const camiVaryanti =
     varyant === 'cami-siluet' || varyant === 'cami-hilal' || varyant === 'cami-altin' || varyant === 'ufuk-cizgisi';
+  // 'logo' kendi başına üçüncü bir düzen: ne cami düzeninin ayrı ad
+  // bloğuna, ne eski sahne+ad düzenine ihtiyacı var — görsel adı zaten
+  // içeriyor, tek başına ortalanmış halde gösteriliyor.
+  const logoVaryanti = varyant === 'logo';
 
   return (
     <Animated.View style={[styles.wrap, { opacity: genel, backgroundColor: C.deep }]}>
-      {camiVaryanti ? (
+      {logoVaryanti ? (
+        <View style={styles.sahne}>{govde}</View>
+      ) : camiVaryanti ? (
         <View style={styles.camiDuzen}>
           <View style={styles.camiSahne}>{govde}</View>
 
@@ -693,7 +767,6 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti, dil = VARSAYI
             ]}
           >
             <Text style={[styles.adBuyuk, { color: C.cream }]}>AzanAtlas</Text>
-            <Text style={[styles.slogan, { color: C.glow }]}>{slogan}</Text>
           </Animated.View>
         </View>
       ) : (
@@ -712,7 +785,6 @@ export default function AcilisEkrani({ varyant = 'girih', onBitti, dil = VARSAYI
             ]}
           >
             <Text style={[styles.ad, { color: C.cream }]}>AzanAtlas</Text>
-            <Text style={[styles.slogan, { color: C.glow }]}>{slogan}</Text>
           </Animated.View>
         </>
       )}
@@ -739,11 +811,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.displayFamily,
     fontSize: 34,
     letterSpacing: 0.5,
-  },
-  slogan: {
-    fontFamily: typography.bodyMedium,
-    fontSize: fontSize.small,
-    marginTop: spacing.xs,
   },
 
   // ---------- CAMİ VARYANTLARI: görsel + ad/slogan TEK BLOK olarak ortada ----------

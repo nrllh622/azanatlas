@@ -141,6 +141,58 @@ export default function QiblaScreen({ onClose }: Props) {
   const [sensorHatasi, setSensorHatasi] = useState<string | null>(null);
   const [rehberAcik, setRehberAcik] = useState(false);
 
+  // Madde 4 (bu tur) — "hassas konumla kıble bulma" özelliği:
+  // ─────────────────────────────────────────────────────────────────────────
+  // Kullanıcının sorusu: konum açılarak kıble bulma seçeneği çalışır mı, daha
+  // doğru olur mu, internetsiz yerde işe yarar mı?
+  //
+  // Kıble AÇISI hesabı zaten location-based'di — `calculateQiblaBearing`
+  // aşağıda her zaman `LocationContext`'teki KAYITLI konumu (lat/lng)
+  // kullanıyordu, bu turdan önce de öyleydi. Eksik olan, bunun TAZE bir GPS
+  // okuması olmaması; kullanıcı konumunu değiştirmişse (seyahat, yeni şehir)
+  // uygulama açılana kadar kaydedilmiş eski konumu kullanır.
+  //
+  // GPS'in kendisi İNTERNETSİZ çalışır (uydu sinyaliyle konum bulur) — yalnızca
+  // "bu koordinat hangi il/ilçe" diye ADRES ÇÖZÜMLEMESİ (reverse-geocode)
+  // internet ister. Bu yüzden aşağıdaki `hassasKonumAl`, reverse-geocode'u
+  // BİLEREK atlıyor — yalnızca ham lat/lng alıp doğrudan kıble hesabında
+  // kullanıyor, böylece internetsiz ortamda da (uydu görüşü varsa) çalışır.
+  //
+  // Bu, isteğe bağlı bir "Hassas Konumla Güncelle" satırı olarak eklendi;
+  // kayıtlı konum yine varsayılan olarak kullanılmaya devam ediyor.
+  const [hassasKonum, setHassasKonum] = useState<{ lat: number; lng: number } | null>(null);
+  const [hassasKonumYukleniyor, setHassasKonumYukleniyor] = useState(false);
+  const [hassasKonumHata, setHassasKonumHata] = useState<string | null>(null);
+
+  const aktifLat = hassasKonum?.lat ?? location.latitude;
+  const aktifLng = hassasKonum?.lng ?? location.longitude;
+
+  const hassasKonumAl = async () => {
+    setHassasKonumYukleniyor(true);
+    setHassasKonumHata(null);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setHassasKonumHata(t('konumIzniVerilmedi'));
+        return;
+      }
+      if (Platform.OS === 'android') {
+        try {
+          const hizmetAcik = await Location.hasServicesEnabledAsync();
+          if (!hizmetAcik) await Location.enableNetworkProviderAsync();
+        } catch {
+          // yine de dene — bazı cihazlarda servis zaten açık olabilir
+        }
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setHassasKonum({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    } catch {
+      setHassasKonumHata(t('konumAlinamadi'));
+    } finally {
+      setHassasKonumYukleniyor(false);
+    }
+  };
+
   // Madde 1 (bu tur): bkz. dosya başındaki açıklama — yalnızca Android'de,
   // işletim sisteminin bildirdiği doğruluk seviyesi düşük/güvenilmezken
   // (0=güvenilmez, 1=düşük) aktif kalibrasyon uyarısı gösteriliyor.
@@ -148,16 +200,16 @@ export default function QiblaScreen({ onClose }: Props) {
     Platform.OS === 'android' && sensorDogruluk !== null && sensorDogruluk <= 1;
 
   const qiblaBearing = useMemo(
-    () => calculateQiblaBearing(location.latitude, location.longitude),
-    [location.latitude, location.longitude]
+    () => calculateQiblaBearing(aktifLat, aktifLng),
+    [aktifLat, aktifLng]
   );
   const distanceKm = useMemo(
-    () => calculateDistanceKm(location.latitude, location.longitude),
-    [location.latitude, location.longitude]
+    () => calculateDistanceKm(aktifLat, aktifLng),
+    [aktifLat, aktifLng]
   );
   const qiblaTime = useMemo(
-    () => calculateQiblaTime(location.latitude, location.longitude, new Date()),
-    [location.latitude, location.longitude]
+    () => calculateQiblaTime(aktifLat, aktifLng, new Date()),
+    [aktifLat, aktifLng]
   );
 
   const mesafe =
@@ -555,6 +607,23 @@ export default function QiblaScreen({ onClose }: Props) {
           </View>
         </View>
 
+        <TouchableOpacity
+          style={styles.hassasKonumSatir}
+          onPress={hassasKonumAl}
+          disabled={hassasKonumYukleniyor}
+          activeOpacity={0.75}
+        >
+          <Icon name="konum" size={14} color={hassasKonum ? colors.success : colors.textMuted} />
+          <Text style={styles.hassasKonumYazi}>
+            {hassasKonumYukleniyor
+              ? t('konumAliniyor')
+              : hassasKonum
+              ? t('hassasKonumAktif')
+              : t('hassasKonumlaGuncelle')}
+          </Text>
+        </TouchableOpacity>
+        {hassasKonumHata && <Text style={styles.hassasKonumHataYazi}>{hassasKonumHata}</Text>}
+
         {sensorHatasi ? (
           <View style={styles.uyariKart}>
             <Icon name="uyari" size={18} color={colors.danger} />
@@ -640,6 +709,29 @@ const styles = StyleSheet.create({
   kartMetin: { flex: 1 },
   kartEtiket: { fontFamily: typography.bodyMedium, fontSize: 12, color: colors.textMuted },
   kartDeger: { fontFamily: typography.bodyBold, fontSize: 17, color: colors.primaryDark, marginTop: 1 },
+
+  hassasKonumSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: 2,
+  },
+  hassasKonumYazi: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  hassasKonumHataYazi: {
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+    color: colors.danger,
+    textAlign: 'center',
+    marginTop: -4,
+    marginBottom: 6,
+    paddingHorizontal: spacing.md,
+  },
 
   bilgiKart: {
     flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,

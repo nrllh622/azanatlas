@@ -714,6 +714,13 @@ const vaktindeKilEkrani = {
     dakikadaBir: (n: number) => `${n} dakikada bir`,
     bip: 'Bip',
     dong: 'Dong',
+    // Madde 2 (bu tur): bu iki anahtar `vaktindeKilActions.ts`'teki
+    // `setupNotificationCategoryAsync` tarafından referans alınıyordu ama
+    // sözlükte hiç tanımlanmamıştı — `tDil()`'in fallback'i (`return
+    // String(anahtar)`) ham anahtar adını bildirim butonunda gösteriyordu.
+    // Aynı hata sınıfı daha önce `vaktindeKilHadis` ile de yaşanmıştı.
+    vaktindeKilButonuKildim: 'Kıldım',
+    vaktindeKilButonuSonraHatirlat: 'Sonra Hatırlat',
   },
   en: {
     vaktindeKilBilgi:
@@ -725,6 +732,8 @@ const vaktindeKilEkrani = {
     dakikadaBir: (n: number) => `Every ${n} minutes`,
     bip: 'Beep',
     dong: 'Chime',
+    vaktindeKilButonuKildim: 'Done',
+    vaktindeKilButonuSonraHatirlat: 'Remind Later',
   },
   id: {
     vaktindeKilBilgi:
@@ -736,6 +745,8 @@ const vaktindeKilEkrani = {
     dakikadaBir: (n: number) => `Setiap ${n} menit`,
     bip: 'Bip',
     dong: 'Dong',
+    vaktindeKilButonuKildim: 'Sudah',
+    vaktindeKilButonuSonraHatirlat: 'Ingatkan Nanti',
   },
   fr: {
     vaktindeKilBilgi:
@@ -747,6 +758,8 @@ const vaktindeKilEkrani = {
     dakikadaBir: (n: number) => `Toutes les ${n} minutes`,
     bip: 'Bip',
     dong: 'Carillon',
+    vaktindeKilButonuKildim: 'Fait',
+    vaktindeKilButonuSonraHatirlat: 'Rappeler plus tard',
   },
 };
 
@@ -1177,6 +1190,11 @@ const kibleEkrani = {
     pusulaKalibrasyonMetni: 'Telefonunuzun manyetik sensörü şu an güvenilir okuma yapamıyor. Telefonu düz tutup havada birkaç kez 8 (sekiz) çizer gibi çevirin.',
     mil: 'mil',
     yonKuzey: 'K', yonDogu: 'D', yonGuney: 'G', yonBati: 'B',
+    // Madde 4 (bu tur): kıble hesabı zaten kayıtlı konuma (LocationContext)
+    // göre yapılıyordu — bu iki anahtar, kullanıcının isteğe bağlı olarak
+    // TAZE bir GPS okuması alabilmesi için eklendi (bkz. QiblaScreen.tsx).
+    hassasKonumlaGuncelle: 'Hassas Konumla Güncelle',
+    hassasKonumAktif: 'Hassas konum kullanılıyor',
   },
   en: {
     kible: 'Qibla',
@@ -1201,6 +1219,8 @@ const kibleEkrani = {
     pusulaKalibrasyonMetni: "Your phone's magnetic sensor cannot currently take a reliable reading. Hold the phone flat and move it in a figure-eight (8) motion in the air a few times.",
     mil: 'mi',
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'W',
+    hassasKonumlaGuncelle: 'Update with Precise Location',
+    hassasKonumAktif: 'Using precise location',
   },
   id: {
     kible: 'Kiblat',
@@ -1225,6 +1245,8 @@ const kibleEkrani = {
     pusulaKalibrasyonMetni: 'Sensor magnetik ponsel Anda saat ini tidak dapat memberikan pembacaan yang andal. Pegang ponsel secara datar dan gerakkan membentuk angka delapan (8) di udara beberapa kali.',
     mil: 'mi',
     yonKuzey: 'U', yonDogu: 'T', yonGuney: 'S', yonBati: 'B',
+    hassasKonumlaGuncelle: 'Perbarui dengan Lokasi Presisi',
+    hassasKonumAktif: 'Menggunakan lokasi presisi',
   },
   fr: {
     kible: 'Qibla',
@@ -1249,6 +1271,8 @@ const kibleEkrani = {
     pusulaKalibrasyonMetni: 'Le capteur magnétique de votre téléphone ne peut pas fournir de lecture fiable pour le moment. Tenez le téléphone à plat et déplacez-le en formant un huit (8) dans les airs plusieurs fois.',
     mil: 'mi',
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'O',
+    hassasKonumlaGuncelle: 'Mettre à jour avec la position précise',
+    hassasKonumAktif: 'Position précise utilisée',
   },
 };
 

@@ -27,7 +27,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getSehirIdForIl } from '../data/diyanetSehirIds';
 
 const BASE_URL = 'https://ezanvakti.emushaf.net';
-const FETCH_TIMEOUT_MS = 8000;
+// Madde 3 (bu tur): 8sn tek deneme yerine daha kısa timeout + daha fazla
+// deneme — toplam bekleme süresi benzer kalırken başarı şansı artıyor
+// (bkz. fetchJsonWithTimeout).
+const FETCH_TIMEOUT_MS = 5000;
 const ILCE_ID_CACHE_KEY = 'azanatlas_diyanet_ilce_id_v1';
 const VAKIT_CACHE_KEY = 'azanatlas_diyanet_vakit_cache_v1';
 
@@ -73,27 +76,27 @@ async function fetchJsonOnce(url: string): Promise<any | null> {
   }
 }
 
-// Madde 2 (bu tur): "Diyanet verisine ulaşılamadı" uyarısının kullanıcı
-// tarafından tekrarlı bildirilmesi üzerine araştırıldı — önceki turda kök
-// neden olarak bulunan il/ilçe adı normalize eşleştirmesi (bkz.
-// diyanetSehirIds.ts, resolveIlceId aşağıda) doğru ve gerekli bir düzeltmeydi
-// ama TEK başına yeterli değildi: `fetchJsonWithTimeout` tek seferlik bir
-// ağ denemesiydi, geçici bir ağ dalgalanmasında (zayıf mobil veri, DNS
-// gecikmesi, ilk açılışta henüz bağlantının oturmamış olması) TEK bir
-// başarısız istek tüm zinciri (`getDiyanetMonthlyVakitler` içindeki iki ayrı
-// çağrı — önce ilçe ID'si sonra aylık vakit) yerel hesaba düşürüyor ve
-// kullanıcı bunu her seferinde "hata" olarak görüyordu. Çözüm: her istek artık
-// kısa bir bekleme sonrası 1 kez YENİDEN deneniyor (toplam 2 deneme/istek) —
-// bu, ilk açılışta ya da zayıf bağlantıda başarı oranını belirgin şekilde
-// artırır. Ayrıca `__DEV__` altında konsola başarısızlık nedeni loglanıyor —
-// bir sonraki turda "hâlâ oluyor" bildirimi gelirse gerçek nedeni (network
-// hatası mı, HTTP durumu mu, yoksa eşleştirme mi) ayırt edebilmek için.
+// Madde 3, İKİNCİ TUR: "Diyanet verisine ulaşılamadı" uyarısı kullanıcı
+// tarafından TEKRAR bildirildi (Adana/Aladağ ekran görüntüsüyle). Bu turda
+// canlı WebFetch testleriyle doğrulandı: ezanvakti.emushaf.net servisinin
+// kendisi ve eşleştirme mantığı (Aladağ → IlceID 9147, `IlceAdi` alan adı)
+// TEST ANINDA doğru çalışıyordu — yani kod tarafında bir hata bulunamadı.
+// Servis, gönüllü/topluluk barındırmalı (Ocak 2025 civarı Heroku'dan
+// taşınmış) ve resmî bir SLA'sı yok — ARA SIRA geçici erişilemezlik
+// BEKLENEN bir durum, kod hatası değil. Bu, istemci tarafından tamamen
+// ortadan kaldırılamaz, yalnızca daha dayanıklı retry ile azaltılabilir:
+// timeout 8sn'den 5sn'ye düşürüldü, deneme sayısı 2'den 3'e çıkarıldı
+// (denemeler arası 700ms) — böylece toplam bekleme süresi benzer kalırken
+// geçici bir başarısızlığın üstesinden gelme şansı artıyor.
 async function fetchJsonWithTimeout(url: string): Promise<any | null> {
-  const ilk = await fetchJsonOnce(url);
-  if (ilk != null) return ilk;
-
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  return fetchJsonOnce(url);
+  for (let deneme = 0; deneme < 3; deneme++) {
+    const sonuc = await fetchJsonOnce(url);
+    if (sonuc != null) return sonuc;
+    if (deneme < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    }
+  }
+  return null;
 }
 
 // Türkçe karşılaştırma için normalize eder: büyük harfe çevirir, Türkçe'ye

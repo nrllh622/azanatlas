@@ -31,10 +31,17 @@ import { kayitliDiliOku } from './src/i18n/dilDeposu';
 //   'cami-siluet'   → cami silueti alttan yükselir, ad üstte (sade)
 //   'cami-hilal'    → cami silueti + üzerinde beliren hilal, ad üstte
 //   'cami-altin'    → girih dokulu zemin + altın/bakır gradyanlı cami, ad üstte
-//   'ufuk-cizgisi'  → SEÇİLEN VARYANT: cami ufuk çizgisinde, arkasından
-//                      doğan ışık yükselir, ad üstte (Artifact'taki "D")
+//   'ufuk-cizgisi'  → cami ufuk çizgisinde, arkasından doğan ışık yükselir, ad üstte
+//   'logo'          → SEÇİLEN VARYANT (10 maddelik listenin 7. maddesi):
+//                      App Store/Google Play için onaylanan FİNAL logo
+//                      görseli, arkasından yumuşak bir hale ile belirir.
+//                      Slogan YOK (kaldırıldı — hiçbir varyantta yok artık),
+//                      ayrı bir "AzanAtlas" yazısı da YOK (görselin
+//                      içinde zaten var). Raster PNG olduğu için tüm
+//                      temalarda AYNI görsel gösterilir (palete göre
+//                      renk değiştirmez).
 // ─────────────────────────────────────────────────────────────────────────────
-const ACILIS_VARYANTI: AcilisVaryanti = 'ufuk-cizgisi';
+const ACILIS_VARYANTI: AcilisVaryanti = 'logo';
 
 export default function App() {
   const [fontsLoaded] = useFonts({

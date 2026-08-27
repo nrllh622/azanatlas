@@ -38,6 +38,7 @@ import { RemindersProvider } from './context/RemindersContext';
 import { IbadetTakibiProvider } from './context/IbadetTakibiContext';
 import { DilProvider } from './i18n/DilContext';
 import { onboardingTamamlandiMi, onboardingTamamlandiOlarakIsaretle } from './lib/onboardingDeposu';
+import { reklamOnayiIsteVeGuncelle } from './lib/reklamOnay';
 
 /**
  * Reklam SDK'sını uygulama açılışında BİR KEZ başlatır.
@@ -51,9 +52,17 @@ import { onboardingTamamlandiMi, onboardingTamamlandiOlarakIsaretle } from './li
  * kontrol ediliyor — aynı korunma `components/BannerReklam.tsx`'te de var,
  * iki dosya birbirinden bağımsız aynı kontrolü yapıyor.
  */
-function reklamSdkBaslat() {
+async function reklamSdkBaslat() {
   const nativeReklamModuluBagli = !!(NativeModules as any)?.RNGoogleMobileAdsModule;
   if (!nativeReklamModuluBagli) return;
+
+  // Madde 6 (eksik analizi, bu tur): GDPR/UMP rıza akışı, reklam SDK'sı
+  // initialize edilmeden ÖNCE tamamlanmalı — bkz. lib/reklamOnay.ts'teki
+  // ayrıntılı gerekçe. AB/EEA/İngiltere dışındaki kullanıcılar (ör. Türkiye)
+  // için bu çağrı hiçbir form göstermeden anında sonuçlanır, gecikme
+  // yaratmaz.
+  await reklamOnayiIsteVeGuncelle();
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mobileAds = require('react-native-google-mobile-ads').default;

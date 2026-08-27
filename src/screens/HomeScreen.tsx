@@ -64,7 +64,7 @@ import { takipEdilebilir, TakipVakti } from '../lib/ibadetTakibi';
 import { veriSec } from '../lib/veriSec';
 import { getGununAyeti } from '../data/ayetler';
 import { getDiniGun, getYaklasanDiniGun } from '../data/diniGunler';
-import { getTariheEnYakinOlay } from '../data/tariheBugun';
+import { getTariheBugunTamEslesme } from '../data/tariheBugun';
 import { widgetVerisiniGuncelle } from '../lib/widgetVeriDeposu';
 import { useCeviri } from '../i18n/DilContext';
 import { AY_ANAHTARLARI } from '../i18n/ceviriler';
@@ -280,11 +280,15 @@ export default function HomeScreen() {
     () => (diniGun ? null : getYaklasanDiniGun(now, (d) => toHijri(d, hijriAdjustmentDays))),
     [diniGun, now.toDateString(), hijriAdjustmentDays]
   );
-  // Madde 3 (devir dosyası — kullanıcı ısrarla tekrarladı): kart artık HER
-  // GÜN görünüyor. Tam eşleşme yoksa takvimdeki en yakın gerçek olay,
-  // "bugün" değil kendi tarihiyle ("X gün sonra/önce yaşandı" gibi)
-  // gösteriliyor — bkz. tariheBugun.ts içindeki açıklama.
-  const tarihOlayi = useMemo(() => getTariheEnYakinOlay(now), [now.toDateString()]);
+  // DÜZELTME (10 maddelik listenin 2. maddesi — bu tur): kullanıcı "günlerdir
+  // aynı şeyi gösteriyor, birkaç gün önce/sonrasının olayı değil, o gün
+  // hangi olay yaşandıysa onu yazsın" dedi. Önceki "en yakın olay" fallback'i
+  // (madde 3, eski devir dosyası) TAM TERSİ bir davranıştı — kaldırıldı.
+  // Artık SADECE tam eşleşme kullanılıyor; o gün için gerçek bir olay yoksa
+  // `tarihOlayi` null olur ve kart aşağıda hiç render edilmez (bkz. render
+  // kısmındaki `{tarihOlayi && (...)}`) — uydurma/yaklaşık bir gün
+  // göstermektense kart o gün görünmüyor.
+  const tarihOlayi = useMemo(() => getTariheBugunTamEslesme(now), [now.toDateString()]);
 
   // Widget (madde 10, devir dosyası §7): vakitler her yeniden hesaplandığında
   // (konum/gün/yöntem değiştiğinde) AsyncStorage'a yazılıyor ki widget'ın
@@ -829,33 +833,28 @@ export default function HomeScreen() {
           </View>
 
           {/* ── İSLAM TARİHİNDE BUGÜN ──
-              Madde 3: kart artık HER GÜN görünüyor. Tam eşleşme varsa
-              "İslam Tarihinde Bugün" başlığıyla; yoksa takvimdeki en yakın
-              olay "İslam Tarihinden" başlığı + göreceli tarih ibaresiyle
-              gösteriliyor — böylece hiçbir gün kart kaybolmuyor ama hiçbir
-              olay da gerçek tarihi dışında "bugün" diye sunulmuyor. */}
-          <View style={styles.tarihKart}>
-            <View style={styles.tarihBaslikSatir}>
-              <Icon name="imsakiye" size={17} color={colors.copper} />
-              <Text style={styles.tarihBaslik}>
-                {tarihOlayi.bugunMu ? t('islamTarihindeBugun') : t('islamTarihinden')}
-              </Text>
-            </View>
-            <View style={styles.tarihIcerik}>
-              <Text style={styles.tarihYil}>{tarihOlayi.olay.yil}</Text>
-              <View style={styles.tarihMetin}>
-                <Text style={styles.tarihOlayBaslik}>{veriSec(dil, tarihOlayi.olay.baslik, tarihOlayi.olay.baslikEn, tarihOlayi.olay.baslikId, tarihOlayi.olay.baslikFr)}</Text>
-                <Text style={styles.tarihAciklama}>{veriSec(dil, tarihOlayi.olay.aciklama, tarihOlayi.olay.aciklamaEn, tarihOlayi.olay.aciklamaId, tarihOlayi.olay.aciklamaFr)}</Text>
-                {!tarihOlayi.bugunMu && (
-                  <Text style={styles.tarihGoreceli}>
-                    {tarihOlayi.gunFarki > 0
-                      ? t('yilDonumineGunVar', tarihOlayi.gunFarki)
-                      : t('yilDonumuGunOnceydi', Math.abs(tarihOlayi.gunFarki))}
-                  </Text>
-                )}
+              DÜZELTME (10 maddelik listenin 2. maddesi — bu tur): kart artık
+              SADECE o gün için gerçek bir tam eşleşme varsa görünüyor — "en
+              yakın olay" / göreceli tarih ("X gün önce/sonra yaşandı")
+              gösterimi tamamen kaldırıldı, çünkü kullanıcı açıkça bunu
+              istemedi. Çoğu gün `tarihOlayi` null olacağından kart o gün
+              hiç render edilmiyor (bkz. `tariheBugun.ts` — liste kasıtlı
+              olarak her günü doldurmuyor, uydurma tarih yok). */}
+          {tarihOlayi && (
+            <View style={styles.tarihKart}>
+              <View style={styles.tarihBaslikSatir}>
+                <Icon name="imsakiye" size={17} color={colors.copper} />
+                <Text style={styles.tarihBaslik}>{t('islamTarihindeBugun')}</Text>
+              </View>
+              <View style={styles.tarihIcerik}>
+                <Text style={styles.tarihYil}>{tarihOlayi.yil}</Text>
+                <View style={styles.tarihMetin}>
+                  <Text style={styles.tarihOlayBaslik}>{veriSec(dil, tarihOlayi.baslik, tarihOlayi.baslikEn, tarihOlayi.baslikId, tarihOlayi.baslikFr)}</Text>
+                  <Text style={styles.tarihAciklama}>{veriSec(dil, tarihOlayi.aciklama, tarihOlayi.aciklamaEn, tarihOlayi.aciklamaId, tarihOlayi.aciklamaFr)}</Text>
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
     );
@@ -1001,10 +1000,16 @@ const styles = StyleSheet.create({
   // (`borderBottomLeftRadius`/`borderBottomRightRadius: radius.lg`) ile
   // birebir aynı değer, uygulama genelinde tutarlı bir "alt köşe kavisi"
   // dili oluşsun diye.
+  // DÜZELTME (5. tur — madde 5): kullanıcı üst yeşil bloğun biraz daha
+  // aşağı doğru genişlemesini istedi. `hero`nun üst kenarı `ustSerit`e
+  // bitişik sabit kaldığı için `paddingVertical`i artırmak bloğun ALT
+  // kenarını (yuvarlatılmış köşelerin olduğu yer) aşağı iter — istenen etki
+  // bu. Eski backlog maddesi (Kıble/Tesbih/Esmâ/Kaza'nın scroll'suz
+  // görünmesi) göz önünde tutularak artış kasıtlı olarak ÜLÇÜLÜ tutuldu.
   hero: {
     backgroundColor: colors.primary,
     overflow: 'hidden',
-    paddingVertical: spacing.xs + 2,
+    paddingVertical: spacing.sm + 2,
     borderBottomLeftRadius: radius.lg,
     borderBottomRightRadius: radius.lg,
   },
@@ -1022,10 +1027,16 @@ const styles = StyleSheet.create({
   // 26'dan 19'a indirmek — dördü hâlâ BİRBİRİYLE AYNI boyutta (kullanıcının
   // istediği gibi), ama artık dar telefon ekranlarında da (Fransızca
   // "PROCHAINE PRIÈRE" gibi en uzun çeviri dahil) satıra sığıyor.
+  // DÜZELTME (5. tur — madde 3): kullanıcı "SIRADAKİ VAKİT" + saat satırının
+  // hâlâ küçük durduğunu belirtti, biraz daha büyütülmesini istedi. `19`
+  // taşma sorununu çözmüştü (bkz. yukarıdaki not); `21`'e çıkarıldı — bu
+  // satır zaten `flexWrap: 'wrap'` ile korunuyor (aşağıdaki `siradakiAdSatir`),
+  // yani en uzun çeviri (Fransızca) bile taşma/kırpılma yaşamadan gerekirse
+  // ikinci satıra sarar, "aşağıya taşma" (görsel bozulma) riski yok.
   siradakiEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 19,
-    lineHeight: 24,
+    fontSize: 21,
+    lineHeight: 27,
     color: colors.copperLight,
     letterSpacing: 0.3,
     includeFontPadding: false,
@@ -1044,15 +1055,15 @@ const styles = StyleSheet.create({
   },
   siradakiAd: {
     fontFamily: typography.displaySemibold,
-    fontSize: 19,
-    lineHeight: 24,
+    fontSize: 21,
+    lineHeight: 27,
     color: colors.white,
     includeFontPadding: false,
   },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 19,
-    lineHeight: 24,
+    fontSize: 21,
+    lineHeight: 27,
     color: colors.copperLight,
     includeFontPadding: false,
   },
@@ -1069,16 +1080,25 @@ const styles = StyleSheet.create({
   // bir boşluk bırakıyor. Taşma riskini azaltmak için fontSize 26→22'ye,
   // lineHeight 32→28'e indirildi ve `flexWrap` kaldırıldı — en uzun
   // çeviriler (ör. Fransızca "TEMPS RESTANT") için de tek satırda sığıyor.
+  // DÜZELTME (5. tur — madde 4): önceki turda `justifyContent:
+  // 'space-between'` etiketi solda, değeri kartın en sağına yaslıyordu —
+  // kart genişliği yüzünden aradaki boşluk gereğinden büyük duruyordu.
+  // Kullanıcı bu boşluğun azaltılmasını istedi; `flex-start` + küçük bir
+  // `gap` ile ikisi artık birbirine yakın duruyor. `flexWrap: 'wrap'`
+  // güvenlik payı olarak eklendi — fontSize büyüdüğü için en uzun çeviri
+  // (Fransızca "TEMPS RESTANT") + geri sayım değeri dar ekranda taşırsa
+  // kırpılmak yerine ikinci satıra sarar.
   kalanSureSatir: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.xs,
     marginTop: spacing.sm,
   },
   kalanSureEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.copperLight,
     letterSpacing: 0.4,
     includeFontPadding: false,
@@ -1086,13 +1106,12 @@ const styles = StyleSheet.create({
   },
   geriSayim: {
     fontFamily: typography.displaySemibold,
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 24,
+    lineHeight: 30,
     color: colors.white,
     letterSpacing: 0.6,
     includeFontPadding: false,
     flexShrink: 0,
-    marginLeft: spacing.sm,
   },
 
   ilerlemeRay: {
@@ -1249,7 +1268,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.primaryMist,
     borderRadius: radius.lg,
-    paddingVertical: spacing.xs + 2,
+    // DÜZELTME (5. tur — madde 6): alt boşluk `xs+2`den `xs`e indirildi —
+    // aşağıdaki reklam alanı + Günün Ayeti kartı arasındaki toplam boşluğun
+    // bir parçası (bkz. `reklamAlani`/`ayetKart` notları).
+    paddingVertical: spacing.xs,
     marginTop: spacing.md,
     ...elevation.card,
   },
@@ -1297,14 +1319,24 @@ const styles = StyleSheet.create({
   // (aralarındaki reklam şeridiyle birlikte) fazla bulunmuştu — hem reklam
   // şeridinin hem ayet kartının üst boşluğu spacing.sm(8)'den spacing.xs(4)'e
   // indirildi.
-  reklamAlani: { marginTop: spacing.xs },
+  // DÜZELTME (5. tur — madde 6): kullanıcı Takip/Tesbih/Esmâ/Kaza satırı ile
+  // Günün Ayeti kartı arasındaki boşluğun gereksiz büyük durduğunu belirtti.
+  // Reklam alanının kendi yüksekliği (50dp, gerçek AdMob banner boyutu)
+  // KORUNUYOR — bunu küçültmek, gerçek reklam yüklendiğinde içeriğin
+  // sıçramasına yol açar (bkz. BannerReklam.tsx'teki yorum). Azaltılan,
+  // reklamın ÇEVRESİNDEKİ kontrol edilebilir boşluklar: bu marginTop `xs`ten
+  // `0`a indirildi.
+  reklamAlani: { marginTop: 0 },
 
   // ---------- GÜNÜN AYETİ ----------
   ayetKart: {
     backgroundColor: colors.primaryDark,
     borderRadius: radius.lg,
     padding: spacing.md,
-    marginTop: spacing.xs,
+    // DÜZELTME (5. tur — madde 6): reklam alanıyla arasındaki boşluk
+    // sıfırlandı — kartın kendi iç boşluğu (`padding: spacing.md`) zaten
+    // içeriğin nefes almasını sağlıyor.
+    marginTop: 0,
   },
   ayetBaslikSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   ayetBaslik: {
@@ -1415,12 +1447,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: lineHeight.small,
     marginTop: 3,
-  },
-  tarihGoreceli: {
-    fontFamily: typography.bodyBold,
-    fontSize: fontSize.micro,
-    color: colors.copper,
-    marginTop: 4,
   },
 
   // ---------- ALT NAVİGASYON — "Zümrüt Şerit" (onaylanan Varyant C) ----------
