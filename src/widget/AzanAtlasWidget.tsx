@@ -66,6 +66,15 @@ interface Props {
   paletAdi: PaletAdi;
 }
 
+// `react-native-android-widget`in `style.color`/`style.backgroundColor`
+// prop'ları kendi dar `ColorProp` tipini bekliyor; `theme.ts`teki palet
+// renkleri (`'#073634'` gibi) çalışma zamanında tamamen geçerli hex
+// string'ler ama TypeScript tarafında genel `string` olarak çıkarsanıyor,
+// bu yüzden `tsc --noEmit` tip uyuşmazlığı veriyor. Gerçek bir hata değil,
+// sadece tip daraltma sorunu — kaynağında (`palet.renkler`) tip değiştirmek
+// yerine, kullanım noktasında dar bir yardımcıyla güvenle daraltıyoruz.
+const wc = (renk: string) => renk as any;
+
 const VAKIT_ADI: Record<string, string> = {
   imsak: 'İmsak', sabah: 'Sabah', gunes: 'Güneş', ogle: 'Öğle',
   ikindi: 'İkindi', aksam: 'Akşam', yatsi: 'Yatsı',
@@ -92,7 +101,7 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
         style={{
           height: 'match_parent',
           width: 'match_parent',
-          backgroundColor: C.primaryDark,
+          backgroundColor: wc(C.primaryDark),
           borderRadius: 16,
           padding: 14,
           justifyContent: 'center',
@@ -101,11 +110,11 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
       >
         <TextWidget
           text="AzanAtlas"
-          style={{ color: C.textOnDark, fontSize: 14, fontWeight: 'bold' }}
+          style={{ color: wc(C.textOnDark), fontSize: 14, fontWeight: 'bold' }}
         />
         <TextWidget
           text="Vakitleri yüklemek için dokunun"
-          style={{ color: C.textOnDarkMuted, fontSize: 11, marginTop: 4 }}
+          style={{ color: wc(C.textOnDarkMuted), fontSize: 11, marginTop: 4 }}
         />
       </FlexWidget>
     );
@@ -121,7 +130,7 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
       style={{
         height: 'match_parent',
         width: 'match_parent',
-        backgroundColor: C.primaryDark,
+        backgroundColor: wc(C.primaryDark),
         borderRadius: 16,
         padding: 14,
         flexDirection: 'column',
@@ -140,12 +149,12 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
       >
         <TextWidget
           text="AzanAtlas"
-          style={{ color: C.copperLight, fontSize: 13, fontWeight: 'bold' }}
+          style={{ color: wc(C.copperLight), fontSize: 13, fontWeight: 'bold' }}
           maxLines={1}
         />
         <TextWidget
           text={veri.konumEtiketi}
-          style={{ color: C.textOnDarkMuted, fontSize: 10 }}
+          style={{ color: wc(C.textOnDarkMuted), fontSize: 10 }}
           maxLines={1}
         />
       </FlexWidget>
@@ -153,12 +162,12 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
       {/* SIRADAKİ VAKİT — tek, büyük, net odak noktası. */}
       <TextWidget
         text={vakitAdi}
-        style={{ color: C.textOnDarkMuted, fontSize: 12, fontWeight: 'normal' }}
+        style={{ color: wc(C.textOnDarkMuted), fontSize: 12, fontWeight: 'normal' }}
         maxLines={1}
       />
       <TextWidget
         text={siradaki?.saat ?? '—'}
-        style={{ color: C.textOnDark, fontSize: 30, fontWeight: 'bold' }}
+        style={{ color: wc(C.textOnDark), fontSize: 30, fontWeight: 'bold' }}
         maxLines={1}
       />
 
@@ -167,7 +176,7 @@ export function AzanAtlasWidget({ veri, paletAdi }: Props) {
       {!!kalanMetin && (
         <TextWidget
           text={kalanMetin}
-          style={{ color: C.copperLight, fontSize: 13, fontWeight: 'bold', marginTop: 2 }}
+          style={{ color: wc(C.copperLight), fontSize: 13, fontWeight: 'bold', marginTop: 2 }}
           maxLines={1}
         />
       )}

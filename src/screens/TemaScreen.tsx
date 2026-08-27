@@ -194,7 +194,7 @@ export default function TemaScreen({ onClose }: Props) {
       <ScreenHeader
         title={t('adTema')}
         subtitle={t('renkDuzeni', anahtarlar.length)}
-        icon="tema"
+        icon="yildiz"
         onClose={onClose}
       />
 
