@@ -23,19 +23,43 @@ interface Props {
 }
 
 /**
- * Türkçe arama için metni sadeleştirir: küçük harfe indirir ve şapkalı /
- * aksanlı harfleri sade karşılıklarına çevirir. Böylece "azim" yazan kullanıcı
- * "El-Azîm" sonucunu bulabilir.
+ * Türkçe arama için metni sadeleştirir: küçük harfe indirir, şapkalı/aksanlı
+ * harfleri sade karşılıklarına çevirir, kesme işaretlerini siler.
+ *
+ * DÜZELTME (bu tur — madde 4): iki ayrı kök sebep bulundu ve düzeltildi:
+ *
+ *  1) `toLocaleLowerCase('tr-TR')` React Native'in Hermes motorunda cihaza/
+ *     derlemeye göre GÜVENİLİR ÇALIŞMAYABİLİR (ICU/Intl verisi her zaman
+ *     gömülü olmayabilir) — bu yüzden Türkçe İ/I büyük-küçük harf dönüşümü
+ *     artık AŞAĞIDA elle, motor bağımsız şekilde yapılıyor (toLowerCase()'e
+ *     hiç güvenmeden önce İ→i, I→ı dönüşümü elle uygulanıyor).
+ *  2) ASIL RAPOR EDİLEN HATA: fonksiyon "ı" (noktasız i) ile "i" (noktalı i)
+ *     harflerini ASLA birbirine eşitlemiyordu. Veride "El-Hâlık" (noktasız
+ *     ı) yazılıyken kullanıcı "Halık" yazınca ikisi de "halık" olarak
+ *     sadeleşiyor gibi görünse de, veri tarafında bir yazım tutarsızlığı
+ *     (bazı kayıtlarda "i" bazılarında "ı") arama sonucunu kırıyordu. Kalıcı
+ *     çözüm: ı/i ARTIK EŞİTLENİYOR (ikisi de sade "i"ye indirgeniyor) — hangi
+ *     harfi kullanıcı yazarsa yazsın, veri hangisini içeriyorsa içersin,
+ *     eşleşme garanti. Aynı gerekçeyle ş/ç/ğ de sadeleştirildi: kullanıcı
+ *     Türkçe klavyesi olmadan ("mumin", "hakim" gibi) yazsa bile sonuç
+ *     bulunabilsin.
  */
 function sadelestir(s: string): string {
   return s
-    .toLocaleLowerCase('tr-TR')
+    // Türkçe büyük İ/I → küçük harf, motorun locale desteğine bakılmaksızın.
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'ı')
+    .toLowerCase()
     .replace(/[âäà]/g, 'a')
     .replace(/[îï]/g, 'i')
     .replace(/[ûü]/g, 'u')
     .replace(/[ôö]/g, 'o')
     .replace(/[êë]/g, 'e')
-    .replace(/[’']/g, '');
+    .replace(/ı/g, 'i')
+    .replace(/ş/g, 's')
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/[’‘`´']/g, '');
 }
 
 function EsmaKart({ item }: { item: EsmaItem }) {

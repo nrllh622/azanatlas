@@ -3,32 +3,43 @@ export interface SoundOption {
   id: string;
   label: string;
   file: any | null;
+  /** Gerçek dosya adı (uzantılı) — bildirim planlayıcısı (`notificationScheduler.ts`)
+      Android bildirim kanalına atanacak sesi bu adla eşleştirir. DÜZELTME
+      (bu tur — madde 1'in devamı): önceden bildirim tarafı HER ses için
+      `${id}.wav` varsayıyordu; 7. turda eklenen 10 yeni ses .mp3 olduğu için
+      bu varsayım YANLIŞ eşleşme üretiyordu (bildirimde doğru ses hiç
+      çalmıyordu). Artık her sesin gerçek uzantısı burada açıkça tutuluyor —
+      bkz. app.json'daki `expo-notifications` eklentisinin `sounds` listesi de
+      AYNI dosya adlarıyla güncellendi. */
+  dosyaAdi: string | null;
 }
 
 export const SOUND_CATALOG: SoundOption[] = [
-  { id: 'none', label: 'Ses yok / Silence', file: null },
-  { id: 'melodi1', label: 'Melodi 1', file: require('../../assets/sounds/melodi1.wav') },
-  { id: 'melodi2', label: 'Melodi 2', file: require('../../assets/sounds/melodi2.wav') },
-  { id: 'melodi3', label: 'Melodi 3', file: require('../../assets/sounds/melodi3.wav') },
-  { id: 'uyandirma1', label: 'Uyandırma Sesi 1', file: require('../../assets/sounds/uyandirma1.wav') },
-  { id: 'yuksek_siren', label: 'Yüksek Siren Sesi', file: require('../../assets/sounds/yuksek_siren.wav') },
-  { id: 'uyandirma3', label: 'Uyandırma Ses 3', file: require('../../assets/sounds/uyandirma3.wav') },
-  { id: 'kus_sesi1', label: 'Kuş Sesi 1', file: require('../../assets/sounds/kus_sesi1.wav') },
-  { id: 'ding_dong', label: 'Ding Dong', file: require('../../assets/sounds/ding_dong.wav') },
+  { id: 'none', label: 'Ses yok / Silence', file: null, dosyaAdi: null },
+  { id: 'melodi1', label: 'Melodi 1', file: require('../../assets/sounds/melodi1.wav'), dosyaAdi: 'melodi1.wav' },
+  { id: 'melodi2', label: 'Melodi 2', file: require('../../assets/sounds/melodi2.wav'), dosyaAdi: 'melodi2.wav' },
+  { id: 'melodi3', label: 'Melodi 3', file: require('../../assets/sounds/melodi3.wav'), dosyaAdi: 'melodi3.wav' },
+  { id: 'uyandirma1', label: 'Uyandırma Sesi 1', file: require('../../assets/sounds/uyandirma1.wav'), dosyaAdi: 'uyandirma1.wav' },
+  { id: 'yuksek_siren', label: 'Yüksek Siren Sesi', file: require('../../assets/sounds/yuksek_siren.wav'), dosyaAdi: 'yuksek_siren.wav' },
+  { id: 'uyandirma3', label: 'Uyandırma Ses 3', file: require('../../assets/sounds/uyandirma3.wav'), dosyaAdi: 'uyandirma3.wav' },
+  { id: 'kus_sesi1', label: 'Kuş Sesi 1', file: require('../../assets/sounds/kus_sesi1.wav'), dosyaAdi: 'kus_sesi1.wav' },
+  { id: 'ding_dong', label: 'Ding Dong', file: require('../../assets/sounds/ding_dong.wav'), dosyaAdi: 'ding_dong.wav' },
   // DÜZELTME (7. tur — madde 1): "Kısa Ezan 1/2/3" ve "Essalatu Hayrun"
   // (sentezle üretilmiş yer tutucu sesler) tamamen kaldırıldı; kullanıcının
   // yüklediği 10 gerçek ses kaydı ekleniyor. Etiketler, kullanıcının
-  // dosyaları isimlendirdiği haliyle BİREBİR aynı tutuldu (talimat gereği).
-  { id: 'allah_akbar_tekbir', label: 'Allah Akbar Tekbir', file: require('../../assets/sounds/allah_akbar_tekbir.mp3') },
-  { id: 'allahu_akbar_1', label: 'Allahu Akbar 1', file: require('../../assets/sounds/allahu_akbar_1.mp3') },
-  { id: 'allahu_akbar_2', label: 'Allahu Akbar 2', file: require('../../assets/sounds/allahu_akbar_2.mp3') },
-  { id: 'allahu_akbar_twice', label: 'Allahu Akbar Twice', file: require('../../assets/sounds/allahu_akbar_twice.mp3') },
-  { id: 'alahu_akbar_kethira', label: 'Alahu Akbar Kethira', file: require('../../assets/sounds/alahu_akbar_kethira.mp3') },
-  { id: 'lailaha_illallah', label: 'Lailaha illallah', file: require('../../assets/sounds/lailaha_illallah.mp3') },
-  { id: 'esselatu_hayrun_minen_nevm', label: 'Esselatu hayrun minen nevm', file: require('../../assets/sounds/esselatu_hayrun_minen_nevm.mp3') },
-  { id: 'adhanazan_short_1', label: 'AdhanAzan Short 1', file: require('../../assets/sounds/adhanazan_short_1.mp3') },
-  { id: 'adhanazan_short_2', label: 'AdhanAzan Short 2', file: require('../../assets/sounds/adhanazan_short_2.mp3') },
-  { id: 'ney_huzur', label: 'Ney Huzur', file: require('../../assets/sounds/ney_huzur.mp3') },
+  // dosyaları isimlendirdiği haliyle BİREBİR aynı tutuldu (talimat gereği) —
+  // `label` alanı artık yalnızca YEDEK metin, ekranda gösterilen isim
+  // `i18n/ceviriler.ts`'teki `sesAdi()` çevirisinden geliyor (bu tur — madde 1).
+  { id: 'allah_akbar_tekbir', label: 'Allah Akbar Tekbir', file: require('../../assets/sounds/allah_akbar_tekbir.mp3'), dosyaAdi: 'allah_akbar_tekbir.mp3' },
+  { id: 'allahu_akbar_1', label: 'Allahu Akbar 1', file: require('../../assets/sounds/allahu_akbar_1.mp3'), dosyaAdi: 'allahu_akbar_1.mp3' },
+  { id: 'allahu_akbar_2', label: 'Allahu Akbar 2', file: require('../../assets/sounds/allahu_akbar_2.mp3'), dosyaAdi: 'allahu_akbar_2.mp3' },
+  { id: 'allahu_akbar_twice', label: 'Allahu Akbar Twice', file: require('../../assets/sounds/allahu_akbar_twice.mp3'), dosyaAdi: 'allahu_akbar_twice.mp3' },
+  { id: 'alahu_akbar_kethira', label: 'Alahu Akbar Kethira', file: require('../../assets/sounds/alahu_akbar_kethira.mp3'), dosyaAdi: 'alahu_akbar_kethira.mp3' },
+  { id: 'lailaha_illallah', label: 'Lailaha illallah', file: require('../../assets/sounds/lailaha_illallah.mp3'), dosyaAdi: 'lailaha_illallah.mp3' },
+  { id: 'esselatu_hayrun_minen_nevm', label: 'Esselatu hayrun minen nevm', file: require('../../assets/sounds/esselatu_hayrun_minen_nevm.mp3'), dosyaAdi: 'esselatu_hayrun_minen_nevm.mp3' },
+  { id: 'adhanazan_short_1', label: 'AdhanAzan Short 1', file: require('../../assets/sounds/adhanazan_short_1.mp3'), dosyaAdi: 'adhanazan_short_1.mp3' },
+  { id: 'adhanazan_short_2', label: 'AdhanAzan Short 2', file: require('../../assets/sounds/adhanazan_short_2.mp3'), dosyaAdi: 'adhanazan_short_2.mp3' },
+  { id: 'ney_huzur', label: 'Ney Huzur', file: require('../../assets/sounds/ney_huzur.mp3'), dosyaAdi: 'ney_huzur.mp3' },
 ];
 
 export function getSoundById(id: string): SoundOption {

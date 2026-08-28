@@ -75,7 +75,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   // `highLatLabel`/`distanceUnitLabel` hesaplamaları ve aşağıdaki
   // `SimplePickerModal` çağrılarındaki `.map(...)` dönüşümleri (madde 7,
   // bu tur).
-  const { dil, diliDegistir, t } = useCeviri();
+  const { dil, diliDegistir, t, sesAdi } = useCeviri();
   // Hesaplama yöntemi/mezhep/yüksek açı/ölçü birimi etiketleri yalnızca
   // tr/label ve en/labelEn olarak yazılı (CalculationSettingsContext.tsx).
   // Önceden `dil === 'en'` kontrolü kullanılıyordu — bu, id/fr seçiliyken
@@ -355,7 +355,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
               </View>
               <Text style={styles.offsetLine}>{t('dakikaOnce', s.minutesBefore)}</Text>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
-                <Text style={styles.soundLink}>{t('sesiDegistir', getSoundById(s.soundId).label)}</Text>
+                <Text style={styles.soundLink}>{t('sesiDegistir', sesAdi(s.soundId, getSoundById(s.soundId).label))}</Text>
               </TouchableOpacity>
             </View>
           );
@@ -371,7 +371,7 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
                 <Text style={styles.cardLabelInline}>{t(anahtar)}</Text>
               </View>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'onTime', key: key })}>
-                <Text style={styles.soundLink}>{t('sesiDegistir', getSoundById(s.soundId).label)}</Text>
+                <Text style={styles.soundLink}>{t('sesiDegistir', sesAdi(s.soundId, getSoundById(s.soundId).label))}</Text>
               </TouchableOpacity>
             </View>
           );

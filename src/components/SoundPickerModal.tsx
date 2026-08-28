@@ -4,7 +4,7 @@
 // başlık şeridi + İslami doku, kart satırları) kullanılıyor ki uygulamadaki
 // hiçbir popup diğerlerinden görsel olarak kopuk durmasın.
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { Audio } from 'expo-av';
 import { colors, spacing, typography, radius, fontSize } from '../theme';
@@ -22,23 +22,71 @@ interface Props {
 }
 
 export default function SoundPickerModal({ visible, title, selectedId, onSelect, onClose }: Props) {
-  const { t } = useCeviri();
-  if (!visible) return null;
+  const { t, sesAdi } = useCeviri();
+  // DÜZELTME (bu tur — madde 1): önceden her dokunuşta YENİ bir Audio.Sound
+  // örneği oluşturuluyor ve HİÇBİRİ referansı tutulmuyordu — art arda birkaç
+  // ses seçilince hepsi aynı anda çalmaya devam ediyordu (bir öncekini
+  // durdurmak mümkün değildi). Şimdi o an çalan tek örnek `calanRef`'te
+  // tutuluyor; yeni bir sese dokunulduğunda önce eskisi durdurulup
+  // boşaltılıyor, SONRA yenisi başlatılıyor.
+  const calanRef = useRef<Audio.Sound | null>(null);
+
+  const oncekiniDurdur = async () => {
+    const onceki = calanRef.current;
+    calanRef.current = null;
+    if (onceki) {
+      try {
+        await onceki.stopAsync();
+      } catch {
+        // Zaten durmuş/boşaltılmış olabilir — yok sayılır.
+      }
+      try {
+        await onceki.unloadAsync();
+      } catch {
+        // Aynı şekilde yok sayılır.
+      }
+    }
+  };
+
+  // Modal kapanınca veya bileşen kaldırılınca çalmakta olan sesi durdur —
+  // aksi halde kullanıcı "Kapat"a bassa bile ses arka planda çalmaya devam
+  // ederdi.
+  useEffect(() => {
+    if (!visible) {
+      oncekiniDurdur();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    return () => {
+      oncekiniDurdur();
+    };
+  }, []);
 
   const playPreview = async (sound: SoundOption) => {
+    await oncekiniDurdur();
     if (!sound.file) return;
     try {
       const { sound: player } = await Audio.Sound.createAsync(sound.file);
+      calanRef.current = player;
       await player.playAsync();
       player.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
           player.unloadAsync();
+          if (calanRef.current === player) calanRef.current = null;
         }
       });
     } catch (e) {
       console.warn('Ses önizlemesi çalınamadı:', e);
     }
   };
+
+  // NOT: bu kontrol iki `useEffect`ten SONRA yapılıyor — Hook'lar her
+  // render'da aynı sırada çağrılmalı, `visible=false` olduğunda erken
+  // dönülürse yukarıdaki useEffect'ler atlanır ve React kural ihlali
+  // (ve `visible` false olurken temizlik useEffect'inin hiç tetiklenmemesi)
+  // ortaya çıkar.
+  if (!visible) return null;
 
   return (
     <View style={styles.overlay}>
@@ -63,7 +111,7 @@ export default function SoundPickerModal({ visible, title, selectedId, onSelect,
                 activeOpacity={0.8}
               >
                 <Icon name="hatirlatici" size={18} color={active ? colors.primaryDark : colors.textMuted} />
-                <Text style={[styles.rowText, active && styles.rowTextActive]}>{item.label}</Text>
+                <Text style={[styles.rowText, active && styles.rowTextActive]}>{sesAdi(item.id, item.label)}</Text>
                 {active && <Icon name="onay" size={20} color={colors.success} />}
               </TouchableOpacity>
             );

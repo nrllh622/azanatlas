@@ -18,7 +18,7 @@
 // metinler StyleSheet'e kilitlenmiyor, normal bir React state yeterli).
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { DilKodu, VARSAYILAN_DIL, SOZLUK, CeviriAnahtari } from './ceviriler';
+import { DilKodu, VARSAYILAN_DIL, SOZLUK, CeviriAnahtari, sesAdiDil } from './ceviriler';
 import { kayitliDiliOku, diliKaydet } from './dilDeposu';
 
 type VakitKodu = keyof typeof SOZLUK['tr']['vakit'];
@@ -32,6 +32,10 @@ interface Ctx {
       düz string/fonksiyon anahtarları için tasarlandı, `vakit` ise bir
       alt-nesne. */
   vakitAdi: (kod: VakitKodu) => string;
+  /** Bildirim sesi kataloğundaki bir `id`'nin seçili dile göre adı — bkz.
+      `sesAdiDil()`. `yedekEtiket` sözlükte karşılık yoksa (yeni eklenmiş,
+      henüz çevrilmemiş bir ses) gösterilir. */
+  sesAdi: (id: string, yedekEtiket: string) => string;
 }
 
 const DilContext = createContext<Ctx | undefined>(undefined);
@@ -65,8 +69,10 @@ export function DilProvider({ children }: { children: ReactNode }) {
     return SOZLUK[dil].vakit[kod] ?? SOZLUK[VARSAYILAN_DIL].vakit[kod] ?? String(kod);
   };
 
+  const sesAdi = (id: string, yedekEtiket: string): string => sesAdiDil(dil, id, yedekEtiket);
+
   return (
-    <DilContext.Provider value={{ dil, hazir, diliDegistir, t, vakitAdi }}>
+    <DilContext.Provider value={{ dil, hazir, diliDegistir, t, vakitAdi, sesAdi }}>
       {children}
     </DilContext.Provider>
   );

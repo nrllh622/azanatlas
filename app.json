@@ -39,7 +39,28 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sounds/bip.wav", "./assets/sounds/dong.wav"]
+          "sounds": [
+            "./assets/sounds/bip.wav",
+            "./assets/sounds/dong.wav",
+            "./assets/sounds/melodi1.wav",
+            "./assets/sounds/melodi2.wav",
+            "./assets/sounds/melodi3.wav",
+            "./assets/sounds/uyandirma1.wav",
+            "./assets/sounds/yuksek_siren.wav",
+            "./assets/sounds/uyandirma3.wav",
+            "./assets/sounds/kus_sesi1.wav",
+            "./assets/sounds/ding_dong.wav",
+            "./assets/sounds/allah_akbar_tekbir.mp3",
+            "./assets/sounds/allahu_akbar_1.mp3",
+            "./assets/sounds/allahu_akbar_2.mp3",
+            "./assets/sounds/allahu_akbar_twice.mp3",
+            "./assets/sounds/alahu_akbar_kethira.mp3",
+            "./assets/sounds/lailaha_illallah.mp3",
+            "./assets/sounds/esselatu_hayrun_minen_nevm.mp3",
+            "./assets/sounds/adhanazan_short_1.mp3",
+            "./assets/sounds/adhanazan_short_2.mp3",
+            "./assets/sounds/ney_huzur.mp3"
+          ]
         }
       ],
       [

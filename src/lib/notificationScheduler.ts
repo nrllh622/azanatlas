@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { VakitEntry } from './prayerCalculator';
 import { NotificationSettings } from '../context/NotificationSettingsContext';
 import { getSoundById, SOUND_CATALOG } from '../data/soundCatalog';
-import { DilKodu, VARSAYILAN_DIL, tDil, vakitAdiDil } from '../i18n/ceviriler';
+import { DilKodu, VARSAYILAN_DIL, tDil, vakitAdiDil, sesAdiDil } from '../i18n/ceviriler';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -41,18 +41,35 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
   const titresimliEtiket = tDil(dil, 'titresimli');
   const titresimsizEtiket = tDil(dil, 'titresimsiz');
 
-  // Genel bildirim sesleri kataloğu (Melodi, Uyandırma, Essalatu Hayrun, vb.)
+  // Genel bildirim sesleri kataloğu (Melodi, Uyandırma, Tekbir/Ezan kayıtları vb.)
+  //
+  // DÜZELTME (bu tur — madde 1'in devamı): iki ayrı hata birlikte
+  // düzeltildi:
+  //  1) Dosya adı burada `${s.id}.wav` olarak SABİTLENMİŞTİ — 7. turda
+  //     eklenen 10 yeni ses .mp3 olduğu için bu YANLIŞ dosya adını
+  //     üretiyordu (var olmayan bir .wav'a atıfta bulunuyordu). Artık
+  //     `soundCatalog.ts`'teki gerçek `dosyaAdi` kullanılıyor.
+  //  2) `sounds` listesi app.json'daki `expo-notifications` eklenti
+  //     yapılandırmasında yalnızca bip.wav/dong.wav içeriyordu — kataloğun
+  //     GERİ KALANI (Melodi'lerden bu 10 yeni sese kadar) native projeye HİÇ
+  //     kopyalanmıyordu, yani bu düzeltmeden önce bip/dong dışındaki HİÇBİR
+  //     özel bildirim sesi gerçek bir bildirimde çalmıyordu (sessizce
+  //     sistem varsayılanına düşüyordu). app.json'daki liste de bu turda
+  //     tüm katalog dosyalarını kapsayacak şekilde güncellendi — bu
+  //     değişikliğin etkili olması için `expo prebuild`/`expo run:android`
+  //     ile native proje YENİDEN oluşturulmalı.
   for (const s of SOUND_CATALOG) {
-    if (s.id === 'none') continue;
-    const soundFile = `${s.id}.wav`;
+    if (s.id === 'none' || !s.dosyaAdi) continue;
+    const soundFile = s.dosyaAdi;
+    const adi = sesAdiDil(dil, s.id, s.label);
     await Notifications.setNotificationChannelAsync(channelIdFor(s.id, true), {
-      name: `AzanAtlas — ${s.label} (${titresimliEtiket})`,
+      name: `AzanAtlas — ${adi} (${titresimliEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       sound: soundFile,
     });
     await Notifications.setNotificationChannelAsync(channelIdFor(s.id, false), {
-      name: `AzanAtlas — ${s.label} (${titresimsizEtiket})`,
+      name: `AzanAtlas — ${adi} (${titresimsizEtiket})`,
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0],
       sound: soundFile,
@@ -142,7 +159,7 @@ export async function scheduleAllNotifications(
           content: {
             title: tDil(dil, 'bildirimVaktiBaslik', vakitAdi),
             body: settings.ezanDuasiEnabled ? EZAN_DUASI : tDil(dil, 'bildirimVaktiGirdiGovde', vakitAdi),
-            sound: `${sound.id}.wav`,
+            sound: sound.dosyaAdi ?? 'default',
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: triggerDate, channelId },
         });
@@ -160,7 +177,7 @@ export async function scheduleAllNotifications(
           content: {
             title: tDil(dil, 'bildirimOnUyariBaslik', vakitAdi, preAlert.minutesBefore),
             body: tDil(dil, 'bildirimOnUyariGovde', vakitAdi),
-            sound: `${sound.id}.wav`,
+            sound: sound.dosyaAdi ?? 'default',
           },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alertDate, channelId },
         });

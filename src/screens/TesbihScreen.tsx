@@ -7,10 +7,16 @@
 // bırakıldı. Hedefe (33 / 99 / serbest) ulaşıldığında titreşim uyarısı verir
 // ve tur sayacı bir artar.
 //
-// Sayaç ve seçili zikir cihazda saklanır; uygulama kapatılıp açıldığında
-// kullanıcı kaldığı yerden devam eder.
+// DÜZELTME (bu tur — madde 3): sayaç önceden AsyncStorage'a kaydedilip
+// uygulama yeniden açıldığında geri yükleniyordu — kullanıcı "uygulama
+// kapanıp açıldığında ya da başka bir sayfaya gidildiğinde sayaç
+// sıfırlansın" istedi. Kalıcı depolama TAMAMEN kaldırıldı: bu ekran zaten
+// yalnızca `HomeScreen`de `sub === 'tesbih'` iken monte ediliyor (bkz.
+// HomeScreen.tsx) — kullanıcı başka bir araca geçtiğinde bileşen KALDIRILIR
+// ve React state'i kaybolur; uygulama kapanıp yeniden açıldığında da
+// hafızada hiçbir şey kalmadığı için sayaç doğal olarak sıfırdan başlar.
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -20,7 +26,6 @@ import {
   Vibration,
   Pressable,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import ScreenHeader from '../components/ScreenHeader';
@@ -29,8 +34,6 @@ import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } 
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { useCeviri } from '../i18n/DilContext';
 import { veriSec } from '../lib/veriSec';
-
-const STORAGE_KEY = 'azanatlas_tesbih_v1';
 
 /** Namaz sonrası tesbihatta okunan zikirler ve alışılmış sayıları.
     `anlam`/`anlamEn`/`anlamId`/`anlamFr`: Arapça/Latin yazılış DEĞİŞMEZ (her
@@ -90,37 +93,8 @@ export default function TesbihScreen({ onClose }: Props) {
   const [zikirId, setZikirId] = useState(ZIKIRLER[0].id);
   const [sayac, setSayac] = useState(0);
   const [tur, setTur] = useState(0);
-  const [yuklendi, setYuklendi] = useState(false);
 
   const zikir = ZIKIRLER.find((z) => z.id === zikirId) ?? ZIKIRLER[0];
-
-  // Kaydedilmiş durumu geri yükle
-  useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const d = JSON.parse(raw);
-          if (typeof d.sayac === 'number') setSayac(d.sayac);
-          if (typeof d.tur === 'number') setTur(d.tur);
-          if (typeof d.zikirId === 'string' && ZIKIRLER.some((z) => z.id === d.zikirId)) {
-            setZikirId(d.zikirId);
-          }
-        }
-      } catch {
-        // Okunamazsa sıfırdan başla.
-      } finally {
-        setYuklendi(true);
-      }
-    })();
-  }, []);
-
-  // Durumu sakla. `yuklendi` bekleniyor — aksi halde ilk render'daki sıfır
-  // değerleri, henüz okunmamış gerçek kaydın üzerine yazardı.
-  useEffect(() => {
-    if (!yuklendi) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ sayac, tur, zikirId })).catch(() => {});
-  }, [sayac, tur, zikirId, yuklendi]);
 
   const artir = useCallback(() => {
     setSayac((onceki) => {

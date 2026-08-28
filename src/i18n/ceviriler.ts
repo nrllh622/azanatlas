@@ -153,7 +153,7 @@ const anaSayfa = {
     yilDonumuGunOnceydi: (n: number) => `Yıl dönümü ${n} gün önceydi`,
     // Madde 8 (6. tur): karşılıksız, harici bağış linki — reklam kaldırma
     // gibi bir vaat İÇERMİYOR, sadece "geliştiriciye destek" çağrısı.
-    destekOl: 'Geliştiriciye Destek Ol',
+    destekOl: 'Bağış Yap',
     destekOlAciklama: 'AzanAtlas\'ı geliştirmeye devam etmemize yardımcı olun',
     guncellemeBulunduMesaji: 'Uygulamanın yeni versiyonu bulundu.',
     sonraHatirlat: 'Sonra Hatırlat',
@@ -201,7 +201,7 @@ const anaSayfa = {
     islamTarihinden: 'From Islamic History',
     yilDonumineGunVar: (n: number) => `${n} days to anniversary`,
     yilDonumuGunOnceydi: (n: number) => `Anniversary was ${n} days ago`,
-    destekOl: 'Support the Developer',
+    destekOl: 'Donate',
     destekOlAciklama: 'Help us keep improving AzanAtlas',
     guncellemeBulunduMesaji: 'A new version of the app is available.',
     sonraHatirlat: 'Remind Later',
@@ -249,7 +249,7 @@ const anaSayfa = {
     islamTarihinden: 'Dari Sejarah Islam',
     yilDonumineGunVar: (n: number) => `${n} hari menuju hari peringatan`,
     yilDonumuGunOnceydi: (n: number) => `Hari peringatan telah berlalu ${n} hari lalu`,
-    destekOl: 'Dukung Pengembang',
+    destekOl: 'Berdonasi',
     destekOlAciklama: 'Bantu kami terus mengembangkan AzanAtlas',
     guncellemeBulunduMesaji: 'Versi baru aplikasi tersedia.',
     sonraHatirlat: 'Ingatkan Nanti',
@@ -300,7 +300,7 @@ const anaSayfa = {
     islamTarihinden: "De l'histoire islamique",
     yilDonumineGunVar: (n: number) => `${n} jours avant l'anniversaire`,
     yilDonumuGunOnceydi: (n: number) => `L'anniversaire était il y a ${n} jours`,
-    destekOl: 'Soutenir le développeur',
+    destekOl: 'Faire un don',
     destekOlAciklama: "Aidez-nous à continuer d'améliorer AzanAtlas",
     guncellemeBulunduMesaji: "Une nouvelle version de l'application est disponible.",
     sonraHatirlat: 'Rappeler plus tard',
@@ -1398,30 +1398,88 @@ const vakitAdlari = {
   },
 };
 
+// Bildirim sesi kataloğundaki (bkz. `data/soundCatalog.ts`) her `id` için
+// dile göre görünen ad. Madde 1 (bu tur): kullanıcı yeni eklenen seslerin
+// isimlerinin dil değiştirildiğinde çevrilmediğini bildirdi — `soundCatalog.ts`
+// içindeki `label` alanı tek bir sabit (çoğunlukla Türkçe/İngilizce karışık)
+// metindi. `vakitAdlari` ile AYNI kalıp: `sesAdi()`/`sesAdiDil()` bu sözlükte
+// yoksa `soundCatalog.ts`'teki ham `label`'a geri düşer, yani yeni bir ses
+// eklenip buraya çevirisi henüz girilmemişse uygulama KIRILMAZ.
+const sesAdlari = {
+  tr: {
+    none: 'Ses yok',
+    melodi1: 'Melodi 1', melodi2: 'Melodi 2', melodi3: 'Melodi 3',
+    uyandirma1: 'Uyandırma Sesi 1', yuksek_siren: 'Yüksek Siren Sesi',
+    uyandirma3: 'Uyandırma Ses 3', kus_sesi1: 'Kuş Sesi 1', ding_dong: 'Ding Dong',
+    allah_akbar_tekbir: 'Allah Ekber Tekbir', allahu_akbar_1: 'Allahu Ekber 1',
+    allahu_akbar_2: 'Allahu Ekber 2', allahu_akbar_twice: 'Allahu Ekber (İki Kez)',
+    alahu_akbar_kethira: 'Allahu Ekber Kesîra', lailaha_illallah: 'Lâ ilâhe illallâh',
+    esselatu_hayrun_minen_nevm: 'Esselâtü hayrun minen nevm',
+    adhanazan_short_1: 'Kısa Ezan 1', adhanazan_short_2: 'Kısa Ezan 2',
+    ney_huzur: 'Ney Huzur',
+  },
+  en: {
+    none: 'Silent',
+    melodi1: 'Melody 1', melodi2: 'Melody 2', melodi3: 'Melody 3',
+    uyandirma1: 'Wake Tone 1', yuksek_siren: 'Loud Siren',
+    uyandirma3: 'Wake Tone 3', kus_sesi1: 'Bird Sound 1', ding_dong: 'Ding Dong',
+    allah_akbar_tekbir: 'Allahu Akbar Takbir', allahu_akbar_1: 'Allahu Akbar 1',
+    allahu_akbar_2: 'Allahu Akbar 2', allahu_akbar_twice: 'Allahu Akbar (Twice)',
+    alahu_akbar_kethira: 'Allahu Akbar Kathira', lailaha_illallah: 'La ilaha illallah',
+    esselatu_hayrun_minen_nevm: 'As-salatu Khayrun min an-Nawm',
+    adhanazan_short_1: 'Short Adhan 1', adhanazan_short_2: 'Short Adhan 2',
+    ney_huzur: 'Ney (Tranquility)',
+  },
+  id: {
+    none: 'Senyap',
+    melodi1: 'Melodi 1', melodi2: 'Melodi 2', melodi3: 'Melodi 3',
+    uyandirma1: 'Nada Bangun 1', yuksek_siren: 'Sirene Keras',
+    uyandirma3: 'Nada Bangun 3', kus_sesi1: 'Suara Burung 1', ding_dong: 'Ding Dong',
+    allah_akbar_tekbir: 'Allahu Akbar Takbir', allahu_akbar_1: 'Allahu Akbar 1',
+    allahu_akbar_2: 'Allahu Akbar 2', allahu_akbar_twice: 'Allahu Akbar (Dua Kali)',
+    alahu_akbar_kethira: 'Allahu Akbar Katsiran', lailaha_illallah: 'La ilaha illallah',
+    esselatu_hayrun_minen_nevm: 'As-salatu Khairun min an-Naum',
+    adhanazan_short_1: 'Azan Singkat 1', adhanazan_short_2: 'Azan Singkat 2',
+    ney_huzur: 'Ney (Ketenangan)',
+  },
+  fr: {
+    none: 'Silence',
+    melodi1: 'Mélodie 1', melodi2: 'Mélodie 2', melodi3: 'Mélodie 3',
+    uyandirma1: 'Sonnerie de Réveil 1', yuksek_siren: 'Sirène Forte',
+    uyandirma3: 'Sonnerie de Réveil 3', kus_sesi1: 'Chant d\'Oiseau 1', ding_dong: 'Ding Dong',
+    allah_akbar_tekbir: 'Allahu Akbar Takbir', allahu_akbar_1: 'Allahu Akbar 1',
+    allahu_akbar_2: 'Allahu Akbar 2', allahu_akbar_twice: 'Allahu Akbar (Deux Fois)',
+    alahu_akbar_kethira: 'Allahu Akbar Kathîra', lailaha_illallah: 'La ilaha illallah',
+    esselatu_hayrun_minen_nevm: 'As-salatu Khayrun min an-Nawm',
+    adhanazan_short_1: 'Adhan Court 1', adhanazan_short_2: 'Adhan Court 2',
+    ney_huzur: 'Ney (Sérénité)',
+  },
+};
+
 export const SOZLUK = {
   tr: {
     ...ortak.tr, ...anaSayfa.tr, ...ayarlar.tr, ...kaza.tr, ...kesfet.tr, ...esma.tr,
     ...hatirlaticilarEkrani.tr, ...vaktindeKilEkrani.tr, ...imsakiyeEkrani.tr,
     ...gunAdlari.tr, ...konumSecici.tr, ...bildirimler.tr, ...tesbih.tr, ...takip.tr,
-    ...temaEkrani.tr, ...kibleEkrani.tr, ...onboarding.tr, vakit: vakitAdlari.tr,
+    ...temaEkrani.tr, ...kibleEkrani.tr, ...onboarding.tr, vakit: vakitAdlari.tr, sesler: sesAdlari.tr,
   },
   en: {
     ...ortak.en, ...anaSayfa.en, ...ayarlar.en, ...kaza.en, ...kesfet.en, ...esma.en,
     ...hatirlaticilarEkrani.en, ...vaktindeKilEkrani.en, ...imsakiyeEkrani.en,
     ...gunAdlari.en, ...konumSecici.en, ...bildirimler.en, ...tesbih.en, ...takip.en,
-    ...temaEkrani.en, ...kibleEkrani.en, ...onboarding.en, vakit: vakitAdlari.en,
+    ...temaEkrani.en, ...kibleEkrani.en, ...onboarding.en, vakit: vakitAdlari.en, sesler: sesAdlari.en,
   },
   id: {
     ...ortak.id, ...anaSayfa.id, ...ayarlar.id, ...kaza.id, ...kesfet.id, ...esma.id,
     ...hatirlaticilarEkrani.id, ...vaktindeKilEkrani.id, ...imsakiyeEkrani.id,
     ...gunAdlari.id, ...konumSecici.id, ...bildirimler.id, ...tesbih.id, ...takip.id,
-    ...temaEkrani.id, ...kibleEkrani.id, ...onboarding.id, vakit: vakitAdlari.id,
+    ...temaEkrani.id, ...kibleEkrani.id, ...onboarding.id, vakit: vakitAdlari.id, sesler: sesAdlari.id,
   },
   fr: {
     ...ortak.fr, ...anaSayfa.fr, ...ayarlar.fr, ...kaza.fr, ...kesfet.fr, ...esma.fr,
     ...hatirlaticilarEkrani.fr, ...vaktindeKilEkrani.fr, ...imsakiyeEkrani.fr,
     ...gunAdlari.fr, ...konumSecici.fr, ...bildirimler.fr, ...tesbih.fr, ...takip.fr,
-    ...temaEkrani.fr, ...kibleEkrani.fr, ...onboarding.fr, vakit: vakitAdlari.fr,
+    ...temaEkrani.fr, ...kibleEkrani.fr, ...onboarding.fr, vakit: vakitAdlari.fr, sesler: sesAdlari.fr,
   },
 };
 
@@ -1442,6 +1500,15 @@ export function tDil(dil: DilKodu, anahtar: CeviriAnahtari, ...args: any[]): str
 
 export function vakitAdiDil(dil: DilKodu, kod: keyof typeof vakitAdlari['tr']): string {
   return (vakitAdlari[dil] as any)[kod] ?? (vakitAdlari[VARSAYILAN_DIL] as any)[kod] ?? String(kod);
+}
+
+/**
+ * Bir ses `id`'sinin seçili dile göre adı. Sözlükte yoksa (henüz çevirisi
+ * girilmemiş yeni bir ses) çağıranın verdiği `yedekEtiket` (soundCatalog.ts'teki
+ * ham `label`) kullanılır — asla boş/undefined dönmez.
+ */
+export function sesAdiDil(dil: DilKodu, id: string, yedekEtiket: string): string {
+  return (sesAdlari[dil] as any)[id] ?? (sesAdlari[VARSAYILAN_DIL] as any)[id] ?? yedekEtiket;
 }
 
 /** Ay adı anahtarları, 0=Ocak/January sırasıyla — `new Date().getMonth()`

@@ -32,7 +32,7 @@ export const ESMAUL_HUSNA: EsmaItem[] = [
   { no: 8, arabic: 'الْعَزِيزُ', latin: 'El-Azîz', meaning: 'Mutlak galip, izzet ve şeref sahibi' },
   { no: 9, arabic: 'الْجَبَّارُ', latin: 'El-Cebbâr', meaning: 'İradesini her durumda yürüten, eksikleri tamamlayan' },
   { no: 10, arabic: 'الْمُتَكَبِّرُ', latin: 'El-Mütekebbir', meaning: 'Büyüklükte eşi ve benzeri olmayan' },
-  { no: 11, arabic: 'الْخَالِقُ', latin: 'El-Hâlik', meaning: 'Her şeyi yoktan yaratan' },
+  { no: 11, arabic: 'الْخَالِقُ', latin: 'El-Hâlık', meaning: 'Her şeyi yoktan yaratan' },
   { no: 12, arabic: 'الْبَارِئُ', latin: 'El-Bâri’', meaning: 'Her şeyi kusursuz ve uyum içinde var eden' },
   { no: 13, arabic: 'الْمُصَوِّرُ', latin: 'El-Musavvir', meaning: 'Yarattığı her varlığa ayrı bir şekil veren' },
   { no: 14, arabic: 'الْغَفَّارُ', latin: 'El-Gaffâr', meaning: 'Günahları örten, çokça bağışlayan' },
