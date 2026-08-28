@@ -39,6 +39,14 @@ import { IbadetTakibiProvider } from './context/IbadetTakibiContext';
 import { DilProvider } from './i18n/DilContext';
 import { onboardingTamamlandiMi, onboardingTamamlandiOlarakIsaretle } from './lib/onboardingDeposu';
 import { reklamOnayiIsteVeGuncelle } from './lib/reklamOnay';
+import {
+  guncellemeVarMi,
+  esnekGuncellemeyiBaslat,
+  guncellemeyiBugunErtele,
+  bugunErtelendiMi,
+} from './lib/guncellemeKontrol';
+import GuncellemeUyarisi from './components/GuncellemeUyarisi';
+import { useGeneralSettings } from './context/GeneralSettingsContext';
 
 /**
  * Reklam SDK'sını uygulama açılışında BİR KEZ başlatır.
@@ -70,6 +78,61 @@ async function reklamSdkBaslat() {
   } catch {
     // Ekstra güvenlik ağı — beklenmeyen bir hata olursa sessizce atlanır.
   }
+}
+
+/**
+ * 7. tur — madde 7: uygulama açılışında (yalnızca bir kez) Play Store'da
+ * yeni bir sürüm olup olmadığını sessizce kontrol eder.
+ *
+ * - "Otomatik Güncelleme" AÇIKSA: modal hiç gösterilmeden doğrudan esnek
+ *   (flexible) güncelleme başlatılır — kullanıcı arka planda inen güncellemeyi
+ *   istediği an fark eder, uygulamayı yeniden başlatınca devreye girer.
+ * - KAPALIYSA (varsayılan): kullanıcının referans gösterdiği Play Store
+ *   diyaloğuna benzer `GuncellemeUyarisi` modalı gösterilir.
+ *
+ * Native modül yokken (Expo Go, henüz `expo run:android` ile build alınmadı)
+ * `guncellemeVarMi()` her zaman `updateAvailable: false` döner — bu bileşen
+ * o zaman hiçbir şey render etmez, uygulamanın geri kalanını etkilemez.
+ */
+function GuncellemeKontrolcusu() {
+  const { otomatikGuncellemeEnabled } = useGeneralSettings();
+  const [uyariGorunur, setUyariGorunur] = useState(false);
+  // Sürüm etiketi olarak Play Store'un döndürdüğü net bir alan
+  // `expo-in-app-updates`te yok; "bugün bir kez sor" mantığı için sabit bir
+  // anahtar yeterli — gerçek ihtiyaç aynı gün tekrar tekrar sormamak.
+  const SURUM_ETIKETI = 'guncel-kontrol';
+
+  useEffect(() => {
+    let iptal = false;
+    (async () => {
+      const durum = await guncellemeVarMi();
+      if (iptal || !durum.updateAvailable) return;
+
+      if (otomatikGuncellemeEnabled) {
+        esnekGuncellemeyiBaslat();
+        return;
+      }
+      const ertelendi = await bugunErtelendiMi(SURUM_ETIKETI);
+      if (!iptal && !ertelendi) setUyariGorunur(true);
+    })();
+    return () => { iptal = true; };
+    // Yalnızca açılışta bir kez — `otomatikGuncellemeEnabled` o anki değeriyle okunuyor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <GuncellemeUyarisi
+      visible={uyariGorunur}
+      onSimdiGuncelle={() => {
+        setUyariGorunur(false);
+        esnekGuncellemeyiBaslat();
+      }}
+      onSonraHatirlat={() => {
+        setUyariGorunur(false);
+        guncellemeyiBugunErtele(SURUM_ETIKETI);
+      }}
+    />
+  );
 }
 
 // Madde 4 (bu tur): İLK AÇILIŞ TANITIM + İZİN AKIŞI (OnboardingEkrani.tsx).
@@ -118,7 +181,10 @@ export default function AppGovde() {
                         {onboardingBitti === null ? (
                           <View style={{ flex: 1, backgroundColor: colors.cream }} />
                         ) : onboardingBitti ? (
-                          <HomeScreen />
+                          <>
+                            <HomeScreen />
+                            <GuncellemeKontrolcusu />
+                          </>
                         ) : (
                           <OnboardingEkrani onTamamlandi={onboardingiTamamla} />
                         )}

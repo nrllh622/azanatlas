@@ -791,11 +791,14 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('destekOl')}
           >
-            <Icon name="hilal" size={18} color={colors.copperVivid} />
+            <View style={styles.destekIkonKap}>
+              <Icon name="hilal" size={22} color={colors.copperVivid} />
+            </View>
             <View style={styles.destekMetinKap}>
               <Text style={styles.destekBaslik}>{t('destekOl')}</Text>
               <Text style={styles.destekAciklama}>{t('destekOlAciklama')}</Text>
             </View>
+            <Icon name="sag" size={16} color={colors.copper} />
           </TouchableOpacity>
 
           {/* ============ HIZLI ARAÇLAR (Muslim Pro'daki dörtlü satır) ============
@@ -814,7 +817,7 @@ export default function HomeScreen() {
                 accessibilityLabel={t(arac.adAnahtari)}
               >
                 <View style={styles.hizliIkonKap}>
-                  <DoluIkon ad={arac.ikon} boyut={21} zemin={colors.primarySoft} />
+                  <DoluIkon ad={arac.ikon} boyut={27} zemin={colors.primarySoft} />
                   {arac.hedef === 'kaza' && kazaTotal > 0 && (
                     <View style={styles.hizliRozet}>
                       <Text style={styles.hizliRozetYazi}>
@@ -1286,31 +1289,47 @@ const styles = StyleSheet.create({
   vakitSaatAktif: { color: colors.primaryGlow },
   zilBtn: { width: 26, alignItems: 'center' },
 
-  // ---------- GELİŞTİRİCİYE DESTEK OL (madde 8, 6. tur) ----------
-  // Vakitler kartı ile hızlı araçlar arasında, ince/düşük vurgulu bir
-  // şerit — ana içeriğin (namaz vakitleri) önüne geçmemesi için bilinçli
-  // olarak sade tutuldu; sadece bir simge + iki satır metin.
+  // ---------- GELİŞTİRİCİYE DESTEK OL (7. tur — madde 2) ----------
+  // DÜZELTME: kullanıcı bu bölümün altındaki Takip/Tesbih/Esmâ/Kaza şeridiyle
+  // AYNI zemin rengini (`primaryMist`) kullandığını, bu yüzden hiç dikkat
+  // çekmediğini belirtti. Artık ayrı bir sıcak vurgu tonu (`copperSoft`) +
+  // belirgin `copper` kenarlık kullanıyor — 11 paletin hepsinde tanımlı olan
+  // aynı rol sözleşmesinden geliyor (bkz. theme.ts), yani her temada çalışır.
+  // Simge artık dairesel bir rozet içinde (daha büyük, daha "tıklanabilir"
+  // görünüyor) ve sağda bir ok ikonu var — bunun bir bağlantı olduğunu daha
+  // açık ediyor. Yazı boyutları da büyütüldü (small→body, micro→tiny).
   destekKart: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryMist,
+    backgroundColor: colors.copperSoft,
     borderRadius: radius.lg,
-    paddingVertical: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: colors.copperLight,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     marginTop: spacing.md,
     gap: spacing.sm,
+    ...elevation.card,
+  },
+  destekIkonKap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   destekMetinKap: { flex: 1 },
   destekBaslik: {
     fontFamily: typography.bodyBold,
-    fontSize: fontSize.small,
-    color: colors.textOnLight,
+    fontSize: fontSize.body,
+    color: colors.copper,
   },
   destekAciklama: {
     fontFamily: typography.bodyFamily,
-    fontSize: fontSize.micro,
-    color: colors.textMuted,
-    marginTop: 1,
+    fontSize: fontSize.tiny,
+    color: colors.textOnLight,
+    marginTop: 2,
   },
 
   // ---------- HIZLI ARAÇLAR ----------
@@ -1325,23 +1344,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.primaryMist,
     borderRadius: radius.lg,
-    // DÜZELTME (5. tur — madde 6): alt boşluk `xs+2`den `xs`e indirildi —
-    // aşağıdaki reklam alanı + Günün Ayeti kartı arasındaki toplam boşluğun
-    // bir parçası (bkz. `reklamAlani`/`ayetKart` notları).
-    paddingVertical: spacing.xs,
+    // DÜZELTME (7. tur — madde 4): kullanıcı hem ikonların hem yazıların
+    // fark edilir şekilde büyümesini istedi — dikey iç boşluk da buna göre
+    // arttırıldı (xs→sm) ki büyüyen içerik kartın kenarına sıkışmasın.
+    paddingVertical: spacing.sm,
     marginTop: spacing.md,
     ...elevation.card,
   },
-  hizliOge: { flex: 1, alignItems: 'center', gap: 3 },
+  hizliOge: { flex: 1, alignItems: 'center', gap: 5 },
   hizliIkonKap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hizliAd: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.textOnLight },
+  hizliAd: { fontFamily: typography.bodyBold, fontSize: fontSize.small, color: colors.textOnLight },
   hizliRozet: {
     position: 'absolute',
     top: -2,
@@ -1390,10 +1409,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDark,
     borderRadius: radius.lg,
     padding: spacing.md,
-    // DÜZELTME (5. tur — madde 6): reklam alanıyla arasındaki boşluk
-    // sıfırlandı — kartın kendi iç boşluğu (`padding: spacing.md`) zaten
-    // içeriğin nefes almasını sağlıyor.
-    marginTop: 0,
+    // DÜZELTME (7. tur — madde 3): `marginTop: 0` + reklam alanının (Expo
+    // Go'da native modül yokken) SIFIR yükseklikte render olması bir araya
+    // gelince, hızlı araçlar ile bu kart tamamen birbirine yapışıyordu.
+    // Gerçek AdMob reklamı yüklendiğinde (native build) reklam kendi
+    // yüksekliğini zaten getirdiği için, bu sabit boşluk sadece reklamsız
+    // durumda devreye giriyor — ikisi üst üste binip aşırı boşluk yaratmıyor,
+    // çünkü reklam alanının kendi `marginTop`u hâlâ 0.
+    marginTop: spacing.md,
   },
   ayetBaslikSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   ayetBaslik: {

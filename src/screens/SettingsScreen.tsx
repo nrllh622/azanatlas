@@ -90,8 +90,8 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
     setAutoMethod, setMethodId, setKerahatMinutes, setMadhab, setHighLatRule, setHijriAdjustmentDays, setHijriSwitchAtMaghrib, setDistanceUnit,
   } = useCalculationSettings();
   const {
-    vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled,
-    setVibrationEnabled, setFaceDownSilenceEnabled, setNotificationBarWidgetEnabled,
+    vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled, otomatikGuncellemeEnabled,
+    setVibrationEnabled, setFaceDownSilenceEnabled, setNotificationBarWidgetEnabled, setOtomatikGuncellemeEnabled,
   } = useGeneralSettings();
   const { addLocation } = useLocationContext();
 
@@ -319,6 +319,17 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
             <Switch value={notificationBarWidgetEnabled} onValueChange={setNotificationBarWidgetEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
             <Text style={styles.cardLabelInline}>{t('bildirimCubuguWidgeti')}</Text>
           </View>
+        </View>
+        {/* 7. tur — madde 7: otomatik güncelleme tercihi. Açıklama satırı
+            diğer aç/kapat kartlarında yok ama bu ayarın davranışı (soru
+            sormadan indirme) yeterince farklı — kısa bir açıklama gerekli
+            görüldü. */}
+        <View style={styles.card}>
+          <View style={styles.cardTopRow}>
+            <Switch value={otomatikGuncellemeEnabled} onValueChange={setOtomatikGuncellemeEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
+            <Text style={styles.cardLabelInline}>{t('otomatikGuncelleme')}</Text>
+          </View>
+          <Text style={styles.cardSubtext}>{t('otomatikGuncellemeAciklama')}</Text>
         </View>
         <View style={styles.card}>
           <View style={styles.cardTopRow}>

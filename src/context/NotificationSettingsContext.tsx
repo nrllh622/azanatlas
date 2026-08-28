@@ -33,7 +33,10 @@ const DEFAULT_SETTINGS: NotificationSettings = {
     yatsi: { enabled: true, minutesBefore: 45, soundId: 'melodi1' },
   },
   onTimeAlerts: {
-    sabah: { enabled: true, soundId: 'essalatu_hayrun' },
+    // DÜZELTME (7. tur — madde 1): eski varsayılan `essalatu_hayrun` (sentez)
+    // kaldırıldı, kullanıcının yüklediği gerçek ezan kaydına (`esselatu_hayrun_minen_nevm`)
+    // güncellendi — Sabah vakti için anlam olarak en uygun olanı bu.
+    sabah: { enabled: true, soundId: 'esselatu_hayrun_minen_nevm' },
     ogle: { enabled: true, soundId: 'uyandirma3' },
     ikindi: { enabled: true, soundId: 'uyandirma3' },
     aksam: { enabled: true, soundId: 'uyandirma3' },
