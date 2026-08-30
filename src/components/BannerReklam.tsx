@@ -3,22 +3,19 @@
 // BANNER REKLAM — react-native-google-mobile-ads
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// TEST KİMLİKLERİ KULLANILIYOR — YAYINLANMADAN ÖNCE DEĞİŞTİRİLMELİ
-//
-// Şu an Google'ın herkese açık, resmi TEST reklam birimi kimliği
-// kullanılıyor (`TestIds.BANNER`). Bu, geliştirme sırasında gerçek reklam
-// göstermeden entegrasyonu test etmeyi sağlar — Play Console'a yüklemeden
-// ÖNCE gerçek AdMod banner birim kimliğiyle değiştirilmesi ZORUNLU, aksi
-// halde AdMob politikası ihlali olur (test kimliğiyle canlıya çıkmak
-// hesabı askıya aldırabilir).
-//
-// Kalıcı hafızada bir önceki uygulama (BillSplit Nova) için gerçek bir
-// AdMob App ID/Banner Unit ID kaydı var, ama bu YENİ bir uygulama —
-// azanatlas'ın kendi AdMob hesabında ayrı bir uygulama olarak
-// kaydedilmesi ve kendi birim kimliklerinin alınması gerekiyor. O
-// kimlikler elde edilince hem burada hem `app.json`'daki
-// `androidAppId`/`iosAppId` alanlarında güncellenmeli.
-//
+// DÜZELTME (bu tur): kullanıcı AdMob'da gerçek App ID ile birlikte 3 AYRI
+// Banner reklam birimi oluşturdu (Anasayfa Alt, Anasayfa Orta, Keşfet) —
+// her yerleşimin kendi unit ID'si olması AdMob raporlarında hangi
+// konumun ne kadar kazandırdığını ayrı ayrı görebilmek için önemli. Bu
+// yüzden `BANNER_UNIT_ID` sabiti kaldırıldı; bileşen artık `unitId` prop'u
+// ZORUNLU alıyor, her çağıran (HomeScreen — 2 yerde, KesfetScreen — 1
+// yerde) kendi gerçek unit ID'sini `src/config/reklamKimlikleri.ts`'ten
+// import edip geçiriyor. TEST modunda (development build, `__DEV__`)
+// gerçek unit ID yerine otomatik olarak `TestIds.BANNER` kullanılır —
+// böylece geliştirme sırasında yanlışlıkla gerçek reklamlara tıklanıp
+// AdMob hesabının geçersiz trafik nedeniyle askıya alınma riski olmaz;
+// bu, AdMob'un kendi resmi tavsiyesidir (bkz. Google AdMob dokümantasyonu
+// "Test your ads" bölümü).
 // ─────────────────────────────────────────────────────────────────────────────
 // NEDEN AYRI BİR BİLEŞEN? — VE NEDEN SADECE try/catch YETMEDİ
 //
@@ -61,17 +58,20 @@ if (nativeReklamModuluBagli) {
   }
 }
 
-// Gerçek kimlik alındığında bu satır güncellenecek:
-//   const BANNER_UNIT_ID = Platform.OS === 'ios' ? 'ca-app-pub-XXXX/IOS_ID' : 'ca-app-pub-XXXX/ANDROID_ID';
-const BANNER_UNIT_ID = TestIds?.BANNER;
-
 interface Props {
+  /** Bu yerleşimin gerçek AdMob Banner Reklam Birimi Kimliği —
+      `src/config/reklamKimlikleri.ts`'ten import edilip geçirilir. */
+  unitId: string;
   /** Çağıran ekranın kendi boşluk/konum ayarını verebilmesi için —
       HomeScreen'deki eski `reklamAlani` stilinin (marginTop) yerini alır. */
   style?: StyleProp<ViewStyle>;
 }
 
-export default function BannerReklam({ style }: Props) {
+export default function BannerReklam({ unitId, style }: Props) {
+  // Development build'de (Expo Go/emülatör dahil, native modül bağlıyken)
+  // gerçek birim yerine Google'ın test kimliği kullanılır — yayın (prod)
+  // build'de `__DEV__` false olur ve gerçek `unitId` devreye girer.
+  const effectiveUnitId = __DEV__ ? TestIds?.BANNER : unitId;
   // DÜZELTME (6. tur — madde 6): kullanıcı "Takip/Tesbih/Esma/Kaza" ile
   // "Günün Ayeti" arasında gereksiz boşluk kalmaya devam ettiğini belirtti.
   // Kök neden HomeScreen'deki marginlar değildi — bu bileşenin KENDİSİ,
@@ -82,14 +82,14 @@ export default function BannerReklam({ style }: Props) {
   // yüklendiğinde içerik bir miktar aşağı kayar (reflow) ama bu, reklam
   // SDK'larında standart ve kabul edilen bir davranıştır; kalıcı olarak
   // boş yer ayırmaktan (kullanıcının asıl şikayeti) çok daha iyi bir denge.
-  if (!BannerAd || !BANNER_UNIT_ID) {
+  if (!BannerAd || !effectiveUnitId) {
     return null;
   }
 
   return (
     <View style={[styles.kap, style]}>
       <BannerAd
-        unitId={BANNER_UNIT_ID}
+        unitId={effectiveUnitId}
         size={BannerAdSize.BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: false }}
       />

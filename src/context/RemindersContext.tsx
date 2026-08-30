@@ -1,5 +1,13 @@
 // src/context/RemindersContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+//
+// DÜZELTME (bu tur — madde 4): bu dosya AsyncStorage'a hiç yazmıyordu —
+// Sahur/Teheccüt/oruç/Cuma hatırlatıcı ayarları uygulama kapatılıp
+// açıldığında sıfırlanıyordu. Kök neden ve genel çözüm için
+// `src/lib/ayarDeposu.ts` başındaki yorum.
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { ayarYukle, ayarKaydet } from '../lib/ayarDeposu';
+
+const STORAGE_KEY = 'azanatlas_reminders_settings_v1';
 
 export interface ReminderTypeSetting {
   enabled: boolean;
@@ -37,6 +45,19 @@ const RemindersContext = createContext<Ctx | undefined>(undefined);
 
 export function RemindersProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<RemindersSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    ayarYukle(STORAGE_KEY, DEFAULT_SETTINGS).then(setSettings);
+  }, []);
+
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    if (!hazirRef.current) {
+      hazirRef.current = true;
+      return;
+    }
+    ayarKaydet(STORAGE_KEY, settings);
+  }, [settings]);
 
   const setSahur = (patch: Partial<ReminderTypeSetting>) =>
     setSettings((prev) => ({ ...prev, sahur: { ...prev.sahur, ...patch } }));

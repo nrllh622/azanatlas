@@ -21,6 +21,8 @@ import { useKaza } from '../context/KazaContext';
 import { useIbadetTakibi } from '../context/IbadetTakibiContext';
 import { useCeviri } from '../i18n/DilContext';
 import { CeviriAnahtari } from '../i18n/ceviriler';
+import BannerReklam from '../components/BannerReklam';
+import { REKLAM_KESFET } from '../config/reklamKimlikleri';
 
 export type KesfetHedef =
   | 'kible'
@@ -107,42 +109,50 @@ export default function KesfetScreen({ onClose, onNavigate }: Props) {
         contentContainerStyle={[styles.icerik, { paddingBottom: insets.bottom + spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
-        {GRUPLAR.map((grup) => (
-          <View key={grup.baslikAnahtari} style={styles.grup}>
-            <Text style={styles.grupBaslik}>{t(grup.baslikAnahtari)}</Text>
-            <View style={styles.izgara}>
-              {grup.araclar.map((arac) => {
-                const r = rozet(arac.hedef);
-                const ad = t(arac.adAnahtari);
-                const aciklama = t(arac.aciklamaAnahtari);
-                return (
-                  <TouchableOpacity
-                    key={arac.hedef}
-                    style={styles.kutu}
-                    onPress={() => onNavigate(arac.hedef)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${ad}. ${aciklama}`}
-                  >
-                    <View style={styles.ikonKap}>
-                      <DoluIkon ad={arac.ikon} boyut={34} zemin={colors.primarySoft} />
-                    </View>
-                    {r && (
-                      <View style={styles.rozet}>
-                        <Text style={styles.rozetYazi}>{r}</Text>
+        {GRUPLAR.map((grup, index) => (
+          <React.Fragment key={grup.baslikAnahtari}>
+            <View style={styles.grup}>
+              <Text style={styles.grupBaslik}>{t(grup.baslikAnahtari)}</Text>
+              <View style={styles.izgara}>
+                {grup.araclar.map((arac) => {
+                  const r = rozet(arac.hedef);
+                  const ad = t(arac.adAnahtari);
+                  const aciklama = t(arac.aciklamaAnahtari);
+                  return (
+                    <TouchableOpacity
+                      key={arac.hedef}
+                      style={styles.kutu}
+                      onPress={() => onNavigate(arac.hedef)}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${ad}. ${aciklama}`}
+                    >
+                      <View style={styles.ikonKap}>
+                        <DoluIkon ad={arac.ikon} boyut={34} zemin={colors.primarySoft} />
                       </View>
-                    )}
-                    <Text style={styles.kutuAd} numberOfLines={1}>
-                      {ad}
-                    </Text>
-                    <Text style={styles.kutuAciklama} numberOfLines={1}>
-                      {aciklama}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      {r && (
+                        <View style={styles.rozet}>
+                          <Text style={styles.rozetYazi}>{r}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.kutuAd} numberOfLines={1}>
+                        {ad}
+                      </Text>
+                      <Text style={styles.kutuAciklama} numberOfLines={1}>
+                        {aciklama}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+
+            {/* ============ REKLAM ALANI — KEŞFET ============
+                Kullanıcının isteği: "İbadet" grubu (index 0) ile "Takip"
+                grubu (index 1) arasına — GRUPLAR dizisindeki sıra tam olarak
+                bu, o yüzden ilk grubun hemen ardına ekleniyor. */}
+            {index === 0 && <BannerReklam unitId={REKLAM_KESFET} style={styles.reklamAlani} />}
+          </React.Fragment>
         ))}
       </ScrollView>
     </View>
@@ -163,6 +173,8 @@ const styles = StyleSheet.create({
   },
 
   izgara: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+
+  reklamAlani: { marginBottom: spacing.lg },
   kutu: {
     // İki sütunlu ızgara: (%50 - yarım boşluk). gap zaten aradaki boşluğu
     // verdiği için yüzdeyi ona göre kısıyoruz.

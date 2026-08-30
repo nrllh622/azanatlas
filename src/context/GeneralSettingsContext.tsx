@@ -1,5 +1,27 @@
 // src/context/GeneralSettingsContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+//
+// DÜZELTME (bu tur — madde 4): bu dosya AsyncStorage'a hiç yazmıyordu —
+// "bildirim çubuğu widget" seçeneği dahil tüm genel ayarlar uygulama
+// kapatılıp açıldığında sıfırlanıyordu. Kök neden ve genel çözüm için
+// `src/lib/ayarDeposu.ts` başındaki yorum.
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { ayarYukle, ayarKaydet } from '../lib/ayarDeposu';
+
+const STORAGE_KEY = 'azanatlas_general_settings_v1';
+
+interface StoredSettings {
+  vibrationEnabled: boolean;
+  faceDownSilenceEnabled: boolean;
+  notificationBarWidgetEnabled: boolean;
+  otomatikGuncellemeEnabled: boolean;
+}
+
+const DEFAULT_SETTINGS: StoredSettings = {
+  vibrationEnabled: true,
+  faceDownSilenceEnabled: false,
+  notificationBarWidgetEnabled: false,
+  otomatikGuncellemeEnabled: false,
+};
 
 interface Ctx {
   vibrationEnabled: boolean;
@@ -21,10 +43,30 @@ interface Ctx {
 const GeneralSettingsContext = createContext<Ctx | undefined>(undefined);
 
 export function GeneralSettingsProvider({ children }: { children: ReactNode }) {
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [faceDownSilenceEnabled, setFaceDownSilenceEnabled] = useState(false);
-  const [notificationBarWidgetEnabled, setNotificationBarWidgetEnabled] = useState(false);
-  const [otomatikGuncellemeEnabled, setOtomatikGuncellemeEnabled] = useState(false);
+  const [vibrationEnabled, setVibrationEnabled] = useState(DEFAULT_SETTINGS.vibrationEnabled);
+  const [faceDownSilenceEnabled, setFaceDownSilenceEnabled] = useState(DEFAULT_SETTINGS.faceDownSilenceEnabled);
+  const [notificationBarWidgetEnabled, setNotificationBarWidgetEnabled] = useState(DEFAULT_SETTINGS.notificationBarWidgetEnabled);
+  const [otomatikGuncellemeEnabled, setOtomatikGuncellemeEnabled] = useState(DEFAULT_SETTINGS.otomatikGuncellemeEnabled);
+
+  useEffect(() => {
+    ayarYukle(STORAGE_KEY, DEFAULT_SETTINGS).then((s) => {
+      setVibrationEnabled(s.vibrationEnabled);
+      setFaceDownSilenceEnabled(s.faceDownSilenceEnabled);
+      setNotificationBarWidgetEnabled(s.notificationBarWidgetEnabled);
+      setOtomatikGuncellemeEnabled(s.otomatikGuncellemeEnabled);
+    });
+  }, []);
+
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    if (!hazirRef.current) {
+      hazirRef.current = true;
+      return;
+    }
+    ayarKaydet(STORAGE_KEY, {
+      vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled, otomatikGuncellemeEnabled,
+    } as StoredSettings);
+  }, [vibrationEnabled, faceDownSilenceEnabled, notificationBarWidgetEnabled, otomatikGuncellemeEnabled]);
 
   return (
     <GeneralSettingsContext.Provider

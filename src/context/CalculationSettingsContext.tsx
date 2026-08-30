@@ -1,5 +1,13 @@
 // src/context/CalculationSettingsContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+//
+// DÜZELTME (bu tur — madde 4): bu dosya AsyncStorage'a hiç yazmıyordu —
+// hesaplama yöntemi, mezhep, kerahat süresi gibi tüm ayarlar uygulama
+// kapatılıp açıldığında sıfırlanıyordu. Kök neden ve genel çözüm için
+// `src/lib/ayarDeposu.ts` başındaki yorum.
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { ayarYukle, ayarKaydet } from '../lib/ayarDeposu';
+
+const STORAGE_KEY = 'azanatlas_calculation_settings_v1';
 
 export type CalcMethodId =
   | 'Turkey' | 'NorthAmerica' | 'MuslimWorldLeague' | 'Egyptian'
@@ -51,6 +59,28 @@ export const DISTANCE_UNIT_OPTIONS: { id: DistanceUnit; label: string; labelEn: 
   { id: 'mi', label: 'Mil', labelEn: 'Miles' },
 ];
 
+interface StoredSettings {
+  autoMethod: boolean;
+  methodId: CalcMethodId;
+  kerahatMinutes: number;
+  madhab: MadhabId;
+  highLatRule: HighLatRuleId;
+  hijriAdjustmentDays: number;
+  hijriSwitchAtMaghrib: boolean;
+  distanceUnit: DistanceUnit;
+}
+
+const DEFAULT_SETTINGS: StoredSettings = {
+  autoMethod: true,
+  methodId: 'Turkey',
+  kerahatMinutes: 45,
+  madhab: 'Shafi',
+  highLatRule: 'AngleBased',
+  hijriAdjustmentDays: 0,
+  hijriSwitchAtMaghrib: false,
+  distanceUnit: 'km',
+};
+
 interface Ctx {
   autoMethod: boolean;
   methodId: CalcMethodId;
@@ -73,14 +103,38 @@ interface Ctx {
 const CalculationSettingsContext = createContext<Ctx | undefined>(undefined);
 
 export function CalculationSettingsProvider({ children }: { children: ReactNode }) {
-  const [autoMethod, setAutoMethod] = useState(true);
-  const [methodId, setMethodId] = useState<CalcMethodId>('Turkey');
-  const [kerahatMinutes, setKerahatMinutes] = useState(45);
-  const [madhab, setMadhab] = useState<MadhabId>('Shafi');
-  const [highLatRule, setHighLatRule] = useState<HighLatRuleId>('AngleBased');
-  const [hijriAdjustmentDays, setHijriAdjustmentDays] = useState(0);
-  const [hijriSwitchAtMaghrib, setHijriSwitchAtMaghrib] = useState(false);
-  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('km');
+  const [autoMethod, setAutoMethod] = useState(DEFAULT_SETTINGS.autoMethod);
+  const [methodId, setMethodId] = useState<CalcMethodId>(DEFAULT_SETTINGS.methodId);
+  const [kerahatMinutes, setKerahatMinutes] = useState(DEFAULT_SETTINGS.kerahatMinutes);
+  const [madhab, setMadhab] = useState<MadhabId>(DEFAULT_SETTINGS.madhab);
+  const [highLatRule, setHighLatRule] = useState<HighLatRuleId>(DEFAULT_SETTINGS.highLatRule);
+  const [hijriAdjustmentDays, setHijriAdjustmentDays] = useState(DEFAULT_SETTINGS.hijriAdjustmentDays);
+  const [hijriSwitchAtMaghrib, setHijriSwitchAtMaghrib] = useState(DEFAULT_SETTINGS.hijriSwitchAtMaghrib);
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(DEFAULT_SETTINGS.distanceUnit);
+
+  useEffect(() => {
+    ayarYukle(STORAGE_KEY, DEFAULT_SETTINGS).then((s) => {
+      setAutoMethod(s.autoMethod);
+      setMethodId(s.methodId);
+      setKerahatMinutes(s.kerahatMinutes);
+      setMadhab(s.madhab);
+      setHighLatRule(s.highLatRule);
+      setHijriAdjustmentDays(s.hijriAdjustmentDays);
+      setHijriSwitchAtMaghrib(s.hijriSwitchAtMaghrib);
+      setDistanceUnit(s.distanceUnit);
+    });
+  }, []);
+
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    if (!hazirRef.current) {
+      hazirRef.current = true;
+      return;
+    }
+    ayarKaydet(STORAGE_KEY, {
+      autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit,
+    } as StoredSettings);
+  }, [autoMethod, methodId, kerahatMinutes, madhab, highLatRule, hijriAdjustmentDays, hijriSwitchAtMaghrib, distanceUnit]);
 
   return (
     <CalculationSettingsContext.Provider

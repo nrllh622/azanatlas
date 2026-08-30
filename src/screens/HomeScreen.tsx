@@ -87,6 +87,7 @@ import Icon, { IconName, vakitIcon } from '../components/Icon';
 import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
 import IslamicPattern from '../components/IslamicPattern';
 import BannerReklam from '../components/BannerReklam';
+import { REKLAM_ANASAYFA_ORTA, REKLAM_ANASAYFA_ALT } from '../config/reklamKimlikleri';
 
 import LocationPickerScreen from './LocationPickerScreen';
 import SettingsScreen from './SettingsScreen';
@@ -847,15 +848,10 @@ export default function HomeScreen() {
             ))}
           </View>
 
-          {/* ============ REKLAM ALANI ============
-              Madde 3 (i18n+reklam paketi): react-native-google-mobile-ads
-              entegre edildi. `BannerReklam` bileşeni Expo Go'da (native
-              modül bulunamadığında) sessizce aynı yükseklikte boş bir View
-              render eder — içerik konumu hiçbir durumda değişmiyor. Şu an
-              Google'ın herkese açık TEST kimliği kullanılıyor; gerçek
-              AdMob birim kimliği alınınca `BannerReklam.tsx`'teki
-              `BANNER_UNIT_ID` güncellenmeli (bkz. o dosyadaki uyarı). */}
-          <BannerReklam style={styles.reklamAlani} />
+          {/* ============ REKLAM ALANI — ANA SAYFA ORTA ============
+              "Takip, Tesbih, Esmâ, Kaza" hızlı araçlar şeridinin altı —
+              kullanıcının AdMob'da oluşturduğu "Anasayfa Orta Banner" birimi. */}
+          <BannerReklam unitId={REKLAM_ANASAYFA_ORTA} style={styles.reklamAlani} />
 
           {/* ============ GÜNÜN AYETİ ============ */}
           <View style={styles.ayetKart}>
@@ -890,6 +886,11 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
+
+          {/* ============ REKLAM ALANI — ANA SAYFA ALT ============
+              Ekranın en altı — kullanıcının AdMob'da oluşturduğu "Anasayfa
+              Alt Banner" birimi. */}
+          <BannerReklam unitId={REKLAM_ANASAYFA_ALT} style={styles.reklamAlaniAlt} />
         </View>
       </ScrollView>
     );
@@ -1311,10 +1312,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     ...elevation.card,
   },
+  // DÜZELTME (bu tur — madde 3): kullanıcı "Bağış Yap" başlığının ve alt
+  // açıklamasının daha da büyük, daha dikkat çekici olmasını istedi.
+  // fontSize.body→bodyLg, fontSize.tiny→small. İkon dairesi ve iç boşluklar
+  // da büyüyen metne oranlı şekilde artırıldı ki kart dengesiz görünmesin.
   destekIkonKap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1322,14 +1327,15 @@ const styles = StyleSheet.create({
   destekMetinKap: { flex: 1 },
   destekBaslik: {
     fontFamily: typography.bodyBold,
-    fontSize: fontSize.body,
+    fontSize: fontSize.bodyLg,
     color: colors.copper,
   },
   destekAciklama: {
-    fontFamily: typography.bodyFamily,
-    fontSize: fontSize.tiny,
+    fontFamily: typography.bodyMedium,
+    fontSize: fontSize.small,
     color: colors.textOnLight,
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: lineHeight.small,
   },
 
   // ---------- HIZLI ARAÇLAR ----------
@@ -1395,14 +1401,16 @@ const styles = StyleSheet.create({
   // (aralarındaki reklam şeridiyle birlikte) fazla bulunmuştu — hem reklam
   // şeridinin hem ayet kartının üst boşluğu spacing.sm(8)'den spacing.xs(4)'e
   // indirildi.
-  // DÜZELTME (5. tur — madde 6): kullanıcı Takip/Tesbih/Esmâ/Kaza satırı ile
-  // Günün Ayeti kartı arasındaki boşluğun gereksiz büyük durduğunu belirtti.
-  // Reklam alanının kendi yüksekliği (50dp, gerçek AdMob banner boyutu)
-  // KORUNUYOR — bunu küçültmek, gerçek reklam yüklendiğinde içeriğin
-  // sıçramasına yol açar (bkz. BannerReklam.tsx'teki yorum). Azaltılan,
-  // reklamın ÇEVRESİNDEKİ kontrol edilebilir boşluklar: bu marginTop `xs`ten
-  // `0`a indirildi.
-  reklamAlani: { marginTop: 0 },
+  // DÜZELTME (bu tur — madde 2): kullanıcı reklamın Takip/Tesbih/Esmâ/Kaza
+  // şeridine "yapışık" durduğunu, aradaki boşluğun artırılması gerektiğini
+  // belirtti — önceki turda `0`a indirilen bu boşluk şimdi geri, makul bir
+  // değerle (spacing.md) eklendi. Reklamın KENDİ yüksekliği hâlâ
+  // BannerReklam'ın minHeight'inden geliyor, burada yalnızca üstteki
+  // boşluk ayarlanıyor.
+  reklamAlani: { marginTop: spacing.md },
+  // Ekranın en altındaki ikinci banner — üstündeki "İslam Tarihinde Bugün"
+  // kartıyla (varsa) veya ayet kartıyla arasında aynı nedenle boşluk bırakır.
+  reklamAlaniAlt: { marginTop: spacing.md },
 
   // ---------- GÜNÜN AYETİ ----------
   ayetKart: {

@@ -1,5 +1,15 @@
 // src/context/NotificationSettingsContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+//
+// DÜZELTME (bu tur — madde 4): bu dosya sadece `useState` kullanıyordu,
+// AsyncStorage'a hiç yazmıyordu — uygulama kapatılıp açıldığında (ör.
+// "Ezan Duası" seçeneği) TÜM bildirim tercihleri sessizce varsayılana
+// dönüyordu. Artık `ayarDeposu.ts` ile aynı desende: açılışta bir kez
+// okunuyor, her değişiklikte kaydediliyor. Ayrıntılı kök neden açıklaması
+// için `src/lib/ayarDeposu.ts` başındaki yorum.
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { ayarYukle, ayarKaydet } from '../lib/ayarDeposu';
+
+const STORAGE_KEY = 'azanatlas_notification_settings_v1';
 
 export type PreAlertVakitKey = 'imsak' | 'gunes' | 'ogle' | 'ikindi' | 'aksam' | 'yatsi';
 export type OnTimeVakitKey = 'sabah' | 'ogle' | 'ikindi' | 'aksam' | 'yatsi';
@@ -58,6 +68,25 @@ const NotificationSettingsContext = createContext<Ctx | undefined>(undefined);
 
 export function NotificationSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
+
+  // Açılışta kayıtlı tercihleri oku (varsa). Okuma bitene kadar varsayılan
+  // değerler kısa süreliğine gösterilir — bu, kayıtlı temanın aksine ekran
+  // stillerini kilitlemediği için sorun yaratmaz.
+  useEffect(() => {
+    ayarYukle(STORAGE_KEY, DEFAULT_SETTINGS).then(setSettings);
+  }, []);
+
+  // Her değişiklikte diske yaz. İlk render'daki varsayılan değeri henüz
+  // okuma bitmeden yanlışlıkla kaydedip kayıtlı veriyi ezmemek için `hazir`
+  // bayrağı kullanılıyor.
+  const hazirRef = React.useRef(false);
+  useEffect(() => {
+    if (!hazirRef.current) {
+      hazirRef.current = true;
+      return;
+    }
+    ayarKaydet(STORAGE_KEY, settings);
+  }, [settings]);
 
   const setPreAlert = (key: PreAlertVakitKey, patch: Partial<PreAlertSetting>) => {
     setSettings((prev) => ({

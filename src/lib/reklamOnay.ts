@@ -22,13 +22,10 @@
 // formu hiç göstermez, fonksiyon anında sonuçlanır — Türkiye kullanıcıları
 // için ekstra bir adım/gecikme YARATMAZ.
 //
-// NOT: Bu dosya native modülü kontrol eder ama gerçek çağrıyı henüz hiçbir
-// ekran/App.tsx TETİKLEMİYOR — entegrasyon noktası olarak AppGovde.tsx'in en
-// başına (Provider'lar kurulduktan hemen sonra, banner reklam ilk
-// render'dan ÖNCE) bir `useEffect` içinde `reklamOnayiIsteVeGuncelle()`
-// çağrısı eklenmesi gerekiyor. Gerçek AdMob hesabı/ID'lerine geçişle
-// BİRLİKTE yapılması önerilir (bkz. devir dosyası / eksik analizi) —
-// aksi halde unutulma riski var.
+// DURUM: entegre edildi — `AppGovde.tsx`'teki `reklamSdkBaslat()` açılışta
+// bu fonksiyonu `mobileAds().initialize()`'DAN ÖNCE çağırıyor (doğru sıra).
+// Bu yorum eski bir "henüz bağlanmadı" notuydu, gerçek entegrasyondan sonra
+// güncellenmemişti — artık düzeltildi.
 
 import { NativeModules } from 'react-native';
 

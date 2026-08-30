@@ -1,7 +1,29 @@
 // src/context/VaktindeKilContext.tsx
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+//
+// DÜZELTME (bu tur — madde 4): bu dosya AsyncStorage'a hiç yazmıyordu —
+// "Vaktinde Kıl" tekrarlı uyarı ayarları uygulama kapatılıp açıldığında
+// sıfırlanıyordu. Kök neden ve genel çözüm için `src/lib/ayarDeposu.ts`
+// başındaki yorum.
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { ayarYukle, ayarKaydet } from '../lib/ayarDeposu';
+
+const STORAGE_KEY = 'azanatlas_vaktinde_kil_v1';
 
 export type VaktindeKilSound = 'bip' | 'dong';
+
+interface StoredSettings {
+  enabled: boolean;
+  firstDelayMinutes: number;
+  repeatIntervalMinutes: number;
+  sound: VaktindeKilSound;
+}
+
+const DEFAULT_SETTINGS: StoredSettings = {
+  enabled: true,
+  firstDelayMinutes: 20,
+  repeatIntervalMinutes: 10,
+  sound: 'bip',
+};
 
 interface Ctx {
   enabled: boolean;
@@ -17,10 +39,28 @@ interface Ctx {
 const VaktindeKilContext = createContext<Ctx | undefined>(undefined);
 
 export function VaktindeKilProvider({ children }: { children: ReactNode }) {
-  const [enabled, setEnabled] = useState(true);
-  const [firstDelayMinutes, setFirstDelayMinutes] = useState(20);
-  const [repeatIntervalMinutes, setRepeatIntervalMinutes] = useState(10);
-  const [sound, setSound] = useState<VaktindeKilSound>('bip');
+  const [enabled, setEnabled] = useState(DEFAULT_SETTINGS.enabled);
+  const [firstDelayMinutes, setFirstDelayMinutes] = useState(DEFAULT_SETTINGS.firstDelayMinutes);
+  const [repeatIntervalMinutes, setRepeatIntervalMinutes] = useState(DEFAULT_SETTINGS.repeatIntervalMinutes);
+  const [sound, setSound] = useState<VaktindeKilSound>(DEFAULT_SETTINGS.sound);
+
+  useEffect(() => {
+    ayarYukle(STORAGE_KEY, DEFAULT_SETTINGS).then((s) => {
+      setEnabled(s.enabled);
+      setFirstDelayMinutes(s.firstDelayMinutes);
+      setRepeatIntervalMinutes(s.repeatIntervalMinutes);
+      setSound(s.sound);
+    });
+  }, []);
+
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    if (!hazirRef.current) {
+      hazirRef.current = true;
+      return;
+    }
+    ayarKaydet(STORAGE_KEY, { enabled, firstDelayMinutes, repeatIntervalMinutes, sound } as StoredSettings);
+  }, [enabled, firstDelayMinutes, repeatIntervalMinutes, sound]);
 
   return (
     <VaktindeKilContext.Provider

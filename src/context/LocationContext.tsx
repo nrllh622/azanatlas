@@ -1,5 +1,13 @@
 // src/context/LocationContext.tsx
-import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
+//
+// DÜZELTME (bu tur — madde 4): bu dosya AsyncStorage'a hiç yazmıyordu —
+// kullanıcının eklediği konumlar ve aktif konum seçimi uygulama kapatılıp
+// açıldığında sıfırlanıp varsayılan İstanbul'a dönüyordu. Kök neden ve genel
+// çözüm için `src/lib/ayarDeposu.ts` başındaki yorum.
+import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
+import { ayarYukle, ayarKaydet } from '../lib/ayarDeposu';
+
+const STORAGE_KEY = 'azanatlas_locations_v1';
 
 export interface SavedLocation {
   id: string;
@@ -29,6 +37,16 @@ const DEFAULT_LOCATION: SavedLocation = {
   countryCode: 'TR',
 };
 
+interface StoredLocations {
+  locations: SavedLocation[];
+  activeId: string;
+}
+
+const DEFAULT_STORED: StoredLocations = {
+  locations: [DEFAULT_LOCATION],
+  activeId: DEFAULT_LOCATION.id,
+};
+
 const LocationContext = createContext<Ctx | undefined>(undefined);
 
 export function LocationProvider({ children }: { children: ReactNode }) {
@@ -38,6 +56,24 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   // GÜNCEL listeye baksın diye (state closure'ının bayat kalmaması için).
   const locationsRef = useRef(locations);
   locationsRef.current = locations;
+
+  useEffect(() => {
+    ayarYukle(STORAGE_KEY, DEFAULT_STORED).then((s) => {
+      if (s.locations && s.locations.length > 0) {
+        setLocations(s.locations);
+        setActiveId(s.activeId && s.locations.some((l) => l.id === s.activeId) ? s.activeId : s.locations[0].id);
+      }
+    });
+  }, []);
+
+  const hazirRef = useRef(false);
+  useEffect(() => {
+    if (!hazirRef.current) {
+      hazirRef.current = true;
+      return;
+    }
+    ayarKaydet(STORAGE_KEY, { locations, activeId } as StoredLocations);
+  }, [locations, activeId]);
 
   // Madde 2 (bu tur): kullanıcı aynı il/ilçeyi (özellikle GPS ile — aynı
   // yerden tekrar "GPS/Konum ile Ekle" bastığında) tekrar eklediğinde listeye
