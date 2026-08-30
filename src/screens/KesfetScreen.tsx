@@ -150,8 +150,12 @@ export default function KesfetScreen({ onClose, onNavigate }: Props) {
             {/* ============ REKLAM ALANI — KEŞFET ============
                 Kullanıcının isteği: "İbadet" grubu (index 0) ile "Takip"
                 grubu (index 1) arasına — GRUPLAR dizisindeki sıra tam olarak
-                bu, o yüzden ilk grubun hemen ardına ekleniyor. */}
-            {index === 0 && <BannerReklam unitId={REKLAM_KESFET} style={styles.reklamAlani} />}
+                bu, o yüzden ilk grubun hemen ardına ekleniyor.
+                DÜZELTME (bu tur — madde 2): kullanıcı bu reklamın "çok çok
+                büyük" olmasını istedi — `boyut="buyuk"` (MEDIUM_RECTANGLE,
+                300×250 — AdMob'un banner ailesindeki en büyük standart
+                boyutu). */}
+            {index === 0 && <BannerReklam unitId={REKLAM_KESFET} boyut="buyuk" style={styles.reklamAlani} />}
           </React.Fragment>
         ))}
       </ScrollView>

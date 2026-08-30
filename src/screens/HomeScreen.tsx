@@ -79,9 +79,9 @@ import { AY_ANAHTARLARI } from '../i18n/ceviriler';
 // hiçbir dijital içerik/hizmet açılmıyor, saf bir bağış. `Linking.openURL`
 // ile tarayıcıda/uygulamada açılıyor, uygulama içinde ödeme akışı YOK.
 //
-// ⚠️ YER TUTUCU LİNK — YAYINLANMADAN ÖNCE GERÇEK HESAPLA DEĞİŞTİRİLMELİ.
-// Buy Me a Coffee / Ko-fi gibi bir hesap açılınca bu URL güncellenmeli.
-const GELISTIRICI_DESTEK_URL = 'https://buymeacoffee.com/azanatlas';
+// DÜZELTME (bu tur — madde 3): kullanıcı gerçek Buy Me a Coffee hesabını
+// paylaştı — yer tutucu link gerçek hesapla değiştirildi.
+const GELISTIRICI_DESTEK_URL = 'https://buymeacoffee.com/nrllh';
 
 import Icon, { IconName, vakitIcon } from '../components/Icon';
 import DoluIkon, { DoluIkonAdi } from '../components/DoluIkon';
@@ -850,8 +850,10 @@ export default function HomeScreen() {
 
           {/* ============ REKLAM ALANI — ANA SAYFA ORTA ============
               "Takip, Tesbih, Esmâ, Kaza" hızlı araçlar şeridinin altı —
-              kullanıcının AdMob'da oluşturduğu "Anasayfa Orta Banner" birimi. */}
-          <BannerReklam unitId={REKLAM_ANASAYFA_ORTA} style={styles.reklamAlani} />
+              kullanıcının AdMob'da oluşturduğu "Anasayfa Orta Banner" birimi.
+              DÜZELTME (bu tur — madde 2): kullanıcı bunun "biraz daha büyük"
+              olmasını istedi — `boyut="orta"` (LARGE_BANNER, 320×100). */}
+          <BannerReklam unitId={REKLAM_ANASAYFA_ORTA} boyut="orta" style={styles.reklamAlani} />
 
           {/* ============ GÜNÜN AYETİ ============ */}
           <View style={styles.ayetKart}>
@@ -886,11 +888,6 @@ export default function HomeScreen() {
               </View>
             </View>
           )}
-
-          {/* ============ REKLAM ALANI — ANA SAYFA ALT ============
-              Ekranın en altı — kullanıcının AdMob'da oluşturduğu "Anasayfa
-              Alt Banner" birimi. */}
-          <BannerReklam unitId={REKLAM_ANASAYFA_ALT} style={styles.reklamAlaniAlt} />
         </View>
       </ScrollView>
     );
@@ -902,6 +899,22 @@ export default function HomeScreen() {
   return (
     <View style={styles.kabuk}>
       <View style={styles.icerikAlani}>{sekmeIcerigi}</View>
+
+      {/* ============ REKLAM ALANI — ANA SAYFA ALT (SABİT) ============
+          DÜZELTME (bu tur — madde 1): kullanıcı bu reklamın scroll ile
+          aşağı inmeden, ekran açılır açılmaz görünür olmasını istedi.
+          Önceki turda ScrollView'in İÇİNDE, en altta (İslam Tarihinde
+          Bugün kartından sonra) duruyordu — bu yüzden görmek için tüm
+          sayfayı kaydırmak gerekiyordu. Artık ScrollView'in DIŞINDA,
+          içerik alanı ile alt navigasyon çubuğu arasında SABİT bir satır
+          olarak duruyor; yalnızca Ana Sayfa sekmesindeyken görünüyor
+          (`tab === 'home'`) — diğer sekmelerde (İmsakiye/Keşfet/Kıble/
+          Ayarlar) kendi içerikleri tam alanı kullanıyor. */}
+      {tab === 'home' && (
+        <View style={styles.sabitReklamKap}>
+          <BannerReklam unitId={REKLAM_ANASAYFA_ALT} />
+        </View>
+      )}
 
       {/* ============ ALT NAVİGASYON — "Zümrüt Şerit" (Varyant C) ============
           Kullanıcıya 3 varyant sunuldu (Yumuşak Cam / Yükselen Nokta /
@@ -1408,9 +1421,21 @@ const styles = StyleSheet.create({
   // BannerReklam'ın minHeight'inden geliyor, burada yalnızca üstteki
   // boşluk ayarlanıyor.
   reklamAlani: { marginTop: spacing.md },
-  // Ekranın en altındaki ikinci banner — üstündeki "İslam Tarihinde Bugün"
-  // kartıyla (varsa) veya ayet kartıyla arasında aynı nedenle boşluk bırakır.
-  reklamAlaniAlt: { marginTop: spacing.md },
+
+  // DÜZELTME (bu tur — madde 1): alt banner artık ScrollView'in dışında,
+  // sabit bir satırda (bkz. yukarıdaki `tab === 'home' && (...)` bloğu).
+  // Üstte içerikten, altta alt navigasyon çubuğundan hafif bir ayrım
+  // çizgisiyle ayrılıyor ki "yapışık" durmasın; arka planı `cream` yerine
+  // hafif farklı bir ton (`primaryMist`) alıyor ki sabit bir şerit olduğu
+  // görsel olarak da belli olsun (kaydırılan içerikle karışmasın).
+  sabitReklamKap: {
+    backgroundColor: colors.primaryMist,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
 
   // ---------- GÜNÜN AYETİ ----------
   ayetKart: {

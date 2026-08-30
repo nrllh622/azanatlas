@@ -58,20 +58,35 @@ if (nativeReklamModuluBagli) {
   }
 }
 
+// DÜZELTME (bu tur — madde 2): kullanıcı "Anasayfa Orta" biraz daha büyük,
+// "Keşfet" reklamı ÇOK ÇOK büyük olsun dedi. AdMob'un sabit banner
+// boyutları arasından seçiliyor (rastgele bir piksel değeri değil — Google
+// bu üç boyutu optimize edip dolum oranını/geliri en üst düzeyde tutuyor):
+//   'kucuk'  → BANNER            320×50  (mevcut, Ana Sayfa Alt için)
+//   'orta'   → LARGE_BANNER      320×100 (Ana Sayfa Orta için — "biraz büyük")
+//   'buyuk'  → MEDIUM_RECTANGLE  300×250 (Keşfet için — "çok çok büyük")
+export type BannerBoyutu = 'kucuk' | 'orta' | 'buyuk';
+
 interface Props {
   /** Bu yerleşimin gerçek AdMob Banner Reklam Birimi Kimliği —
       `src/config/reklamKimlikleri.ts`'ten import edilip geçirilir. */
   unitId: string;
+  /** Reklam boyutu — varsayılan 'kucuk' (standart 320×50 banner). */
+  boyut?: BannerBoyutu;
   /** Çağıran ekranın kendi boşluk/konum ayarını verebilmesi için —
       HomeScreen'deki eski `reklamAlani` stilinin (marginTop) yerini alır. */
   style?: StyleProp<ViewStyle>;
 }
 
-export default function BannerReklam({ unitId, style }: Props) {
+export default function BannerReklam({ unitId, boyut = 'kucuk', style }: Props) {
   // Development build'de (Expo Go/emülatör dahil, native modül bağlıyken)
   // gerçek birim yerine Google'ın test kimliği kullanılır — yayın (prod)
   // build'de `__DEV__` false olur ve gerçek `unitId` devreye girer.
   const effectiveUnitId = __DEV__ ? TestIds?.BANNER : unitId;
+  const admobBoyutu =
+    boyut === 'buyuk' ? BannerAdSize?.MEDIUM_RECTANGLE
+    : boyut === 'orta' ? BannerAdSize?.LARGE_BANNER
+    : BannerAdSize?.BANNER;
   // DÜZELTME (6. tur — madde 6): kullanıcı "Takip/Tesbih/Esma/Kaza" ile
   // "Günün Ayeti" arasında gereksiz boşluk kalmaya devam ettiğini belirtti.
   // Kök neden HomeScreen'deki marginlar değildi — bu bileşenin KENDİSİ,
@@ -90,7 +105,7 @@ export default function BannerReklam({ unitId, style }: Props) {
     <View style={[styles.kap, style]}>
       <BannerAd
         unitId={effectiveUnitId}
-        size={BannerAdSize.BANNER}
+        size={admobBoyutu}
         requestOptions={{ requestNonPersonalizedAdsOnly: false }}
       />
     </View>
