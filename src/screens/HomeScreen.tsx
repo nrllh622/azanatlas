@@ -1094,8 +1094,8 @@ const styles = StyleSheet.create({
   // tamamen kaldırıldı — kullanıcı isteği.
   siradakiEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 20,
+    lineHeight: 25,
     color: colors.copperLight,
     letterSpacing: 0.3,
     includeFontPadding: false,
@@ -1109,15 +1109,15 @@ const styles = StyleSheet.create({
   },
   siradakiAd: {
     fontFamily: typography.displaySemibold,
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 20,
+    lineHeight: 25,
     color: colors.white,
     includeFontPadding: false,
   },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 20,
+    lineHeight: 25,
     color: colors.copperLight,
     includeFontPadding: false,
   },
