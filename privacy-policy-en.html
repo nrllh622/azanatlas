@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AzanAtlas Privacy Policy</title>
+<style>
+  :root{
+    --cream:#FDF9EC;
+    --ink:#1B2A28;
+    --ink-soft:#4B5F5C;
+    --teal:#073634;
+    --teal-soft:#0E4E4B;
+    --teal-mist:#D3F8F5;
+    --copper:#BA411C;
+    --copper-vivid:#FB3E04;
+    --copper-soft:#F5DCCF;
+    --border:#E4DCC6;
+    --card:#FFFFFF;
+    --flag-bg:#FFF4D6;
+    --flag-border:#E8B93C;
+    --flag-text:#6B4E00;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Manrope,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.6;
+  }
+
+  .top{
+    background:var(--teal);
+    padding:2.6rem 1.5rem 2.2rem;
+    position:relative;
+    overflow:hidden;
+  }
+  .top::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:radial-gradient(circle at 18% 22%, rgba(255,255,255,0.06) 0, transparent 45%),
+      radial-gradient(circle at 82% 78%, rgba(255,255,255,0.05) 0, transparent 50%);
+    pointer-events:none;
+  }
+  .top-inner{
+    max-width:760px;
+    margin:0 auto;
+    position:relative;
+  }
+  .crest{
+    width:44px;height:44px;border-radius:50%;
+    background:var(--copper-soft);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:1.1rem;
+  }
+  .crest svg{width:22px;height:22px;}
+  .eyebrow{
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--teal-mist);
+    font-weight:700;
+    opacity:.75;
+  }
+  h1{
+    font-size:clamp(1.7rem,4.2vw,2.3rem);
+    font-weight:700;
+    color:var(--cream);
+    margin:.4rem 0 .5rem;
+    letter-spacing:-.01em;
+  }
+  .top p{
+    color:#CFE6E3;
+    font-size:.95rem;
+    margin:0;
+    max-width:52ch;
+  }
+
+  main{
+    max-width:760px;
+    margin:0 auto;
+    padding:2.4rem 1.5rem 4rem;
+  }
+
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:.5rem;
+    padding-bottom:1.4rem;
+    margin-bottom:1.6rem;
+    border-bottom:1px solid var(--border);
+    font-size:.82rem;
+    color:var(--ink-soft);
+  }
+  .meta-row b{ color:var(--ink); font-weight:700; }
+
+  /* Fill-in-the-blank instructions banner */
+  .fill-instructions{
+    background:var(--flag-bg);
+    border:1.5px solid var(--flag-border);
+    border-radius:12px;
+    padding:1rem 1.2rem;
+    margin-bottom:2.2rem;
+    font-size:.88rem;
+    color:var(--flag-text);
+    line-height:1.6;
+  }
+  .fill-instructions b{ display:block; margin-bottom:.3rem; font-size:.9rem; }
+
+  section{ margin-bottom:2.1rem; }
+  section:last-of-type{ margin-bottom:0; }
+
+  h2{
+    font-size:1.18rem;
+    font-weight:700;
+    color:var(--teal-soft);
+    margin:0 0 .8rem;
+    letter-spacing:-.005em;
+  }
+
+  p{
+    font-size:.98rem;
+    line-height:1.72;
+    color:var(--ink);
+    margin:0 0 .9rem;
+  }
+  p:last-child{ margin-bottom:0; }
+  strong{ color:var(--ink); }
+
+  ul{
+    margin:0 0 .9rem;
+    padding-left:1.3rem;
+  }
+  li{
+    font-size:.98rem;
+    line-height:1.68;
+    margin-bottom:.5rem;
+  }
+  li:last-child{ margin-bottom:0; }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:1.3rem 1.4rem;
+  }
+
+  .data-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.9rem;
+    margin-top:.4rem;
+  }
+  .data-table th, .data-table td{
+    text-align:left;
+    padding:.6rem .7rem;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+    line-height:1.55;
+  }
+  .data-table th{
+    font-size:.72rem;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+    color:var(--ink-soft);
+    font-weight:700;
+  }
+  .data-table tr:last-child td{ border-bottom:none; }
+  .tablewrap{ overflow-x:auto; }
+
+  a{ color:var(--copper); text-decoration-color:rgba(186,65,28,.35); }
+  a:hover{ text-decoration-color:currentColor; }
+
+  .contact{
+    display:flex;
+    align-items:center;
+    gap:.7rem;
+    flex-wrap:wrap;
+  }
+  .pill{
+    display:inline-block;
+    font-size:.72rem;
+    font-weight:700;
+    padding:.15rem .55rem;
+    border-radius:999px;
+    background:var(--copper-soft);
+    color:var(--copper);
+    letter-spacing:.02em;
+    flex-shrink:0;
+  }
+
+  /* Fill-in-the-blank marker used inline throughout the document */
+  .fill{
+    display:inline-block;
+    background:var(--flag-bg);
+    border:1.5px dashed var(--flag-border);
+    border-radius:6px;
+    padding:.05rem .5rem;
+    color:var(--flag-text);
+    font-weight:700;
+    font-size:.92em;
+    white-space:nowrap;
+  }
+
+  footer{
+    max-width:760px;
+    margin:0 auto;
+    padding:0 1.5rem 3rem;
+    font-size:.8rem;
+    color:var(--ink-soft);
+  }
+
+  @media print{
+    .top{ background:var(--teal) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-inner">
+    <div class="crest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#BA411C" stroke-width="1.8"><path d="M17 3a9 9 0 1 0 4 13.5A7.5 7.5 0 0 1 17 3Z"/></svg>
+    </div>
+    <div class="eyebrow">Privacy</div>
+    <h1>AzanAtlas Privacy Policy</h1>
+    <p>This page explains, in plain terms, what information the AzanAtlas app uses, where it is kept, and what choices you have.</p>
+  </div>
+</div>
+
+<main>
+  <div class="meta-row">
+    <span>Last updated: <b class="fill">August 31, 2026</b></span>
+    <span>AzanAtlas &middot; com.azanatlas.app</span>
+  </div>
+
+  <section>
+    <h2>1. What this policy covers</h2>
+    <p>AzanAtlas is a mobile app for prayer times, qibla direction, the fasting calendar, a digital tasbih, the 99 Names of Allah, and worship tracking. This page explains what data is processed while you use it and where that data stays.</p>
+  </section>
+
+  <section>
+    <h2>2. What information is used</h2>
+    <div class="tablewrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Information</th>
+            <th>Why</th>
+            <th>Where it is stored</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Location (GPS or a manually chosen city)</td>
+            <td>To calculate accurate prayer times and qibla direction for where you are</td>
+            <td>On your device only</td>
+          </tr>
+          <tr>
+            <td>App preferences (theme, language, notification settings, tasbih counter, missed-prayer tracker, worship tracker)</td>
+            <td>To remember your settings the next time you open the app</td>
+            <td>On your device only</td>
+          </tr>
+          <tr>
+            <td>Advertising ID and ad interaction</td>
+            <td>To show ads through Google AdMob</td>
+            <td>By Google, as described in section 4 below</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:.9rem">AzanAtlas has no user accounts — it never asks for or stores your name, email address, or phone number.</p>
+  </section>
+
+  <section>
+    <h2>3. Your location</h2>
+    <p>If you grant location permission, your device's GPS is read to calculate prayer times. These coordinates are never sent to any AzanAtlas server — the calculation happens directly on your device. You can also use the app without granting location permission by choosing a city from a list.</p>
+    <p>While in Turkey, the province/district you selected (not coordinates) is sent to Diyanet's (Turkey's Presidency of Religious Affairs) official service to retrieve official prayer times.</p>
+  </section>
+
+  <section>
+    <h2>4. Advertising (Google AdMob)</h2>
+    <p>AzanAtlas shows Google AdMob banner ads to help fund continued development. AdMob may process data such as your advertising ID and device information under its own privacy policy.</p>
+    <p>If you are in the European Economic Area, the United Kingdom, or Switzerland, Google's consent form appears the first time you open the app, and you choose whether ads are personalized.</p>
+    <p>For details on how Google handles this data, see: <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">policies.google.com/technologies/partner-sites</a></p>
+  </section>
+
+  <section>
+    <h2>5. Notifications</h2>
+    <p>Prayer-time reminders are scheduled entirely on your device, locally. Notification permission is not required for the app to work — without it, the app still shows prayer times, it just cannot send reminder notifications.</p>
+  </section>
+
+  <section>
+    <h2>6. Sharing your data</h2>
+    <p>AzanAtlas does not sell your location or usage data to any third party. Other than Google AdMob as described in section 4, no service receives your data.</p>
+  </section>
+
+  <section>
+    <h2>7. Deleting your data</h2>
+    <p>Because every preference and tracked record lives only on your device, uninstalling the app (or, on Android, Settings &rarr; Apps &rarr; AzanAtlas &rarr; Clear Storage) permanently deletes it. There is no separate "delete my account" request to make, since there is no server-side record to delete.</p>
+  </section>
+
+  <section>
+    <h2>8. Children's privacy</h2>
+    <p>AzanAtlas is intended for a general audience and does not knowingly collect personal data from children under 13.</p>
+  </section>
+
+  <section>
+    <h2>9. Changes to this policy</h2>
+    <p>This page may be updated as new features are added to the app. The date at the top is updated whenever a meaningful change is made.</p>
+  </section>
+
+  <section>
+    <h2>10. Contact</h2>
+    <div class="card contact">
+      <span class="pill">Developer</span>
+      <span>Questions? Reach us at: <a href="mailto:nrllh622@gmail.com">nrllh622@gmail.com</a></span>
+    </div>
+  </section>
+</main>
+
+<footer>AzanAtlas &mdash; prayer times, qibla, and worship tracking.</footer>
+
+</body>
+</html>
