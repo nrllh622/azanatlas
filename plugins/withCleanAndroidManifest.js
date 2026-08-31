@@ -2,46 +2,45 @@
 //
 // AMAÇ
 // ----
-// `expo prebuild` her çalıştığında (temiz build, EAS build, veya
-// `expo run:android`), native `android/` klasörü SIFIRDAN yeniden
-// üretilir. Bu sırada bazı kütüphaneler (özellikle expo-av, ses
-// çalma/kaydetme desteği için) kendi native modüllerinin autolinking
-// aşamasında AndroidManifest.xml'e ihtiyaç duymadığımız izinler ekler:
+// KÖK NEDEN (bulundu 2026-08-31, bir önceki yaklaşım işe yaramadıktan
+// sonra AAB'nin gerçek içeriği bundletool ile incelenerek kanıtlandı):
+// bu izinler `expo prebuild` sırasında oluşan `android/app/src/main/
+// AndroidManifest.xml`'de DEĞİL — onları filtreleyen önceki plugin
+// sürümü o dosyayı gerçekten temizliyordu (yerelde doğrulandı). Sorun,
+// Android'in kendi GRADLE MANIFEST MERGER mekanizmasında: derleme
+// sırasında, her native bağımlılığın (AAR) kendi içine gömülü
+// AndroidManifest.xml parçası ana manifestle otomatik birleştiriliyor.
+// Bu birleştirme, expo config plugin'lerin çalıştığı `expo prebuild`
+// aşamasından TAMAMEN AYRI ve SONRAKİ bir adım (Gradle build zamanı),
+// bu yüzden dosya filtrelemesi manifest merger'ı etkilemiyor —
+// kaldırdığımız izin, kütüphanenin kendi manifest'inden geri geliyor.
 //
-//   - RECORD_AUDIO          → uygulama mikrofon KULLANMIYOR, yalnızca
-//                              önceden paketlenmiş ses dosyalarını ÇALIYOR.
-//   - SYSTEM_ALERT_WINDOW    → uygulama başka uygulamaların üstünde
-//                              pencere/overlay göstermiyor.
-//   - READ_EXTERNAL_STORAGE  → uygulama harici depolama okumuyor,
-//   - WRITE_EXTERNAL_STORAGE   AsyncStorage kullanıyor (bu farklı bir
-//                              mekanizma, bu izinleri gerektirmez).
-//   - ACTIVITY_RECOGNITION   → `expo-sensors`ın autolinking'i ekliyor
-//                              (adım sayar/pedometer API'si için);
-//                              uygulama yalnızca kıble pusulası için
-//                              manyetometre kullanıyor, adım sayma/
-//                              hareket algılama özelliği YOK. Google
-//                              Play bu izni "Sağlık Uygulamaları
-//                              Politikası" kapsamında değerlendirip
-//                              ekstra beyan istiyor — kaldırılması
-//                              gerekiyordu (Play Console uyarısı, 2026).
+// Somut kaynak:
+//   node_modules/expo-sensors/android/src/main/AndroidManifest.xml
+//     → <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+//   (uygulama yalnızca kıble pusulası için manyetometre kullanıyor,
+//   expo-sensors'ın adım sayar/pedometer API'si hiç kullanılmıyor —
+//   ama kütüphane kendi manifest'ine bu izni koşulsuz ekliyor.)
+//   Benzer şekilde RECORD_AUDIO/SYSTEM_ALERT_WINDOW/READ-WRITE_EXTERNAL_
+//   STORAGE de expo-av ve türü bağımlılıkların kendi manifest'lerinden
+//   geliyor.
 //
-// Bu izinler Play Console'un Data Safety / App Content formlarında
-// "bu uygulama mikrofon/depolama/sağlık verisi kullanıyor" gibi ekstra
-// beyan yükümlülüğü doğurur ve kullanıcıya kurulumda gereksiz izin
-// isteği olarak görünür. Elle AndroidManifest.xml düzenlemek KALICI
-// DEĞİLDİR — her `expo prebuild --clean` (ve EAS Cloud Build'in kendi
-// sunucusunda çalıştırdığı prebuild adımı da dahil) bu dosyayı sıfırdan
-// yazar. Bu plugin, manifest oluşturulduktan HEMEN SONRA, Expo config
-// plugin API'si üzerinden bu izinleri programatik olarak kaldırır —
-// böylece hem yerel build'de hem EAS Cloud Build'de garanti şekilde
-// uygulanır (plugin app.json'a bağlı olduğu için EAS de aynı adımı
-// kendi tarafında işletir, ekstra bir ayar gerekmez).
+// ÇÖZÜM: dosya içeriğini filtrelemek yerine, Android'in kendi manifest
+// merger'ının resmi mekanizması olan `tools:node="remove"` kullanmak.
+// Bu attribute, ana uygulama manifestine "bu izin HANGİ KÜTÜPHANEDEN
+// gelirse gelsin, nihai birleştirilmiş manifestte YER ALMASIN" der —
+// filtrelemenin aksine, bu kural Gradle build sırasında da (EAS Cloud
+// Build dahil) geçerlidir, çünkü merger'ın kendisine yazılan bir
+// komuttur, prebuild'in JS tarafında yapılan bir temizlik değildir.
 //
 // Uygulamanın GERÇEKTEN ihtiyaç duyduğu ve KORUNAN izinler:
 //   ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION → namaz vakti/kıble
 //   INTERNET                                      → Diyanet API, AdMob
 //   MODIFY_AUDIO_SETTINGS                         → ezan sesi çalma
 //   VIBRATE                                       → bildirim titreşimi
+//   POST_NOTIFICATIONS, RECEIVE_BOOT_COMPLETED,
+//   FOREGROUND_SERVICE, WAKE_LOCK                 → zamanlanmış bildirimler
+//   (bunlara dokunulmuyor, meşru ve gerekli)
 
 const { withAndroidManifest } = require('@expo/config-plugins');
 
@@ -53,16 +52,38 @@ const KALDIRILACAK_IZINLER = [
   'android.permission.ACTIVITY_RECOGNITION',
 ];
 
+const TOOLS_NS = 'http://schemas.android.com/tools';
+
 function withCleanAndroidManifest(config) {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults;
 
-    if (Array.isArray(manifest.manifest['uses-permission'])) {
-      manifest.manifest['uses-permission'] = manifest.manifest['uses-permission'].filter((izin) => {
-        const ad = izin?.$?.['android:name'];
-        return !KALDIRILACAK_IZINLER.includes(ad);
-      });
+    // `tools` namespace'i manifest kök elemanında tanımlı olmalı —
+    // çoğu Expo/RN projesinde zaten vardır (tools:replace için) ama
+    // garanti altına alalım.
+    if (!manifest.manifest.$) manifest.manifest.$ = {};
+    manifest.manifest.$['xmlns:tools'] = TOOLS_NS;
+
+    if (!Array.isArray(manifest.manifest['uses-permission'])) {
+      manifest.manifest['uses-permission'] = [];
     }
+
+    const mevcutIzinler = manifest.manifest['uses-permission'];
+
+    KALDIRILACAK_IZINLER.forEach((izinAdi) => {
+      // Önce aynı izin için var olan bir girişi (varsa) kaldır, sonra
+      // `tools:node="remove"` ile işaretlenmiş TEK bir giriş ekle.
+      // Merger, bu işaretli girişi gördüğünde, birleştirilecek diğer
+      // TÜM manifest'lerden (uygulamanın kendisi dahil) bu izni siler.
+      const kalanlar = mevcutIzinler.filter((izin) => izin?.$?.['android:name'] !== izinAdi);
+      kalanlar.push({
+        $: {
+          'android:name': izinAdi,
+          'tools:node': 'remove',
+        },
+      });
+      manifest.manifest['uses-permission'] = kalanlar;
+    });
 
     return config;
   });
