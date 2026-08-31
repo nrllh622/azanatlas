@@ -22,6 +22,7 @@
     },
     "android": {
       "package": "com.azanatlas.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -36,6 +37,7 @@
     "plugins": [
       "expo-font",
       "expo-updates",
+      "./plugins/withCleanAndroidManifest",
       [
         "expo-notifications",
         {
