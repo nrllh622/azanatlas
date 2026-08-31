@@ -22,14 +22,17 @@
     },
     "android": {
       "package": "com.azanatlas.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +40,6 @@
     "plugins": [
       "expo-font",
       "expo-updates",
-      "./plugins/withCleanAndroidManifest",
       [
         "expo-notifications",
         {
@@ -88,7 +90,8 @@
           "androidAppId": "ca-app-pub-2984878117732696~1126374204",
           "iosAppId": "ca-app-pub-2984878117732696~1126374204"
         }
-      ]
+      ],
+      "./plugins/withCleanAndroidManifest"
     ],
     "updates": {
       "enabled": true,
@@ -96,6 +99,11 @@
     },
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bac24454-f9ce-47de-ae52-13519b6ecbf0"
+      }
     }
   }
 }
