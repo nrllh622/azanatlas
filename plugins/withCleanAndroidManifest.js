@@ -15,15 +15,27 @@
 //   - READ_EXTERNAL_STORAGE  → uygulama harici depolama okumuyor,
 //   - WRITE_EXTERNAL_STORAGE   AsyncStorage kullanıyor (bu farklı bir
 //                              mekanizma, bu izinleri gerektirmez).
+//   - ACTIVITY_RECOGNITION   → `expo-sensors`ın autolinking'i ekliyor
+//                              (adım sayar/pedometer API'si için);
+//                              uygulama yalnızca kıble pusulası için
+//                              manyetometre kullanıyor, adım sayma/
+//                              hareket algılama özelliği YOK. Google
+//                              Play bu izni "Sağlık Uygulamaları
+//                              Politikası" kapsamında değerlendirip
+//                              ekstra beyan istiyor — kaldırılması
+//                              gerekiyordu (Play Console uyarısı, 2026).
 //
 // Bu izinler Play Console'un Data Safety / App Content formlarında
-// "bu uygulama mikrofon/depolama kullanıyor" gibi ekstra beyan
-// yükümlülüğü doğurur ve kullanıcıya kurulumda gereksiz izin isteği
-// olarak görünür. Elle AndroidManifest.xml düzenlemek KALICI DEĞİLDİR —
-// her `expo prebuild --clean` bu dosyayı sıfırdan yazar. Bu plugin,
-// manifest oluşturulduktan HEMEN SONRA, Expo config plugin API'si
-// üzerinden bu izinleri programatik olarak kaldırır — böylece her
-// build'de garanti şekilde uygulanır.
+// "bu uygulama mikrofon/depolama/sağlık verisi kullanıyor" gibi ekstra
+// beyan yükümlülüğü doğurur ve kullanıcıya kurulumda gereksiz izin
+// isteği olarak görünür. Elle AndroidManifest.xml düzenlemek KALICI
+// DEĞİLDİR — her `expo prebuild --clean` (ve EAS Cloud Build'in kendi
+// sunucusunda çalıştırdığı prebuild adımı da dahil) bu dosyayı sıfırdan
+// yazar. Bu plugin, manifest oluşturulduktan HEMEN SONRA, Expo config
+// plugin API'si üzerinden bu izinleri programatik olarak kaldırır —
+// böylece hem yerel build'de hem EAS Cloud Build'de garanti şekilde
+// uygulanır (plugin app.json'a bağlı olduğu için EAS de aynı adımı
+// kendi tarafında işletir, ekstra bir ayar gerekmez).
 //
 // Uygulamanın GERÇEKTEN ihtiyaç duyduğu ve KORUNAN izinler:
 //   ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION → namaz vakti/kıble
@@ -38,6 +50,7 @@ const KALDIRILACAK_IZINLER = [
   'android.permission.SYSTEM_ALERT_WINDOW',
   'android.permission.READ_EXTERNAL_STORAGE',
   'android.permission.WRITE_EXTERNAL_STORAGE',
+  'android.permission.ACTIVITY_RECOGNITION',
 ];
 
 function withCleanAndroidManifest(config) {
