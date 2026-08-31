@@ -68,22 +68,28 @@ function withCleanAndroidManifest(config) {
       manifest.manifest['uses-permission'] = [];
     }
 
-    const mevcutIzinler = manifest.manifest['uses-permission'];
-
-    KALDIRILACAK_IZINLER.forEach((izinAdi) => {
-      // Önce aynı izin için var olan bir girişi (varsa) kaldır, sonra
-      // `tools:node="remove"` ile işaretlenmiş TEK bir giriş ekle.
-      // Merger, bu işaretli girişi gördüğünde, birleştirilecek diğer
-      // TÜM manifest'lerden (uygulamanın kendisi dahil) bu izni siler.
-      const kalanlar = mevcutIzinler.filter((izin) => izin?.$?.['android:name'] !== izinAdi);
-      kalanlar.push({
-        $: {
-          'android:name': izinAdi,
-          'tools:node': 'remove',
-        },
-      });
-      manifest.manifest['uses-permission'] = kalanlar;
-    });
+    // DÜZELTME: önceki sürümde `forEach` içinde her iterasyon
+    // `manifest.manifest['uses-permission']`'ı güncelliyordu AMA
+    // döngü, hâlâ döngü BAŞINDAKİ (bir kez alınmış, hiç güncellenmeyen)
+    // orijinal diziyi referans alan `mevcutIzinler` üzerinden
+    // filtreleme yapıyordu — bu yüzden her iterasyon bir öncekinin
+    // eklediği `tools:node="remove"` girişini FARKINDA OLMADAN eziyordu,
+    // sonuçta yalnızca SON işlenen izin (ACTIVITY_RECOGNITION) doğru
+    // işaretlenmiş, diğer 4'ü (RECORD_AUDIO, SYSTEM_ALERT_WINDOW,
+    // READ/WRITE_EXTERNAL_STORAGE) işaretsiz kalmıştı — gerçek
+    // manifest çıktısında görülüp doğrulandı. Şimdi tek bir filtre +
+    // tek bir toplu `push` ile, dizi yalnızca BİR KEZ, tüm izinler için
+    // birlikte güncelleniyor.
+    const korunacaklar = manifest.manifest['uses-permission'].filter(
+      (izin) => !KALDIRILACAK_IZINLER.includes(izin?.$?.['android:name'])
+    );
+    const kaldirmaGirisleri = KALDIRILACAK_IZINLER.map((izinAdi) => ({
+      $: {
+        'android:name': izinAdi,
+        'tools:node': 'remove',
+      },
+    }));
+    manifest.manifest['uses-permission'] = [...korunacaklar, ...kaldirmaGirisleri];
 
     return config;
   });
