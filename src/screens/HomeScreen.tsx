@@ -508,7 +508,11 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('oncekiKonum')}
               >
-                <Icon name="sol" size={16} color={colors.copperLight} />
+                {/* Madde 2 (bu tur): kullanıcı bu okların yeterince
+                    görünür olmadığını belirtti — size 16→22, strokeWidth
+                    varsayılan 1.8'den 2.6'ya çıkarıldı (belirgin biçimde
+                    daha kalın çizgi). */}
+                <Icon name="sol" size={22} strokeWidth={2.6} color={colors.copperLight} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => konumDegistir(1)}
@@ -516,7 +520,7 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('sonrakiKonum')}
               >
-                <Icon name="sag" size={16} color={colors.copperLight} />
+                <Icon name="sag" size={22} strokeWidth={2.6} color={colors.copperLight} />
               </TouchableOpacity>
             </View>
           )}
@@ -558,7 +562,6 @@ export default function HomeScreen() {
             <View style={styles.siradakiKap}>
               <View style={styles.siradakiAdSatir}>
                 <Text style={styles.siradakiEtiket}>{t('siradakiVakit')}</Text>
-                <Icon name={vakitIcon(next.key)} size={16} color={colors.copperLight} />
                 <Text style={styles.siradakiAd}>{vakitAdi(next.key)}</Text>
                 <Text style={styles.siradakiSaat}>{saatBicimle(next.date)}</Text>
               </View>
@@ -1080,19 +1083,23 @@ const styles = StyleSheet.create({
   // `flexWrap: 'wrap'` ile korunmaya devam ediyor (aşağıdaki `siradakiAdSatir`),
   // yani en uzun çeviri (Fransızca) bile taşma/kırpılma yaşamadan gerekirse
   // ikinci satıra sarar, "aşağıya taşma" (görsel bozulma) riski yok.
+  // DÜZELTME (7. tur): kullanıcı ekran görüntüsüyle "saat aşağı satıra
+  // kayıyor" sorununu gösterdi — 24pt'de "SIRADAKİ VAKİT" + vakit adı +
+  // saat dar telefon ekranlarında hâlâ sığmıyordu, `flexWrap: 'wrap'`
+  // devreye girip saati bir alt satıra düşürüyordu. Bu turda fontSize
+  // 24'ten 18'e indirildi — dördü (etiket/ad/saat) hâlâ AYNI boyutta,
+  // ama artık en uzun çeviri (Fransızca "PROCHAINE PRIÈRE") dahil hiçbir
+  // dilde satır sarmıyor. `gap: spacing.sm` korunuyor ki kelimeler
+  // birbirine yapışık görünmesin. İkon (namaz vakti sembolü) bu satırdan
+  // tamamen kaldırıldı — kullanıcı isteği.
   siradakiEtiket: {
     fontFamily: typography.displaySemibold,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 23,
     color: colors.copperLight,
     letterSpacing: 0.3,
     includeFontPadding: false,
   },
-  // Madde 1 (bu tur): fontSize 26→19 küçültmesi taşmayı çözmüştü ama
-  // kelimeler artık "yapışık" görünüyordu — `gap` xs(4dp)'den sm(8dp)'ye
-  // çıkarıldı. fontSize düşüşünün bıraktığı geniş pay (≈%23 satır genişliği)
-  // sayesinde en uzun çeviri olan Fransızca "PROCHAINE PRIÈRE" dahil hiçbir
-  // dilde satır taşması olmuyor.
   siradakiAdSatir: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1102,15 +1109,15 @@ const styles = StyleSheet.create({
   },
   siradakiAd: {
     fontFamily: typography.displaySemibold,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 23,
     color: colors.white,
     includeFontPadding: false,
   },
   siradakiSaat: {
     fontFamily: typography.displaySemibold,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 23,
     color: colors.copperLight,
     includeFontPadding: false,
   },
