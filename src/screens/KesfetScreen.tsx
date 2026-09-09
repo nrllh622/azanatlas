@@ -35,7 +35,8 @@ export type KesfetHedef =
   | 'reminders'
   | 'location'
   | 'settings'
-  | 'tema';
+  | 'tema'
+  | 'camiler';
 
 // NOT: ad/aciklama artık düz metin değil ÇEVİRİ ANAHTARI — bu dizi modül
 // yüklenirken bir kez oluşturulduğu için React hook'u (useCeviri)
@@ -61,6 +62,9 @@ const GRUPLAR: Grup[] = [
       { hedef: 'tesbih', adAnahtari: 'aracTesbih', aciklamaAnahtari: 'aciklamaZikirmatik', ikon: 'tesbih' },
       { hedef: 'esma', adAnahtari: 'adEsmaulHusna', aciklamaAnahtari: 'aciklama99GuzelIsim', ikon: 'esma' },
       { hedef: 'imsakiye', adAnahtari: 'sekmeImsakiye', aciklamaAnahtari: 'aciklamaAylikTakvim', ikon: 'imsakiye' },
+      // DÜZELTME (bu tur — madde 3): yeni "Cami Bul" özelliği — bkz.
+      // `lib/camiBul.ts` ve `screens/CamilerScreen.tsx`.
+      { hedef: 'camiler', adAnahtari: 'camiBul', aciklamaAnahtari: 'aciklamaYakinCamiler', ikon: 'cami' },
     ],
   },
   {

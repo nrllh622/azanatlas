@@ -5,6 +5,20 @@ import { VaktindeKilSound } from '../context/VaktindeKilContext';
 import { VAKTINDE_KIL_CATEGORY } from './vaktindeKilActions';
 import { getChannelForSound } from './notificationScheduler';
 import { kayitlariYukle, gununVakitleri, takipEdilebilir, TakipVakti } from './ibadetTakibi';
+
+// DÜZELTME (bu tur — madde 5): "Güneş Namazı" diye var olmayan bir bildirim
+// geliyordu. Kök neden: HomeScreen'de `current` = "şu an geçerli/geçilmiş
+// olan en son VAKİT" anlamına geliyor ve bu, İmsak-Yatsı arasındaki 6 vakitten
+// HERHANGİ biri olabilir — Güneş de dahil (sabah namazı vaktinin ÇIKIŞ ânı,
+// kendisi bir namaz değil). Saat sabah ezanından sonra, öğleye kadar geçen
+// süre boyunca `current.key === 'gunes'` olur; bu değer hiç kontrolsüz
+// `scheduleVaktindeKil`e geçiyordu ve "{vakitAdi} Namazı" kalıbı "Güneş" ile
+// birleşince var olmayan bir namaz bildirimi üretiyordu. Aynı risk teorik
+// olarak `imsak` için de geçerli (o da namaz değil, orucun başlangıcı).
+// Çözüm: yalnızca BEŞ FARZ vakti (`takipEdilebilir` — sabah/öğle/ikindi/
+// akşam/yatsı) için "Vaktinde Kıl" hatırlatması kurulabilir; onun dışındaki
+// bir vakit (imsak/güneş) `current` olarak gelirse fonksiyon en baştan
+// hiçbir bildirim kurmadan çıkar.
 import { DilKodu, VARSAYILAN_DIL, tDil, vakitAdiDil } from '../i18n/ceviriler';
 
 // Yeniden planlamadan önce, SADECE Vaktinde Kıl'a ait daha önce kurulmuş
@@ -69,6 +83,10 @@ export async function scheduleVaktindeKil(
   dil: DilKodu = VARSAYILAN_DIL
 ) {
   await cancelExistingVaktindeKilNotifications();
+
+  // Yalnızca beş farz vakti için "Vaktinde Kıl" kurulabilir — İmsak/Güneş
+  // namaz değildir (bkz. yukarıdaki dosya-üstü DÜZELTME notu).
+  if (!takipEdilebilir(current.key)) return;
 
   // Kullanıcı bu vakti kıldıysa hatırlatma kurulmaz.
   if (await buVakitKilindiMi(current)) return;

@@ -34,6 +34,7 @@ import {
   TouchableOpacity,
   BackHandler,
   Linking,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
@@ -55,6 +56,8 @@ import {
   requestNotificationPermission,
   scheduleAllNotifications,
   configureAndroidChannels,
+  bildirimCubuguWidgetiniGuncelle,
+  bildirimCubuguWidgetiniKaldir,
 } from '../lib/notificationScheduler';
 import { scheduleVaktindeKil, cancelVaktindeKilForVakit } from '../lib/vaktindeKilScheduler';
 import { setupVaktindeKilCategory, registerVaktindeKilResponseListener } from '../lib/vaktindeKilActions';
@@ -101,6 +104,7 @@ import EsmaulHusnaScreen from './EsmaulHusnaScreen';
 import KesfetScreen, { KesfetHedef } from './KesfetScreen';
 import TakipScreen from './TakipScreen';
 import TemaScreen from './TemaScreen';
+import CamilerScreen from './CamilerScreen';
 
 /** Alt navigasyondaki kalıcı sekmeler.
  *  Madde 6 (bu tur): Kıble artık burada, Takip ise tam ekran araca taşındı
@@ -118,7 +122,8 @@ type SubScreen =
   | 'reminders'
   | 'tesbih'
   | 'esma'
-  | 'tema';
+  | 'tema'
+  | 'camiler';
 
 // Madde 2 (i18n paketi): bu iki dizi eskiden görüntülenecek Türkçe metni
 // (`ad`) doğrudan taşıyordu — ama bu dizi MODÜL YÜKLENİRKEN bir kez
@@ -174,7 +179,7 @@ export default function HomeScreen() {
     autoMethod, methodId, kerahatMinutes, madhab, highLatRule,
     hijriAdjustmentDays, hijriSwitchAtMaghrib,
   } = useCalculationSettings();
-  const { vibrationEnabled } = useGeneralSettings();
+  const { vibrationEnabled, notificationBarWidgetEnabled } = useGeneralSettings();
   const vaktindeKil = useVaktindeKil();
   const { totalCount: kazaTotal } = useKaza();
   const { settings: reminderSettings } = useReminders();
@@ -319,6 +324,29 @@ export default function HomeScreen() {
     );
   }, [vakitler, location.il, location.ilce, hijri.day, hijri.month, current.key]);
 
+  // DÜZELTME (bu tur — madde 6): "Bildirim Çubuğu Widgeti" anahtarı daha
+  // önce hiçbir şeye bağlı değildi (bkz. `notificationScheduler.ts`'teki
+  // ayrıntılı kök-neden notu). Burada dakika değiştiğinde (saniye değil —
+  // `now` saniyede bir değişiyor, `Math.floor(now/60000)` ile dakikaya
+  // yuvarlanarak bağımlılık dizisine verildi ki `useEffect` saniyede bir
+  // değil, dakikada bir çalışsın) sıradaki vakit + kalan süre ile bildirim
+  // güncellenir.
+  const suankiDakika = Math.floor(now.getTime() / 60000);
+  useEffect(() => {
+    bildirimCubuguWidgetiniGuncelle(
+      notificationBarWidgetEnabled,
+      vakitAdi(next.key),
+      next,
+      `${location.il}, ${location.ilce}`,
+      dil
+    );
+    // Anahtar kapatıldığında bildirimi hemen kaldır.
+    if (!notificationBarWidgetEnabled) {
+      bildirimCubuguWidgetiniKaldir();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationBarWidgetEnabled, next.key, next.date, suankiDakika, location.il, location.ilce, dil]);
+
   const kalanMs = next.date.getTime() - now.getTime();
 
   /**
@@ -368,6 +396,32 @@ export default function HomeScreen() {
     setActiveId(locations[yeniIdx].id);
   };
 
+  // DÜZELTME (bu tur — madde 2): kullanıcı üstteki şehir alanının, < >
+  // oklarına basmadan, doğrudan parmakla sağa/sola kaydırılarak da
+  // değiştirilebilmesini istedi. `ScrollView` zaten DİKEY kaydırmayı
+  // kullandığı için burada native bir `PanResponder` kuruldu (ekstra
+  // native bağımlılık gerektirmez, React Native'in kendi çekirdek API'si) —
+  // jest yalnızca yatay hareket dikey hareketten belirgin şekilde
+  // BÜYÜKSE ele alınır (`onMoveShouldSetPanResponder`), böylece normal
+  // sayfa kaydırma hiçbir zaman bozulmaz/çakışmaz. Eşik: en az 12dp yatay
+  // hareket VE yatay/dikey oranı en az 1.5x.
+  const konumPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_evt, gesture) => {
+          const { dx, dy } = gesture;
+          return Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.5;
+        },
+        onPanResponderRelease: (_evt, gesture) => {
+          // Sola kaydırma → sıradaki konum (yon: 1), sağa kaydırma → önceki (yon: -1).
+          if (gesture.dx <= -30) konumDegistir(1);
+          else if (gesture.dx >= 30) konumDegistir(-1);
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locations, activeId]
+  );
+
   const kesfetYonlendir = useCallback((hedef: KesfetHedef) => {
     // Keşfet ızgarasındaki bazı kutular bir SEKMEYE, bazıları tam ekran bir
     // ARACA gider. İkisini burada ayırıyoruz.
@@ -396,6 +450,7 @@ export default function HomeScreen() {
       reminders: 'reminders',
       location: 'location',
       tema: 'tema',
+      camiler: 'camiler',
     };
     const altEkran = ALT_EKRAN_ESLEME[hedef];
     if (altEkran) setSub(altEkran);
@@ -411,7 +466,19 @@ export default function HomeScreen() {
   if (sub === 'reminders') return <RemindersScreen onClose={() => setSub(null)} />;
   if (sub === 'tesbih') return <TesbihScreen onClose={() => setSub(null)} />;
   if (sub === 'esma') return <EsmaulHusnaScreen onClose={() => setSub(null)} />;
-  if (sub === 'tema') return <TemaScreen onClose={() => setSub(null)} />;
+  if (sub === 'camiler') return <CamilerScreen onClose={() => setSub(null)} />;
+  // DÜZELTME (bu tur — madde 4): `TemaScreen` daha önce burada, diğer
+  // "tam ekran araç" alt ekranlarıyla (Takip/Kaza/Tesbih...) birlikte erken
+  // `return` ile döndürülüyordu — bu, aşağıdaki asıl KABUK `return`'üne
+  // (satır ~935+, kalıcı alt navigasyonu içeren blok) hiç ulaşılmaması
+  // anlamına geliyordu, yani Tema ekranındayken alt navigasyon TAMAMEN
+  // KAYBOLUYORDU. Takip/Kaza/Tesbih/Esma/vb. için bu KASITLI (dosya
+  // üstündeki yorumda açıklandığı gibi, bunlar bir "sekme" değil, "bir
+  // görevin içine girmek") ama Tema bir ayar sayfası, kullanıcı oradan da
+  // diğer sekmelere (Ana Sayfa, Ayarlar...) tek dokunuşla geçebilmeli. Bu
+  // yüzden Tema, İmsakiye/Keşfet/Kıble/Ayarlar ile AYNI deseni kullanacak
+  // şekilde aşağıdaki `sekmeIcerigi` zincirine taşındı — artık alt
+  // navigasyon Tema ekranında da görünür kalıyor.
 
   // -------------------------------------------------------------------
   // SEKME İÇERİKLERİ
@@ -426,7 +493,12 @@ export default function HomeScreen() {
   // veriliyordu, o yüzden yalnızca orada görünüyordu. Artık üçü de Ayarlar
   // ile birebir aynı deseni kullanıyor — sekmedeyken bile Geri butonuna
   // basılınca Ana Sayfa'ya dönüyor.
-  if (tab === 'imsakiye') {
+  if (sub === 'tema') {
+    // Bkz. yukarıdaki DÜZELTME notu (madde 4) — Tema artık `onClose` ile
+    // `setSub(null)`e dönen, ama alt navigasyonu ekranda tutan bir
+    // "sekme içeriği" olarak render ediliyor.
+    sekmeIcerigi = <TemaScreen onClose={() => setSub(null)} />;
+  } else if (tab === 'imsakiye') {
     sekmeIcerigi = <ImsakiyeScreen onClose={() => setTab('home')} />;
   } else if (tab === 'kesfet') {
     sekmeIcerigi = <KesfetScreen onNavigate={kesfetYonlendir} onClose={() => setTab('home')} />;
@@ -462,7 +534,10 @@ export default function HomeScreen() {
             (16dp) yapılarak belirgin, görünür bir boşluk sağlandı. Bu aynı
             zamanda kalıcı kurala uyuyor: hiçbir üst/alt buton ekran kenarına
             yapışık durmayacak. */}
-        <View style={[styles.ustSerit, { paddingTop: insets.top + spacing.md }]}>
+        <View
+          style={[styles.ustSerit, { paddingTop: insets.top + spacing.md }]}
+          {...konumPanResponder.panHandlers}
+        >
           <IslamicPattern color={colors.cream} opacity={0.07} tile={44} />
           <TouchableOpacity
             style={styles.konumBlok}
@@ -883,7 +958,15 @@ export default function HomeScreen() {
                 <Text style={styles.tarihBaslik}>{t('islamTarihindeBugun')}</Text>
               </View>
               <View style={styles.tarihIcerik}>
-                <Text style={styles.tarihYil}>{tarihOlayi.yil}</Text>
+                {/* DÜZELTME (bu tur — madde 1): kart öncesinde SADECE yılı
+                    ("1453") gösteriyordu — kullanıcı olayın net (gün+ay+yıl)
+                    tarihini istedi. `tarihOlayi.ay/gun` OLAYIN KENDİ ayı/günü
+                    (bugünün ayı değil, `now.getMonth()` ile karıştırılmamalı) —
+                    `AY_ANAHTARLARI` zaten 0-indeksli 12 aylık çeviri anahtarı
+                    dizisi olduğu için `tarihOlayi.ay - 1` ile indekslendi. */}
+                <Text style={styles.tarihYil} numberOfLines={2}>
+                  {tarihOlayi.gun} {t(AY_ANAHTARLARI[tarihOlayi.ay - 1])}{'\n'}{tarihOlayi.yil}
+                </Text>
                 <View style={styles.tarihMetin}>
                   <Text style={styles.tarihOlayBaslik}>{veriSec(dil, tarihOlayi.baslik, tarihOlayi.baslikEn, tarihOlayi.baslikId, tarihOlayi.baslikFr)}</Text>
                   <Text style={styles.tarihAciklama}>{veriSec(dil, tarihOlayi.aciklama, tarihOlayi.aciklamaEn, tarihOlayi.aciklamaId, tarihOlayi.aciklamaFr)}</Text>
@@ -1550,9 +1633,11 @@ const styles = StyleSheet.create({
   tarihIcerik: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   tarihYil: {
     fontFamily: typography.displayFamily,
-    fontSize: fontSize.title,
+    fontSize: fontSize.small,
+    lineHeight: lineHeight.small,
     color: colors.primaryDark,
-    minWidth: 46,
+    minWidth: 64,
+    textAlign: 'center',
   },
   tarihMetin: { flex: 1 },
   tarihOlayBaslik: {

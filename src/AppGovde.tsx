@@ -46,6 +46,8 @@ import {
   bugunErtelendiMi,
 } from './lib/guncellemeKontrol';
 import GuncellemeUyarisi from './components/GuncellemeUyarisi';
+import PilOptimizasyonuUyarisi from './components/PilOptimizasyonuUyarisi';
+import { pilUyarisiGosterilmisMi, pilUyarisiniGoruldiIsaretle, pilKisitlamasiniKaldir } from './lib/pilOptimizasyonu';
 import { useGeneralSettings } from './context/GeneralSettingsContext';
 
 /**
@@ -135,6 +137,46 @@ function GuncellemeKontrolcusu() {
   );
 }
 
+/**
+ * Bu tur — madde 8 + 11: uygulama açılışında (yalnızca bir kez, kullanıcı
+ * "Anladım" ile kapattıktan sonra bir daha hiç) pil optimizasyonu uyarısını
+ * gösterir. Ayrıntılı gerekçe için `lib/pilOptimizasyonu.ts` başındaki not.
+ *
+ * `GuncellemeKontrolcusu` ile AYNI oturumda ikisi birden tetiklenmesin diye
+ * kısa bir gecikmeyle (2sn) gösteriliyor — kullanıcı açılışta aynı anda iki
+ * modalla karşılaşmasın.
+ */
+function PilUyarisiKontrolcusu() {
+  const [uyariGorunur, setUyariGorunur] = useState(false);
+
+  useEffect(() => {
+    let iptal = false;
+    (async () => {
+      const gorulduMu = await pilUyarisiGosterilmisMi();
+      if (iptal || gorulduMu) return;
+      setTimeout(() => {
+        if (!iptal) setUyariGorunur(true);
+      }, 2000);
+    })();
+    return () => { iptal = true; };
+  }, []);
+
+  return (
+    <PilOptimizasyonuUyarisi
+      visible={uyariGorunur}
+      onKaldir={() => {
+        setUyariGorunur(false);
+        pilUyarisiniGoruldiIsaretle();
+        pilKisitlamasiniKaldir();
+      }}
+      onAnladim={() => {
+        setUyariGorunur(false);
+        pilUyarisiniGoruldiIsaretle();
+      }}
+    />
+  );
+}
+
 // Madde 4 (bu tur): İLK AÇILIŞ TANITIM + İZİN AKIŞI (OnboardingEkrani.tsx).
 //
 // Bu akış, kullanıcının konum/bildirim tercihlerini gerçek Context'lere
@@ -184,6 +226,7 @@ export default function AppGovde() {
                           <>
                             <HomeScreen />
                             <GuncellemeKontrolcusu />
+                            <PilUyarisiKontrolcusu />
                           </>
                         ) : (
                           <OnboardingEkrani onTamamlandi={onboardingiTamamla} />

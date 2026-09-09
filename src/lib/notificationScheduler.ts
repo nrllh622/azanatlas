@@ -115,6 +115,72 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BİLDİRİM ÇUBUĞU WİDGETİ (bu tur — madde 6)
+//
+// KÖK NEDEN: Ayarlar'daki "Bildirim Çubuğu Widgeti" aç/kapat anahtarı
+// (`GeneralSettingsContext.notificationBarWidgetEnabled`) daha önce SADECE
+// bir tercih olarak saklanıyordu — bu değeri OKUYUP gerçekten bir bildirim
+// oluşturan HİÇBİR KOD YOKTU. Anahtar açılsa da kapansa da hiçbir şey
+// olmuyordu; kullanıcının "çalışmıyor" şikayeti tam olarak buydu.
+//
+// ÇÖZÜM: `sticky: true` (Android'de kullanıcı kaydırarak kapatamaz, "ongoing"
+// bildirim) + sabit bir `identifier` ("bildirim-cubugu-widget") ile TEK bir
+// bildirim sürekli güncellenir (yeni bir bildirim oluşturmak yerine aynı ID
+// ile `scheduleNotificationAsync` tekrar çağrılır — bu, var olanı DEĞİŞTİRİR,
+// çoğaltmaz). Sıradaki vakit adı + saati + kalan süre gösterir. HomeScreen,
+// dakika değiştiğinde (saniye değil — pil tüketimini artırmamak için) bu
+// fonksiyonu çağırır.
+const BILDIRIM_CUBUGU_ID = 'bildirim-cubugu-widget';
+
+function kalanSureMetni(dil: DilKodu, hedefTarih: Date): string {
+  const kalanMs = hedefTarih.getTime() - Date.now();
+  const kalanDk = Math.max(0, Math.round(kalanMs / 60000));
+  const saat = Math.floor(kalanDk / 60);
+  const dakika = kalanDk % 60;
+  if (saat > 0) return tDil(dil, 'kalanSureSaatDakika', saat, dakika);
+  return tDil(dil, 'kalanSureDakika', dakika);
+}
+
+/**
+ * Bildirim çubuğu widget'ını günceller (ya da anahtar kapalıysa/hiç
+ * kurulmamışsa hiçbir şey yapmaz — çağıran taraf `enabled` bayrağını kontrol
+ * eder). `next.date` gelecekteki bir vakit olmalı.
+ */
+export async function bildirimCubuguWidgetiniGuncelle(
+  enabled: boolean,
+  vakitAdi: string,
+  next: { date: Date },
+  konumEtiketi: string,
+  dil: DilKodu = VARSAYILAN_DIL
+) {
+  if (!enabled) {
+    await Notifications.dismissNotificationAsync(BILDIRIM_CUBUGU_ID).catch(() => {});
+    return;
+  }
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: BILDIRIM_CUBUGU_ID,
+      content: {
+        title: `${konumEtiketi} · ${vakitAdi} — ${kalanSureMetni(dil, next.date)}`,
+        body: tDil(dil, 'bildirimCubuguGovde', vakitAdi),
+        sticky: true,
+        sound: false,
+        autoDismiss: false,
+      },
+      trigger: null, // null trigger = anında göster (zamanlanmış değil, doğrudan güncelleme)
+    });
+  } catch {
+    // Bildirim API'si kullanılamıyorsa (izin yok, vb.) sessizce geç —
+    // uygulamanın geri kalanı etkilenmemeli.
+  }
+}
+
+/** Anahtar kapatıldığında bildirim çubuğu widget'ını kaldırır. */
+export async function bildirimCubuguWidgetiniKaldir() {
+  await Notifications.dismissNotificationAsync(BILDIRIM_CUBUGU_ID).catch(() => {});
+}
+
 // Belirli bir soundId için doğru kanalı döndürür.
 // Not: çağıranlar 'none' durumunda bildirimi zaten hiç planlamıyor,
 // bu yüzden burada 'none' için ayrıca bir kanal tanımlanmadı.

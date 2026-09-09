@@ -11,9 +11,10 @@
 // ekranlarındaki kartlarla birebir aynı dilde.
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Linking } from 'react-native';
 import * as Location from 'expo-location';
 import ScreenHeader from '../components/ScreenHeader';
+import Icon from '../components/Icon';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import {
   useNotificationSettings,
@@ -30,6 +31,7 @@ import {
 } from '../context/CalculationSettingsContext';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { useLocationContext } from '../context/LocationContext';
+import { pilKisitlamasiniKaldir } from '../lib/pilOptimizasyonu';
 import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
 import SimplePickerModal from '../components/SimplePickerModal';
@@ -65,6 +67,12 @@ interface Props {
 
 type PickerTarget = { type: 'pre'; key: PreAlertVakitKey } | { type: 'onTime'; key: OnTimeVakitKey };
 
+// DÜZELTME (bu tur — madde 9): "Vakitlerden Önce Uyarılar" bölümünde süre
+// (45dk. önce vb.) SABİTTİ, kullanıcı değiştiremiyordu. Aşağıdaki liste
+// dakika seçicide sunulan seçenekler — pratik aralıklarla 5dk ile 2 saat
+// arasını kapsıyor.
+const ON_ALERT_MINUTE_OPTIONS = [5, 10, 15, 20, 30, 45, 60, 90, 120];
+
 export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenReminders }: Props) {
   // i18n paketi: dil seçici ekranın en üstünde ("Vaktinde Kıl" linkinden
   // önce) — kullanıcının en çok arayacağı yer. Ekranın GERİ KALANI da
@@ -96,6 +104,9 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   const { addLocation } = useLocationContext();
 
   const [pickerFor, setPickerFor] = useState<PickerTarget | null>(null);
+  // DÜZELTME (bu tur — madde 9): hangi vaktin "önceden uyar" süresi
+  // değiştiriliyor — `null` iken dakika seçici gizli.
+  const [minutePickerKey, setMinutePickerKey] = useState<PreAlertVakitKey | null>(null);
   const [methodPickerVisible, setMethodPickerVisible] = useState(false);
   const [kerahatPickerVisible, setKerahatPickerVisible] = useState(false);
   const [madhabPickerVisible, setMadhabPickerVisible] = useState(false);
@@ -302,6 +313,69 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{t('genelBaslik')}</Text>
+
+        {/* DÜZELTME (bu tur — madde 10): uygulama içinden Play Store
+            puanlama/yorum akışı. `expo-store-review` önce native "in-app
+            review" API'sini (Google Play'in kendi anlık pop-up'ı — kullanıcı
+            uygulamadan hiç çıkmaz) dener; bu her zaman/her cihazda
+            tetiklenmesi GARANTİ DEĞİLDİR (Google'ın kendi kotası/kuralları
+            var — örn. son birkaç gün içinde zaten gösterildiyse tekrar
+            göstermez). `isAvailableAsync()` false dönerse ya da hiç
+            tetiklenmezse, `storeUrl()` ile doğrudan Play Store'daki uygulama
+            sayfası açılır — kullanıcı her durumda bir şekilde puanlama
+            ekranına ulaşır. */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={async () => {
+            try {
+              const StoreReview = require('expo-store-review');
+              const mevcut = await StoreReview.isAvailableAsync();
+              if (mevcut) {
+                await StoreReview.requestReview();
+                return;
+              }
+            } catch {
+              // Native modül yoksa (Expo Go/henüz derlenmemiş build) sessizce
+              // aşağıdaki Play Store linkine düşülür.
+            }
+            try {
+              const StoreReview = require('expo-store-review');
+              const url = await StoreReview.storeUrl();
+              if (url) {
+                Linking.openURL(url);
+                return;
+              }
+            } catch {
+              // storeUrl de kullanılamıyorsa, paket adıyla doğrudan Play
+              // Store linkine düşülür.
+            }
+            Linking.openURL('market://details?id=com.azanatlas.app').catch(() =>
+              Linking.openURL('https://play.google.com/store/apps/details?id=com.azanatlas.app')
+            );
+          }}
+          activeOpacity={0.85}
+        >
+          <View style={styles.cardTopRow}>
+            <Icon name="yildiz" size={20} color={colors.copper} />
+            <Text style={styles.cardLabelInline}>{t('uygulamayiDegerlendir')}</Text>
+          </View>
+          <Text style={styles.cardSubtext}>{t('uygulamayiDegerlendirAciklama')}</Text>
+        </TouchableOpacity>
+
+        {/* DÜZELTME (bu tur — madde 8 + 11): açılıştaki pil optimizasyonu
+            modalını yalnızca BİR KEZ (kullanıcı "Anladım" derse) gösteriyoruz
+            — bu yüzden burada kalıcı bir link gerekiyor, aksi halde kullanıcı
+            fikrini değiştirip pil kısıtlamasını daha sonra kaldırmak isterse
+            hiçbir yolu olmazdı. Aynı `lib/pilOptimizasyonu.ts` fonksiyonu
+            kullanılıyor. */}
+        <TouchableOpacity style={styles.card} onPress={pilKisitlamasiniKaldir} activeOpacity={0.85}>
+          <View style={styles.cardTopRow}>
+            <Icon name="bildirimAcik" size={20} color={colors.copper} />
+            <Text style={styles.cardLabelInline}>{t('pilKisitlamasiniKaldir')}</Text>
+          </View>
+          <Text style={styles.cardSubtext}>{t('pilKisitlamasiniKaldirAciklama')}</Text>
+        </TouchableOpacity>
+
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
@@ -353,7 +427,11 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
                 <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
                 <Text style={styles.cardLabelInline}>{t(anahtar)}</Text>
               </View>
-              <Text style={styles.offsetLine}>{t('dakikaOnce', s.minutesBefore)}</Text>
+              {/* DÜZELTME (bu tur — madde 9): süre artık tıklanabilir — bir
+                  dakika seçici açılıyor ve kullanıcı istediği süreyi seçebiliyor. */}
+              <TouchableOpacity onPress={() => setMinutePickerKey(key)} activeOpacity={0.7}>
+                <Text style={styles.offsetLineLink}>{t('dakikaOnce', s.minutesBefore)}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
                 <Text style={styles.soundLink}>{t('sesiDegistir', sesAdi(s.soundId, getSoundById(s.soundId).label))}</Text>
               </TouchableOpacity>
@@ -377,6 +455,19 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           );
         })}
       </ScrollView>
+
+      {/* DÜZELTME (bu tur — madde 9): dakika seçici — "45dk. önce" gibi
+          sabit metne tıklanınca açılır, kullanıcı 5-120dk arasından seçer. */}
+      <SimplePickerModal
+        visible={minutePickerKey !== null}
+        title={t('dakikaOnceBaslik')}
+        options={ON_ALERT_MINUTE_OPTIONS.map((dk) => ({ id: String(dk), label: t('dakika', dk) }))}
+        selectedId={minutePickerKey ? String(settings.preAlerts[minutePickerKey].minutesBefore) : ''}
+        onSelect={(id) => {
+          if (minutePickerKey) setPreAlert(minutePickerKey, { minutesBefore: parseInt(id, 10) });
+        }}
+        onClose={() => setMinutePickerKey(null)}
+      />
 
       <SoundPickerModal
         visible={pickerFor !== null}
@@ -508,6 +599,10 @@ const styles = StyleSheet.create({
   cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: fontSize.small, marginTop: 2 },
   chevron: { color: colors.primary, fontSize: 22, fontFamily: typography.bodyBold },
   offsetLine: { fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.small, marginTop: spacing.xs },
+  // DÜZELTME (bu tur — madde 9): `offsetLine` ile aynı punto/aralık ama
+  // tıklanabilir olduğunu gösteren `copper` renk + alt çizgi (soundLink ile
+  // aynı görsel dil).
+  offsetLineLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, marginTop: spacing.xs, textDecorationLine: 'underline' },
   soundLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, marginTop: spacing.xs },
   gpsHint: { fontFamily: typography.bodyMedium, color: colors.copper, fontSize: fontSize.tiny, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
   gpsStatusText: { fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.tiny, marginBottom: spacing.xs, lineHeight: lineHeight.tiny, paddingHorizontal: spacing.xs },
