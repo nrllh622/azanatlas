@@ -85,23 +85,41 @@ export async function pilKisitlamasiniKaldir(): Promise<void> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const IntentLauncher = require('expo-intent-launcher');
+    // DÜZELTME: `IGNORE_BATTERY_OPTIMIZATION_SETTINGS` (data'sız) yalnızca
+    // GENEL pil ayarları listesini açar — kullanıcı AzanAtlas'ı listede
+    // kendisi arayıp bulmalı, tek dokunuşla çözülmez. Android'in resmi API'si
+    // `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` + `package:<paket-adı>` data
+    // URI'siyle çağrıldığında, DOĞRUDAN "AzanAtlas'ın pil kısıtlamasını
+    // kaldırmak istiyor musun? İzin Ver / Reddet" onay diyaloğunu açar —
+    // kullanıcının "tek bir ayarı açman yeterli" diye referans verdiği
+    // deneyim tam olarak bu.
     await IntentLauncher.startActivityAsync(
-      IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+      IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+      { data: 'package:com.azanatlas.app' }
     );
   } catch {
-    // Bazı üreticilerde (özellikle MIUI/ColorOS) bu Intent'in doğrudan
-    // "muafiyet ekle" varyantı yerine genel pil ayarları listesini açması
-    // beklenir — kullanıcı listede uygulamayı bulup kendisi kapatır. Intent
-    // hiç açılamazsa (çok eski/özel ROM) sessizce geçilir.
+    // Bazı üreticilerde (özellikle MIUI/ColorOS/EMUI) bu Intent'i
+    // desteklemeyebilir ya da reddedebilir — bu durumda genel pil ayarları
+    // listesine düşülür, kullanıcı AzanAtlas'ı listede kendisi bulup kapatır.
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const IntentLauncher = require('expo-intent-launcher');
       await IntentLauncher.startActivityAsync(
-        IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
-        { data: 'package:com.azanatlas.app' }
+        IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS
       );
     } catch {
-      // son çare de başarısızsa yoksay.
+      // O da başarısız olursa, uygulamanın kendi Ayarlar sayfasına düş —
+      // kullanıcı oradan "Pil" bölümüne kendisi geçebilir.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const IntentLauncher = require('expo-intent-launcher');
+        await IntentLauncher.startActivityAsync(
+          IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
+          { data: 'package:com.azanatlas.app' }
+        );
+      } catch {
+        // son çare de başarısızsa yoksay.
+      }
     }
   }
 }
