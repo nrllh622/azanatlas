@@ -167,13 +167,20 @@ export default function QiblaScreen({ onClose }: Props) {
   const aktifLat = hassasKonum?.lat ?? location.latitude;
   const aktifLng = hassasKonum?.lng ?? location.longitude;
 
-  const hassasKonumAl = async () => {
+  const hassasKonumAl = async (sessiz: boolean = false) => {
+    // `sessiz` — bkz. aşağıdaki otomatik-çağrı `useEffect`i: ekran ilk
+    // açıldığında kullanıcı hiçbir şeye basmadan biz kendimiz çağırıyoruz;
+    // bu durumda izin reddi/hata için kırmızı bir hata metni GÖSTERMİYORUZ
+    // (kullanıcı henüz bir eylemde bulunmadı, "hata" göstermek yanlış
+    // izlenim verir) — sessizce kayıtlı konuma (LocationContext) düşülür.
+    // Kullanıcı "Hassas Konumla Güncelle" satırına kendisi basarsa (sessiz
+    // = false) hata/izin durumu her zamanki gibi bildirilir.
     setHassasKonumYukleniyor(true);
-    setHassasKonumHata(null);
+    if (!sessiz) setHassasKonumHata(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setHassasKonumHata(t('konumIzniVerilmedi'));
+        if (!sessiz) setHassasKonumHata(t('konumIzniVerilmedi'));
         return;
       }
       if (Platform.OS === 'android') {
@@ -187,11 +194,23 @@ export default function QiblaScreen({ onClose }: Props) {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setHassasKonum({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     } catch {
-      setHassasKonumHata(t('konumAlinamadi'));
+      if (!sessiz) setHassasKonumHata(t('konumAlinamadi'));
     } finally {
       setHassasKonumYukleniyor(false);
     }
   };
+
+  // MADDE 1 (bu tur) — kullanıcı isteği: "Hassas Konumla Güncelle"ye
+  // tıklandıktan sonra pusula doğru çalışıyorsa, kullanıcıyı bu düğmeye
+  // basmaya zorlamak yerine ekran açılır açılmaz kendiliğinden bir kez
+  // otomatik çağrılsın. Buton yine de ekranda kalıyor — kullanıcı GPS'i
+  // yeniledikten sonra (ör. bina içinden dışarı çıktıysa) tekrar manuel
+  // tazeleyebilsin diye.
+  useEffect(() => {
+    hassasKonumAl(true);
+    // Yalnızca ekran ilk açıldığında bir kez — bkz. yukarıdaki `sessiz` notu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Madde 1 (bu tur): bkz. dosya başındaki açıklama — yalnızca Android'de,
   // işletim sisteminin bildirdiği doğruluk seviyesi düşük/güvenilmezken
@@ -609,7 +628,7 @@ export default function QiblaScreen({ onClose }: Props) {
 
         <TouchableOpacity
           style={styles.hassasKonumSatir}
-          onPress={hassasKonumAl}
+          onPress={() => hassasKonumAl(false)}
           disabled={hassasKonumYukleniyor}
           activeOpacity={0.75}
         >

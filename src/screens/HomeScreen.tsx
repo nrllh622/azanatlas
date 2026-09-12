@@ -457,28 +457,20 @@ export default function HomeScreen() {
   }, []);
 
   // -------------------------------------------------------------------
-  // TAM EKRAN ARAÇLAR — alt navigasyon gizlenir
+  // TAM EKRAN ARAÇLAR — yalnızca Konum Seçici (alt navigasyon gizlenir)
   // -------------------------------------------------------------------
+  // DÜZELTME (bu tur — madde 5 + 6): kullanıcı artık Takip/Kaza/Vaktinde
+  // Kıl/Hatırlatıcılar/Tesbih/Esma/Cami Bul ekranlarının HEPSİNDE alt
+  // navigasyon + reklam görünmesini istedi ("en alttaki navigasyon menü ve
+  // anasayfadaki reklam bütün sayfalarda olsun"). Bunlar önceden burada
+  // erken `return` ile döndürülüp alt navigasyonu tamamen gizliyordu (Tema
+  // ekranında daha önce yaşanan, madde 4'te düzeltilen sorunun AYNISI).
+  // Hepsi aşağıdaki `sekmeIcerigi` zincirine taşındı — yalnızca Konum
+  // Seçici (`location`) burada, tam ekran kalmaya devam ediyor: o bir
+  // "araç" değil, ayrı ve kendi kendine yeten bir seçim akışı (yeni konum
+  // ekleme/GPS/arama), navigasyon şeridiyle birlikte gösterilmesinin bir
+  // faydası yok.
   if (sub === 'location') return <LocationPickerScreen onDone={() => setSub(null)} />;
-  if (sub === 'takip') return <TakipScreen onClose={() => setSub(null)} />;
-  if (sub === 'kaza') return <KazaScreen onClose={() => setSub(null)} />;
-  if (sub === 'vaktindekil') return <VaktindeKilScreen onClose={() => setSub(null)} />;
-  if (sub === 'reminders') return <RemindersScreen onClose={() => setSub(null)} />;
-  if (sub === 'tesbih') return <TesbihScreen onClose={() => setSub(null)} />;
-  if (sub === 'esma') return <EsmaulHusnaScreen onClose={() => setSub(null)} />;
-  if (sub === 'camiler') return <CamilerScreen onClose={() => setSub(null)} />;
-  // DÜZELTME (bu tur — madde 4): `TemaScreen` daha önce burada, diğer
-  // "tam ekran araç" alt ekranlarıyla (Takip/Kaza/Tesbih...) birlikte erken
-  // `return` ile döndürülüyordu — bu, aşağıdaki asıl KABUK `return`'üne
-  // (satır ~935+, kalıcı alt navigasyonu içeren blok) hiç ulaşılmaması
-  // anlamına geliyordu, yani Tema ekranındayken alt navigasyon TAMAMEN
-  // KAYBOLUYORDU. Takip/Kaza/Tesbih/Esma/vb. için bu KASITLI (dosya
-  // üstündeki yorumda açıklandığı gibi, bunlar bir "sekme" değil, "bir
-  // görevin içine girmek") ama Tema bir ayar sayfası, kullanıcı oradan da
-  // diğer sekmelere (Ana Sayfa, Ayarlar...) tek dokunuşla geçebilmeli. Bu
-  // yüzden Tema, İmsakiye/Keşfet/Kıble/Ayarlar ile AYNI deseni kullanacak
-  // şekilde aşağıdaki `sekmeIcerigi` zincirine taşındı — artık alt
-  // navigasyon Tema ekranında da görünür kalıyor.
 
   // -------------------------------------------------------------------
   // SEKME İÇERİKLERİ
@@ -494,10 +486,21 @@ export default function HomeScreen() {
   // ile birebir aynı deseni kullanıyor — sekmedeyken bile Geri butonuna
   // basılınca Ana Sayfa'ya dönüyor.
   if (sub === 'tema') {
-    // Bkz. yukarıdaki DÜZELTME notu (madde 4) — Tema artık `onClose` ile
-    // `setSub(null)`e dönen, ama alt navigasyonu ekranda tutan bir
-    // "sekme içeriği" olarak render ediliyor.
     sekmeIcerigi = <TemaScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'takip') {
+    sekmeIcerigi = <TakipScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'kaza') {
+    sekmeIcerigi = <KazaScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'vaktindekil') {
+    sekmeIcerigi = <VaktindeKilScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'reminders') {
+    sekmeIcerigi = <RemindersScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'tesbih') {
+    sekmeIcerigi = <TesbihScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'esma') {
+    sekmeIcerigi = <EsmaulHusnaScreen onClose={() => setSub(null)} />;
+  } else if (sub === 'camiler') {
+    sekmeIcerigi = <CamilerScreen onClose={() => setSub(null)} />;
   } else if (tab === 'imsakiye') {
     sekmeIcerigi = <ImsakiyeScreen onClose={() => setTab('home')} />;
   } else if (tab === 'kesfet') {
@@ -986,21 +989,18 @@ export default function HomeScreen() {
     <View style={styles.kabuk}>
       <View style={styles.icerikAlani}>{sekmeIcerigi}</View>
 
-      {/* ============ REKLAM ALANI — ANA SAYFA ALT (SABİT) ============
-          DÜZELTME (bu tur — madde 1): kullanıcı bu reklamın scroll ile
-          aşağı inmeden, ekran açılır açılmaz görünür olmasını istedi.
-          Önceki turda ScrollView'in İÇİNDE, en altta (İslam Tarihinde
-          Bugün kartından sonra) duruyordu — bu yüzden görmek için tüm
-          sayfayı kaydırmak gerekiyordu. Artık ScrollView'in DIŞINDA,
-          içerik alanı ile alt navigasyon çubuğu arasında SABİT bir satır
-          olarak duruyor; yalnızca Ana Sayfa sekmesindeyken görünüyor
-          (`tab === 'home'`) — diğer sekmelerde (İmsakiye/Keşfet/Kıble/
-          Ayarlar) kendi içerikleri tam alanı kullanıyor. */}
-      {tab === 'home' && (
-        <View style={styles.sabitReklamKap}>
-          <BannerReklam unitId={REKLAM_ANASAYFA_ALT} />
-        </View>
-      )}
+      {/* ============ REKLAM ALANI — ALT (SABİT, TÜM SAYFALAR) ============
+          DÜZELTME (bu tur — madde 6): önceden yalnızca Ana Sayfa
+          sekmesindeyken (`tab === 'home'`) görünüyordu. Kullanıcı isteği:
+          "en alttaki navigasyon menü ve anasayfadaki reklam bütün
+          sayfalarda olsun" — yani hem alt navigasyon (zaten kalıcıydı, bkz.
+          madde 5 düzeltmesi) hem de bu reklam artık Konum Seçici hariç
+          (bkz. yukarıdaki `sub === 'location'` erken `return`'ü — o zaten
+          tam ekran, alt navigasyon/reklamsız kendi akışı) HER sekme/araçta
+          içerik alanı ile alt navigasyon arasında görünüyor. */}
+      <View style={styles.sabitReklamKap}>
+        <BannerReklam unitId={REKLAM_ANASAYFA_ALT} />
+      </View>
 
       {/* ============ ALT NAVİGASYON — "Zümrüt Şerit" (Varyant C) ============
           Kullanıcıya 3 varyant sunuldu (Yumuşak Cam / Yükselen Nokta /
@@ -1017,19 +1017,41 @@ export default function HomeScreen() {
         <View style={styles.serit}>
           {SEKMELER.map((s) => (
             <View key={s.id} style={styles.seritPay}>
-              {s.id === tab && <View style={styles.seritCizgi} />}
+              {/* bkz. aşağıdaki `aktif` hesaplamasındaki DÜZELTME notu (madde 5) —
+                  Tema ekranındayken (`sub === 'tema'`) hiçbir sekme "aktif" görünmemeli. */}
+              {sub === null && s.id === tab && <View style={styles.seritCizgi} />}
             </View>
           ))}
         </View>
 
         <View style={styles.altNav}>
           {SEKMELER.map((s) => {
-            const aktif = s.id === tab;
+            // DÜZELTME (bu tur — madde 5): Tema ekranı `sub === 'tema'` ile
+            // gösteriliyor (bkz. yukarıdaki `sekmeIcerigi` if/else zinciri),
+            // `tab` state'i o sırada DEĞİŞMİYOR — hâlâ Temaya girilmeden
+            // önceki sekmede kalıyor. Kullanıcı Tema ekranındayken alt
+            // navigasyondaki bir sekmeye bastığında önceden SADECE
+            // `setTab(s.id)` çağrılıyordu; bu `tab` state'ini güncelliyordu
+            // ama `sub` hâlâ `'tema'` olduğu için `sekmeIcerigi` zincirinin
+            // EN BAŞINDAKİ `if (sub === 'tema')` kontrolü kazanmaya devam
+            // ediyor ve ekran hiç değişmiyordu — "butonlara tıklayınca
+            // sayfaya gitmiyor" şikayeti buydu. Çözüm: sekme butonuna
+            // basıldığında `sub` da `null`'a çekiliyor, böylece if/else
+            // zinciri artık gerçekten `tab`'a göre karar veriyor. Aynı sorun
+            // gelecekte `sub`'ın "sekme içeriği" olarak kullanıldığı başka
+            // bir ekran eklenirse tekrarlanabilir — kural: `sekmeIcerigi`
+            // zincirinde `tab` yerine `sub` kontrol eden HER dal için alt
+            // navigasyon `setTab` çağrısı mutlaka `setSub(null)` ile
+            // eşleşmeli.
+            const aktif = sub === null && s.id === tab;
             return (
               <TouchableOpacity
                 key={s.id}
                 style={styles.navOge}
-                onPress={() => setTab(s.id)}
+                onPress={() => {
+                  setSub(null);
+                  setTab(s.id);
+                }}
                 activeOpacity={0.75}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: aktif }}

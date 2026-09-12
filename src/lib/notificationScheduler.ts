@@ -1,4 +1,5 @@
 // src/lib/notificationScheduler.ts
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { VakitEntry } from './prayerCalculator';
 import { NotificationSettings } from '../context/NotificationSettingsContext';
@@ -100,6 +101,18 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
     });
   }
 
+  // DÜZELTME (bu tur — madde 7): bildirim çubuğu widget'ının SESSİZ,
+  // düşük öncelikli özel kanalı — bkz. yukarıdaki dosya-üstü gerekçe.
+  // `AndroidImportance.LOW`: bildirim çubuğunda görünür ama ses çalmaz,
+  // ekrana açılmaz (heads-up yok), titreşim yok.
+  await Notifications.setNotificationChannelAsync(BILDIRIM_CUBUGU_KANAL_ID, {
+    name: tDil(dil, 'bildirimCubuguKanalAdi'),
+    importance: Notifications.AndroidImportance.LOW,
+    vibrationPattern: [0],
+    sound: null,
+    showBadge: false,
+  });
+
   // Ses seçilmemiş (varsayılan sistem sesi) durumlar için genel kanal
   await Notifications.setNotificationChannelAsync('vibrate-on', {
     name: tDil(dil, 'bildirimleriTitresimli'),
@@ -116,26 +129,54 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BİLDİRİM ÇUBUĞU WİDGETİ (bu tur — madde 6)
+// BİLDİRİM ÇUBUĞU WİDGETİ (önceki tur — madde 6; bu tur — madde 7 düzeltmesi)
 //
-// KÖK NEDEN: Ayarlar'daki "Bildirim Çubuğu Widgeti" aç/kapat anahtarı
-// (`GeneralSettingsContext.notificationBarWidgetEnabled`) daha önce SADECE
-// bir tercih olarak saklanıyordu — bu değeri OKUYUP gerçekten bir bildirim
-// oluşturan HİÇBİR KOD YOKTU. Anahtar açılsa da kapansa da hiçbir şey
-// olmuyordu; kullanıcının "çalışmıyor" şikayeti tam olarak buydu.
+// KÖK NEDEN (önceki tur): Ayarlar'daki "Bildirim Çubuğu Widgeti" aç/kapat
+// anahtarı (`GeneralSettingsContext.notificationBarWidgetEnabled`) daha önce
+// SADECE bir tercih olarak saklanıyordu — bu değeri OKUYUP gerçekten bir
+// bildirim oluşturan HİÇBİR KOD YOKTU. Anahtar açılsa da kapansa da hiçbir
+// şey olmuyordu; kullanıcının "çalışmıyor" şikayeti tam olarak buydu.
 //
-// ÇÖZÜM: `sticky: true` (Android'de kullanıcı kaydırarak kapatamaz, "ongoing"
-// bildirim) + sabit bir `identifier` ("bildirim-cubugu-widget") ile TEK bir
-// bildirim sürekli güncellenir (yeni bir bildirim oluşturmak yerine aynı ID
-// ile `scheduleNotificationAsync` tekrar çağrılır — bu, var olanı DEĞİŞTİRİR,
-// çoğaltmaz). Sıradaki vakit adı + saati + kalan süre gösterir. HomeScreen,
-// dakika değiştiğinde (saniye değil — pil tüketimini artırmamak için) bu
-// fonksiyonu çağırır.
+// ÇÖZÜM (önceki tur): `sticky: true` (Android'de kullanıcı kaydırarak
+// kapatamaz, "ongoing" bildirim) + sabit bir `identifier`
+// ("bildirim-cubugu-widget") ile TEK bir bildirim sürekli güncellenir (yeni
+// bir bildirim oluşturmak yerine aynı ID ile `scheduleNotificationAsync`
+// tekrar çağrılır — bu, var olanı DEĞİŞTİRİR, çoğaltmaz).
+//
+// DÜZELTME (bu tur — madde 7): önceki sürümde bu bildirim `content.sound`/
+// `channelId` alanlarına HİÇ değinmiyordu — Android'de kanalsız bir bildirim
+// varsayılan kanala düşer, bu da genellikle YÜKSEK önem seviyesi (heads-up/
+// ekrana açılan bildirim, ses/titreşim) demektir. Widget her dakika
+// güncellendiği için bu, kullanıcının bildirdiği gibi "her dakika ekrana
+// bildirim gibi çıkma" rahatsızlığına yol açıyordu. Kullanıcının seçtiği
+// çözüm: widget'ı KALDIRMADAN, arka planda SESSİZCE çalışan, dakika bazlı
+// doğru geri sayım gösteren bir yapı.
+//
+// Bunun için ÖZEL, DÜŞÜK öncelikli bir Android bildirim kanalı
+// (`BILDIRIM_CUBUGU_KANAL_ID`) tanımlandı — `AndroidImportance.LOW`: ses
+// YOK, heads-up/ekrana açılma YOK, yalnızca durum çubuğunda/bildirim
+// panelinde sessizce durur ve içeriği güncellenir (tam olarak "widget"
+// davranışı). Bu kanal `configureAndroidChannels()` içinde (uygulama
+// açılışında) BİR KEZ oluşturulur — Android'de bir kanalın önem seviyesi
+// SONRADAN kod ile değiştirilemez, bu yüzden zaten var olan bir kullanıcıda
+// kanal YANLIŞLIKLA yüksek önemle oluşmuş olabilir; bu durumda kullanıcının
+// telefon ayarlarından bu kanalı (adı: aşağıdaki `bildirimCubuguKanalAdi`)
+// bulup manuel olarak "Sessiz"e çekmesi gerekir — koddan zorla değiştirilemez
+// (platform kısıtı, bkz. dosya başındaki "Android kanal/ses kısıtı" notu).
 const BILDIRIM_CUBUGU_ID = 'bildirim-cubugu-widget';
+const BILDIRIM_CUBUGU_KANAL_ID = 'bildirim-cubugu-widget-kanal-v2';
 
+// DÜZELTME (bu tur — madde 7): `Math.round` yerine `Math.ceil` kullanılıyor.
+// Kullanıcı "kalan sürenin dakika bazında AZALMASINI" istedi — round ile
+// örneğin 52.4 dakika kalmışken "52" gösterilip 51.6'da hâlâ "52" görünmeye
+// devam eder (kullanıcıya sanki dakika ilerlemiyormuş gibi gelir); ceil ile
+// kalan süre her zaman "bir sonraki tam dakikaya" yuvarlanır ve her tam
+// dakika geçişinde net biçimde bir azalır — bir geri sayım göstergesinde
+// beklenen davranış budur (52dk59sn de, 52dk01sn de "53 dk" gösterip tam
+// 52dk'da "52 dk"ya düşer).
 function kalanSureMetni(dil: DilKodu, hedefTarih: Date): string {
   const kalanMs = hedefTarih.getTime() - Date.now();
-  const kalanDk = Math.max(0, Math.round(kalanMs / 60000));
+  const kalanDk = Math.max(0, Math.ceil(kalanMs / 60000));
   const saat = Math.floor(kalanDk / 60);
   const dakika = kalanDk % 60;
   if (saat > 0) return tDil(dil, 'kalanSureSaatDakika', saat, dakika);
@@ -167,6 +208,12 @@ export async function bildirimCubuguWidgetiniGuncelle(
         sticky: true,
         sound: false,
         autoDismiss: false,
+        // DÜZELTME (bu tur — madde 7): artık özel SESSİZ/DÜŞÜK öncelikli
+        // kanaldan gönderiliyor (bkz. `configureAndroidChannels`teki
+        // `BILDIRIM_CUBUGU_KANAL_ID` tanımı) — bu, her dakikalık güncellemenin
+        // ekrana heads-up olarak çıkmasını/ses çalmasını engeller, bildirim
+        // yalnızca durum çubuğunda sessizce güncellenir.
+        ...(Platform.OS === 'android' ? { channelId: BILDIRIM_CUBUGU_KANAL_ID } : {}),
       },
       trigger: null, // null trigger = anında göster (zamanlanmış değil, doğrudan güncelleme)
     });

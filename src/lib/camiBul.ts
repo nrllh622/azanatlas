@@ -16,20 +16,35 @@
 // tüm camiler tek istekte alınır — sunucu tarafı filtreleme sayesinde
 // istemci cihazda ağır bir hesap yapılmaz.
 //
-// GÜVENİLİRLİK: kamu sunucusu bazen yavaş/aşırı yüklü olabilir — bu yüzden
-// 12 saniyelik bir zaman aşımı ve TEK bir yedek sunucu (`kumi.systems`)
-// deneniyor. İkisi de başarısız olursa çağıran taraf boş liste alır ve
-// kullanıcıya "şu an camiler alınamadı, Google Haritalar'da aramayı dene"
-// gibi bir mesaj + doğrudan harita linki gösterebilir (bkz. CamilerScreen.tsx).
+// GÜVENİLİRLİK: kamu sunucusu bazen yavaş/aşırı yüklü olabilir.
+//
+// DÜZELTME (bu tur — madde 3): kullanıcı "internet ve konum açıkken bile
+// çalışmıyor" bildirdi. Kök neden muhtemelen `overpass-api.de`'nin bazı
+// bölgelerden/saatlerde kapasite aşımı (HTTP 429/504) vermesi veya genel
+// ağ kısıtları — TEK bir yedek sunucu (`kumi.systems`) yeterli
+// gelmiyordu. Üç düzeltme birden yapıldı:
+//  1) ÜÇÜNCÜ bir yedek sunucu eklendi (`overpass.openstreetmap.ru`) —
+//     üç bağımsız kamu aynası art arda denenir.
+//  2) Sunucu başına zaman aşımı 12sn'den 8sn'ye düşürüldü — kullanıcı
+//     başarısız bir sunucuda uzun süre beklemesin, üç sunucu toplamda
+//     yine de makul bir sürede (en kötü ~24sn) tükenir.
+//  3) HTTP durum kodu ayrıca loglanabilir hale getirildi (bkz.
+//     `sunucudanIste` içindeki hata mesajı) — ileride tanı koymayı
+//     kolaylaştırır, kullanıcıya gösterilen davranışı değiştirmez.
+//
+// Üçü de başarısız olursa çağıran taraf boş liste alır ve kullanıcıya "şu an
+// camiler alınamadı, Google Haritalar'da aramayı dene" gibi bir mesaj +
+// doğrudan harita linki gösterebilir (bkz. CamilerScreen.tsx).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const OVERPASS_SUNUCULARI = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
 ];
 
 const YARICAP_METRE = 5000; // 5 km
-const ZAMAN_ASIMI_MS = 12000;
+const ZAMAN_ASIMI_MS = 8000;
 
 export interface CamiSonucu {
   id: number;

@@ -170,7 +170,13 @@ const anaSayfa = {
     // Alt navigasyon sekmeleri
     sekmeAnaSayfa: 'Ana Sayfa',
     sekmeImsakiye: 'İmsakiye',
-    sekmeKesfet: 'Keşfet',
+    // DÜZELTME (bu tur — madde 8): kullanıcı isteğiyle "Keşfet" → "Araçlar"
+    // (bu sekmenin içeriği zaten Takip/Tesbih/Esmâ/Kaza/Cami Bul/Ayarlar
+    // kısayolları gibi araçlardan oluşuyor — "Araçlar" adı içeriği daha
+    // doğru yansıtıyor). Aynı anahtar hem alt navigasyon etiketi hem
+    // KesfetScreen'in kendi başlığı için kullanıldığından (bkz.
+    // KesfetScreen.tsx) tek bir değişiklik ikisini de günceller.
+    sekmeKesfet: 'Araçlar',
     sekmeKible: 'Kıble',
     sekmeAyarlar: 'Ayarlar',
     // Hızlı araçlar (Ana Sayfa'daki dörtlü satır)
@@ -222,7 +228,7 @@ const anaSayfa = {
     sonrakiKonum: 'Next location',
     sekmeAnaSayfa: 'Home',
     sekmeImsakiye: 'Prayer Times',
-    sekmeKesfet: 'Explore',
+    sekmeKesfet: 'Tools',
     sekmeKible: 'Qibla',
     sekmeAyarlar: 'Settings',
     aracTakip: 'Tracking',
@@ -275,7 +281,7 @@ const anaSayfa = {
     sonrakiKonum: 'Lokasi berikutnya',
     sekmeAnaSayfa: 'Beranda',
     sekmeImsakiye: 'Jadwal Salat',
-    sekmeKesfet: 'Jelajahi',
+    sekmeKesfet: 'Alat',
     sekmeKible: 'Kiblat',
     sekmeAyarlar: 'Pengaturan',
     aracTakip: 'Pelacakan',
@@ -331,7 +337,7 @@ const anaSayfa = {
     sonrakiKonum: 'Lieu suivant',
     sekmeAnaSayfa: 'Accueil',
     sekmeImsakiye: 'Horaires',
-    sekmeKesfet: 'Explorer',
+    sekmeKesfet: 'Outils',
     sekmeKible: 'Qibla',
     sekmeAyarlar: 'Réglages',
     aracTakip: 'Suivi',
@@ -980,6 +986,10 @@ const bildirimler = {
     kalanSureSaatDakika: (saat: number, dakika: number) => `${saat} sa ${dakika} dk kaldı`,
     kalanSureDakika: (dakika: number) => `${dakika} dk kaldı`,
     bildirimCubuguGovde: (vakitAdi: string) => `Sıradaki vakit: ${vakitAdi}`,
+    // DÜZELTME (bu tur — madde 7): bildirim çubuğu widget'ının özel sessiz
+    // Android kanalının GÖRÜNEN adı (kullanıcı telefonun bildirim ayarları
+    // listesinde bu adı görür).
+    bildirimCubuguKanalAdi: 'AzanAtlas — Bildirim Çubuğu Widgeti',
     kerahatGunesBatarken: 'Güneş batarken namaz kılınması mekruhtur.',
     kerahatZeval: 'Zeval vakti — namaz kılınması mekruhtur.',
     titresimli: 'Titreşimli',
@@ -1009,6 +1019,7 @@ const bildirimler = {
     kalanSureSaatDakika: (saat: number, dakika: number) => `${saat}h ${dakika}m left`,
     kalanSureDakika: (dakika: number) => `${dakika}m left`,
     bildirimCubuguGovde: (vakitAdi: string) => `Next prayer: ${vakitAdi}`,
+    bildirimCubuguKanalAdi: 'AzanAtlas — Notification Bar Widget',
     kerahatGunesBatarken: 'It is disliked (makrooh) to pray while the sun is setting.',
     kerahatZeval: 'Zawal time — prayer is disliked (makrooh) during this period.',
     titresimli: 'Vibration',
@@ -1038,6 +1049,7 @@ const bildirimler = {
     kalanSureSaatDakika: (saat: number, dakika: number) => `${saat} j ${dakika} m tersisa`,
     kalanSureDakika: (dakika: number) => `${dakika} m tersisa`,
     bildirimCubuguGovde: (vakitAdi: string) => `Salat berikutnya: ${vakitAdi}`,
+    bildirimCubuguKanalAdi: 'AzanAtlas — Widget Bilah Notifikasi',
     kerahatGunesBatarken: 'Makruh melaksanakan salat saat matahari terbenam.',
     kerahatZeval: 'Waktu zawal — makruh melaksanakan salat pada periode ini.',
     titresimli: 'Bergetar',
@@ -1067,6 +1079,7 @@ const bildirimler = {
     kalanSureSaatDakika: (saat: number, dakika: number) => `${saat} h ${dakika} min restantes`,
     kalanSureDakika: (dakika: number) => `${dakika} min restantes`,
     bildirimCubuguGovde: (vakitAdi: string) => `Prochaine prière : ${vakitAdi}`,
+    bildirimCubuguKanalAdi: 'AzanAtlas — Widget de la barre de notification',
     kerahatGunesBatarken: 'Il est déconseillé (makrouh) de prier pendant le coucher du soleil.',
     kerahatZeval: 'Heure du zawal — la prière est déconseillée (makrouh) durant cette période.',
     titresimli: 'Vibration',

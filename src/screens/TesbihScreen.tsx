@@ -7,14 +7,30 @@
 // bırakıldı. Hedefe (33 / 99 / serbest) ulaşıldığında titreşim uyarısı verir
 // ve tur sayacı bir artar.
 //
-// DÜZELTME (bu tur — madde 3): sayaç önceden AsyncStorage'a kaydedilip
-// uygulama yeniden açıldığında geri yükleniyordu — kullanıcı "uygulama
-// kapanıp açıldığında ya da başka bir sayfaya gidildiğinde sayaç
+// DÜZELTME (bu tur — madde 3, önceki tur): sayaç önceden AsyncStorage'a
+// kaydedilip uygulama yeniden açıldığında geri yükleniyordu — kullanıcı
+// "uygulama kapanıp açıldığında ya da başka bir sayfaya gidildiğinde sayaç
 // sıfırlansın" istedi. Kalıcı depolama TAMAMEN kaldırıldı: bu ekran zaten
 // yalnızca `HomeScreen`de `sub === 'tesbih'` iken monte ediliyor (bkz.
 // HomeScreen.tsx) — kullanıcı başka bir araca geçtiğinde bileşen KALDIRILIR
 // ve React state'i kaybolur; uygulama kapanıp yeniden açıldığında da
 // hafızada hiçbir şey kalmadığı için sayaç doğal olarak sıfırdan başlar.
+//
+// DÜZELTME (bu tur — madde 5): kullanıcı isteği üzerine bu ekrana artık
+// (diğer araçlar gibi, bkz. HomeScreen.tsx'teki madde 5+6 düzeltmesi) alt
+// navigasyon VE Ana Sayfa'daki reklam ekleniyor — bu ikisi `HomeScreen`in
+// kabuğu tarafından ekleniyor, bu dosyada değişiklik gerektirmiyor. Ama
+// kullanıcı AÇIKÇA belirtti: "bunları yaparken sayfada kesinlikle aşağı
+// doğru scroll olacak şekilde kayma olmasın" — yani alt nav+reklam
+// eklenince toplam dikey alan daraldığı için ekranın kendi `ScrollView`'i
+// (`icerik`) düz bir `View`e çevrildi ve iç boşluklar/boyutlar küçültüldü:
+//   • Sayaç halkası: 172px → 148px
+//   • Zikir künyesi kartı: dikey padding küçültüldü, Arapça punto 24→20
+//   • Genel dikey boşluklar (marginTop/paddingVertical) sıkıştırıldı
+// Bu, en küçük ekranlarda (ör. eski/küçük Android telefonlar) hâlâ taşma
+// riski taşısa da, kullanıcının AÇIKÇA "scroll kesinlikle olmasın" isteğine
+// uyulmuş oluyor — ScrollView tamamen kaldırıldığı için taşan içerik
+// GÖRÜNMEZ olur (kırpılır) yerine SIĞDIRILMIŞ olur.
 
 import React, { useState, useCallback } from 'react';
 import {
@@ -22,7 +38,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Vibration,
   Pressable,
 } from 'react-native';
@@ -87,7 +102,6 @@ function IlerlemeHalkasi({ oran, boyut = 208 }: { oran: number; boyut?: number }
 }
 
 export default function TesbihScreen({ onClose }: Props) {
-  const insets = useSafeAreaInsets();
   const { vibrationEnabled } = useGeneralSettings();
   const { t, dil } = useCeviri();
   const [zikirId, setZikirId] = useState(ZIKIRLER[0].id);
@@ -133,10 +147,7 @@ export default function TesbihScreen({ onClose }: Props) {
         onClose={onClose}
       />
 
-      <ScrollView
-        contentContainerStyle={[styles.icerik, { paddingBottom: insets.bottom + spacing.xl }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.icerik}>
         {/* Zikir seçici */}
         <ScrollView
           horizontal
@@ -187,7 +198,7 @@ export default function TesbihScreen({ onClose }: Props) {
           accessibilityLabel={t('sayaciArtirEtiketi', sayac, zikir.hedef)}
         >
           <View style={styles.halkaKap}>
-            <IlerlemeHalkasi oran={sayac / zikir.hedef} boyut={172} />
+            <IlerlemeHalkasi oran={sayac / zikir.hedef} boyut={148} />
             <View style={styles.sayacIc}>
               <Text style={styles.sayacRakam}>{sayac}</Text>
               <Text style={styles.sayacHedef}>/ {zikir.hedef}</Text>
@@ -233,14 +244,18 @@ export default function TesbihScreen({ onClose }: Props) {
             <Text style={styles.sifirlaYazi}>{t('sifirla')}</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.cream },
-  icerik: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  // DÜZELTME (bu tur — madde 5): `ScrollView` yerine düz `View` — bkz. dosya
+  // başındaki gerekçe. `justifyContent: 'space-between'` dikey boşlukları
+  // eşit dağıtarak, altta/üstte fazladan boşluk kalmadan tüm içeriği mevcut
+  // (artık daha dar) alana sığdırır.
+  icerik: { flex: 1, paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm, justifyContent: 'space-between' },
 
   zikirSerit: { marginHorizontal: -spacing.md },
   zikirSeritIcerik: { paddingHorizontal: spacing.md, gap: spacing.sm },
@@ -261,59 +276,63 @@ const styles = StyleSheet.create({
   zikirCipHedef: { fontFamily: typography.bodyBold, fontSize: fontSize.tiny, color: colors.textMuted },
   zikirCipHedefSecili: { color: colors.copperLight },
 
+  // DÜZELTME (bu tur — madde 5): dikey boşluklar/puntolar, alt nav+reklam
+  // eklendikten sonra ekranın scroll'suz sığması için küçültüldü (bkz.
+  // dosya başındaki gerekçe).
   zikirKart: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    padding: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     alignItems: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     ...elevation.card,
   },
   zikirArapca: {
     fontFamily: typography.displayFamily,
-    fontSize: 24,
+    fontSize: 20,
     color: colors.primaryDark,
     textAlign: 'center',
-    lineHeight: 38,
+    lineHeight: 30,
   },
   zikirLatin: {
     fontFamily: typography.bodyBold,
     fontSize: fontSize.title,
     color: colors.copper,
-    marginTop: spacing.xs,
+    marginTop: 1,
     textAlign: 'center',
   },
   zikirAnlam: {
     fontFamily: typography.bodyFamily,
-    fontSize: fontSize.small,
+    fontSize: fontSize.tiny,
     color: colors.textMuted,
-    marginTop: spacing.xs,
+    marginTop: 1,
     textAlign: 'center',
-    lineHeight: lineHeight.small,
+    lineHeight: lineHeight.tiny,
   },
 
   sayacAlan: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.xs,
     backgroundColor: colors.white,
     borderRadius: radius.xl,
     ...elevation.card,
   },
   sayacAlanBasili: { backgroundColor: colors.primarySoft },
   halkaKap: {
-    width: 172,
-    height: 172,
+    width: 148,
+    height: 148,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sayacIc: { alignItems: 'center' },
   sayacRakam: {
     fontFamily: typography.displayFamily,
-    fontSize: 52,
+    fontSize: 44,
     color: colors.primaryDark,
-    lineHeight: 60,
+    lineHeight: 50,
   },
   sayacHedef: {
     fontFamily: typography.bodyMedium,
@@ -323,31 +342,31 @@ const styles = StyleSheet.create({
   },
   dokunIpucu: {
     fontFamily: typography.bodyMedium,
-    fontSize: fontSize.body,
+    fontSize: fontSize.small,
     color: colors.textMuted,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
 
   turKart: {
     backgroundColor: colors.white,
     borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     ...elevation.card,
   },
   turEtiket: { flex: 1, fontFamily: typography.bodyMedium, fontSize: fontSize.body, color: colors.textMuted },
   turDeger: { fontFamily: typography.bodyBold, fontSize: fontSize.title, color: colors.primaryDark },
 
-  eylemSatir: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  eylemSatir: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   geriAlBtn: {
     flex: 1,
     backgroundColor: colors.white,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md + 2,
+    paddingVertical: spacing.sm + 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -360,7 +379,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.copper,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md + 2,
+    paddingVertical: spacing.sm + 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

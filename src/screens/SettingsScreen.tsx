@@ -419,6 +419,15 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
         </View>
 
         <Text style={styles.sectionTitle}>{t('vakitlerdenOnceUyarilar')}</Text>
+        {/* DÜZELTME (bu tur — madde 4): "45 dakika önce" ve "Sesi Değiştir"
+            önceden ALT ALTA, tam genişlikte `Text` satırlarıydı — uzun bir
+            ses adıyla birleşince ("Sesi Değiştir: Ezan (Kısa) 2" gibi) ikinci
+            satır kırpılmadan sarılıyor, kart yüksekliği öngörülemez şekilde
+            uzuyor ve kullanıcının bildirdiği gibi metinler "alta kayıyor"
+            görünümü veriyordu. Artık ikisi TEK bir satırda, `flexDirection:
+            'row'` + aralarında `gap` ile yan yana duruyor; her biri `flex: 1`
+            ile eşit pay alıyor ve `numberOfLines={1}` ile taşma tek satırda
+            kırpılıyor (kesin, öngörülebilir kart yüksekliği). */}
         {PRE_ALERT_LABELS.map(({ key, anahtar }) => {
           const s = settings.preAlerts[key];
           return (
@@ -427,14 +436,14 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
                 <Switch value={s.enabled} onValueChange={(val) => setPreAlert(key, { enabled: val })} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
                 <Text style={styles.cardLabelInline}>{t(anahtar)}</Text>
               </View>
-              {/* DÜZELTME (bu tur — madde 9): süre artık tıklanabilir — bir
-                  dakika seçici açılıyor ve kullanıcı istediği süreyi seçebiliyor. */}
-              <TouchableOpacity onPress={() => setMinutePickerKey(key)} activeOpacity={0.7}>
-                <Text style={styles.offsetLineLink}>{t('dakikaOnce', s.minutesBefore)}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })}>
-                <Text style={styles.soundLink}>{t('sesiDegistir', sesAdi(s.soundId, getSoundById(s.soundId).label))}</Text>
-              </TouchableOpacity>
+              <View style={styles.altLinkSatir}>
+                <TouchableOpacity onPress={() => setMinutePickerKey(key)} activeOpacity={0.7} style={styles.altLinkYari}>
+                  <Text style={styles.offsetLineLink} numberOfLines={1}>{t('dakikaOnce', s.minutesBefore)}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setPickerFor({ type: 'pre', key: key })} style={styles.altLinkYari}>
+                  <Text style={styles.soundLink} numberOfLines={1}>{t('sesiDegistir', sesAdi(s.soundId, getSoundById(s.soundId).label))}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           );
         })}
@@ -599,11 +608,15 @@ const styles = StyleSheet.create({
   cardSubtext: { fontFamily: typography.bodyBold, color: colors.primary, fontSize: fontSize.small, marginTop: 2 },
   chevron: { color: colors.primary, fontSize: 22, fontFamily: typography.bodyBold },
   offsetLine: { fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.small, marginTop: spacing.xs },
+  // DÜZELTME (bu tur — madde 4): süre + ses linki artık yan yana tek satır
+  // — bkz. yukarıdaki JSX'teki ayrıntılı gerekçe.
+  altLinkSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs },
+  altLinkYari: { flex: 1 },
   // DÜZELTME (bu tur — madde 9): `offsetLine` ile aynı punto/aralık ama
   // tıklanabilir olduğunu gösteren `copper` renk + alt çizgi (soundLink ile
   // aynı görsel dil).
-  offsetLineLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, marginTop: spacing.xs, textDecorationLine: 'underline' },
-  soundLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, marginTop: spacing.xs },
+  offsetLineLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small, textDecorationLine: 'underline' },
+  soundLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.small },
   gpsHint: { fontFamily: typography.bodyMedium, color: colors.copper, fontSize: fontSize.tiny, marginBottom: spacing.sm, paddingHorizontal: spacing.xs },
   gpsStatusText: { fontFamily: typography.bodyMedium, color: colors.textMuted, fontSize: fontSize.tiny, marginBottom: spacing.xs, lineHeight: lineHeight.tiny, paddingHorizontal: spacing.xs },
   retryLink: { fontFamily: typography.bodyBold, color: colors.copper, fontSize: fontSize.tiny, marginBottom: spacing.sm, textDecorationLine: 'underline', paddingHorizontal: spacing.xs },

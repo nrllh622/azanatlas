@@ -46,8 +46,6 @@ import {
   bugunErtelendiMi,
 } from './lib/guncellemeKontrol';
 import GuncellemeUyarisi from './components/GuncellemeUyarisi';
-import PilOptimizasyonuUyarisi from './components/PilOptimizasyonuUyarisi';
-import { pilUyarisiGosterilmisMi, pilUyarisiniGoruldiIsaretle, pilKisitlamasiniKaldir } from './lib/pilOptimizasyonu';
 import { useGeneralSettings } from './context/GeneralSettingsContext';
 
 /**
@@ -81,6 +79,18 @@ async function reklamSdkBaslat() {
     // Ekstra güvenlik ağı — beklenmeyen bir hata olursa sessizce atlanır.
   }
 }
+
+// DÜZELTME (bu tur — madde 2): önceki turda açılışta (2sn gecikmeyle, bir
+// kez) otomatik gösterilen "pil kısıtlamasını kaldır" pop-up'ı TAMAMEN
+// KALDIRILDI. Kullanıcı isteği net: "pil optimizasyonu kullanıcının
+// seçeneğine bırakma [demek istediği: zorla sorma] — default olarak pil
+// optimizasyonu [uyarısı] kapalı olsun". Artık uygulama kimseye açılışta
+// izin/onay sormuyor; `SettingsScreen.tsx`'teki "Pil kısıtlamasını kaldır"
+// kartı (Genel bölümü) kalıcı olarak duruyor, isteyen kullanıcı kendisi
+// bulup açabiliyor. `PilUyarisiKontrolcusu` bileşeni ve ilgili importlar bu
+// yüzden buradan silindi — `lib/pilOptimizasyonu.ts`teki asıl fonksiyonlara
+// (`pilKisitlamasiniKaldir` vb.) dokunulmadı, yalnızca AÇILIŞTA OTOMATİK
+// TETİKLEME kaldırıldı.
 
 /**
  * 7. tur — madde 7: uygulama açılışında (yalnızca bir kez) Play Store'da
@@ -137,46 +147,6 @@ function GuncellemeKontrolcusu() {
   );
 }
 
-/**
- * Bu tur — madde 8 + 11: uygulama açılışında (yalnızca bir kez, kullanıcı
- * "Anladım" ile kapattıktan sonra bir daha hiç) pil optimizasyonu uyarısını
- * gösterir. Ayrıntılı gerekçe için `lib/pilOptimizasyonu.ts` başındaki not.
- *
- * `GuncellemeKontrolcusu` ile AYNI oturumda ikisi birden tetiklenmesin diye
- * kısa bir gecikmeyle (2sn) gösteriliyor — kullanıcı açılışta aynı anda iki
- * modalla karşılaşmasın.
- */
-function PilUyarisiKontrolcusu() {
-  const [uyariGorunur, setUyariGorunur] = useState(false);
-
-  useEffect(() => {
-    let iptal = false;
-    (async () => {
-      const gorulduMu = await pilUyarisiGosterilmisMi();
-      if (iptal || gorulduMu) return;
-      setTimeout(() => {
-        if (!iptal) setUyariGorunur(true);
-      }, 2000);
-    })();
-    return () => { iptal = true; };
-  }, []);
-
-  return (
-    <PilOptimizasyonuUyarisi
-      visible={uyariGorunur}
-      onKaldir={() => {
-        setUyariGorunur(false);
-        pilUyarisiniGoruldiIsaretle();
-        pilKisitlamasiniKaldir();
-      }}
-      onAnladim={() => {
-        setUyariGorunur(false);
-        pilUyarisiniGoruldiIsaretle();
-      }}
-    />
-  );
-}
-
 // Madde 4 (bu tur): İLK AÇILIŞ TANITIM + İZİN AKIŞI (OnboardingEkrani.tsx).
 //
 // Bu akış, kullanıcının konum/bildirim tercihlerini gerçek Context'lere
@@ -226,7 +196,6 @@ export default function AppGovde() {
                           <>
                             <HomeScreen />
                             <GuncellemeKontrolcusu />
-                            <PilUyarisiKontrolcusu />
                           </>
                         ) : (
                           <OnboardingEkrani onTamamlandi={onboardingiTamamla} />
