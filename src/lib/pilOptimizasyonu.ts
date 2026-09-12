@@ -80,24 +80,44 @@ export async function pilUyarisiniGoruldiIsaretle(): Promise<void> {
  * `npx expo install expo-intent-launcher` çalıştırılmadıysa) veya Expo
  * Go'daysak sessizce hiçbir şey yapmaz — uygulamanın geri kalanı etkilenmez.
  */
+// DÜZELTME (bu tur): kullanıcı butona bastığında doğrudan tek-tık onay
+// diyaloğu yerine Android'in GENEL "Pil" sayfası (Kısıtlanmamış/Optimize/
+// Kısıtlandı seçenekli, Ayarlar > Uygulamalar > AzanAtlas > Pil) açıldığını
+// bildirdi — bu, 1. ve muhtemelen 2. denemenin de SESSİZCE başarısız olup
+// 3. (son çare) fallback'e düştüğünü gösteriyor. KÖK NEDEN bulundu:
+// `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` Intent'ini başlatabilmek için
+// AndroidManifest'te AYNI ADDA bir `<uses-permission>` girdisi ZORUNLUDUR —
+// bu izin `app.json`'un `android.permissions` listesinde HİÇ YOKTU, bu
+// yüzden Android bu Intent'i reddedip `ActivityNotFoundException`
+// fırlatıyordu, kod da sessizce bir sonraki fallback'e düşüyordu. İzin artık
+// `app.json`a eklendi (bkz. proje kökündeki `app.json`) — bu düzeltmenin
+// etkili olması için `expo prebuild --clean` ile native proje YENİDEN
+// oluşturulmalı.
+//
+// Ayrıca artık her denemenin hatası `console.warn` ile loglanıyor —
+// ileride benzer bir sorun olursa (ör. belirli bir üretici cihazda) hangi
+// adımın hangi hatayla başarısız olduğu Metro/logcat çıktısında görünür.
 export async function pilKisitlamasiniKaldir(): Promise<void> {
   if (!nativeModulBagliMi()) return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const IntentLauncher = require('expo-intent-launcher');
-    // DÜZELTME: `IGNORE_BATTERY_OPTIMIZATION_SETTINGS` (data'sız) yalnızca
-    // GENEL pil ayarları listesini açar — kullanıcı AzanAtlas'ı listede
-    // kendisi arayıp bulmalı, tek dokunuşla çözülmez. Android'in resmi API'si
+    // `IGNORE_BATTERY_OPTIMIZATION_SETTINGS` (data'sız) yalnızca GENEL pil
+    // ayarları listesini açar — kullanıcı AzanAtlas'ı listede kendisi arayıp
+    // bulmalı, tek dokunuşla çözülmez. Android'in resmi API'si
     // `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` + `package:<paket-adı>` data
     // URI'siyle çağrıldığında, DOĞRUDAN "AzanAtlas'ın pil kısıtlamasını
     // kaldırmak istiyor musun? İzin Ver / Reddet" onay diyaloğunu açar —
     // kullanıcının "tek bir ayarı açman yeterli" diye referans verdiği
-    // deneyim tam olarak bu.
+    // deneyim tam olarak bu. BU İNTENT, manifestte
+    // `android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` izni
+    // TANIMLI OLMADAN sessizce başarısız olur (bkz. yukarıdaki DÜZELTME notu).
     await IntentLauncher.startActivityAsync(
       IntentLauncher.ActivityAction.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
       { data: 'package:com.azanatlas.app' }
     );
-  } catch {
+  } catch (e) {
+    console.warn('[pilOptimizasyonu] REQUEST_IGNORE_BATTERY_OPTIMIZATIONS başarısız:', e);
     // Bazı üreticilerde (özellikle MIUI/ColorOS/EMUI) bu Intent'i
     // desteklemeyebilir ya da reddedebilir — bu durumda genel pil ayarları
     // listesine düşülür, kullanıcı AzanAtlas'ı listede kendisi bulup kapatır.
@@ -107,7 +127,8 @@ export async function pilKisitlamasiniKaldir(): Promise<void> {
       await IntentLauncher.startActivityAsync(
         IntentLauncher.ActivityAction.IGNORE_BATTERY_OPTIMIZATION_SETTINGS
       );
-    } catch {
+    } catch (e2) {
+      console.warn('[pilOptimizasyonu] IGNORE_BATTERY_OPTIMIZATION_SETTINGS başarısız:', e2);
       // O da başarısız olursa, uygulamanın kendi Ayarlar sayfasına düş —
       // kullanıcı oradan "Pil" bölümüne kendisi geçebilir.
       try {
@@ -117,7 +138,8 @@ export async function pilKisitlamasiniKaldir(): Promise<void> {
           IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
           { data: 'package:com.azanatlas.app' }
         );
-      } catch {
+      } catch (e3) {
+        console.warn('[pilOptimizasyonu] APPLICATION_DETAILS_SETTINGS de başarısız:', e3);
         // son çare de başarısızsa yoksay.
       }
     }

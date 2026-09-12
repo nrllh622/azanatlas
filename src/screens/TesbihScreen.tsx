@@ -38,6 +38,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
   Vibration,
   Pressable,
 } from 'react-native';
