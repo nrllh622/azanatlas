@@ -1,22 +1,26 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+// DÜZELTME (bu tur — Gradle build hatası sonrası): önceki sürüm eski bir
+// Expo modül Gradle deseni kullanıyordu (`apply from:
+// ExpoModulesCorePlugin.gradle` + `applyKotlinExpoModulesCorePlugin()`).
+// Bu proje Expo SDK 54 kullanıyor — bu sürümde native modüller artık
+// `expo-module-gradle-plugin` adlı bir Gradle convention plugin'i ile
+// yapılandırılıyor (bkz. node_modules/expo-intent-launcher/android/
+// build.gradle — projede zaten kurulu olan başka bir Expo modülünün
+// GERÇEK, ÇALIŞAN build.gradle'ı — aynı desen buraya uygulandı). Bu plugin
+// Kotlin desteğini, `expo-modules-core` bağımlılığını ve standart Android
+// kütüphane ayarlarını otomatik ekliyor, elle `apply plugin` / `useCore
+// Dependencies()` çağırmaya gerek yok.
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
 
 group = 'com.azanatlas.pildurumu'
 version = '1.0.0'
-
-def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
-apply from: expoModulesCorePlugin
-applyKotlinExpoModulesCorePlugin()
-useCoreDependencies()
-useExpoPublishing()
 
 android {
   namespace "com.azanatlas.pildurumu"
   defaultConfig {
     versionCode 1
-    versionName "1.0.0"
-  }
-  lintOptions {
-    abortOnError false
+    versionName '1.0.0'
   }
 }
