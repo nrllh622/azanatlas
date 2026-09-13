@@ -38,14 +38,32 @@
 // (kullanıcı "Sonra" derse bir daha o oturumda sorulmaz) gösteriliyor,
 // tekrar açmak isteyen kullanıcı için Ayarlar'da kalıcı bir link var.
 
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const GORULDU_ANAHTARI = 'azanatlas_pil_optimizasyonu_uyarisi_goruldu_v1';
 
-function nativeModulBagliMi(): boolean {
-  return Platform.OS === 'android' && !!(NativeModules as any)?.ExpoIntentLauncher;
-}
+// DÜZELTME (bu tur — kesin kök neden bulundu): önceki sürüm burada
+// `NativeModules.ExpoIntentLauncher` (React Native'in ESKİ bridge sözlüğü)
+// üzerinden bir kontrol yapıyordu. Ama bu proje `app.json`da
+// `newArchEnabled: true` ile derleniyor — Expo modülleri (expo-store-review,
+// expo-intent-launcher dahil TÜM `expo-module.config.json` sahibi paketler)
+// Yeni Mimari'de artık klasik `NativeModules` bridge sözlüğüne HİÇ
+// YAZILMIYOR, bunun yerine JSI tabanlı bir proxy (`requireNativeModule`)
+// üzerinden erişiliyor. Bu yüzden `NativeModules.ExpoIntentLauncher` HER
+// ZAMAN `undefined` dönüyordu — modül native tarafta tam olarak kurulu ve
+// çalışır durumda olsa bile. `pilKisitlamasiniKaldir()` bu yüzden ilk
+// satırda sessizce (`return`) çıkıyor, kullanıcı tıklasa da hiçbir şey
+// olmuyordu. `expo-store-review`de AYNI YANLIŞ deseni kullanmıyorduk (o
+// zaten hep gerçek modülü çağırmayı deniyordu) ama TouchableOpacity'nin
+// kendisi hiç tepki vermiyor gibi görünmesinin sebebi muhtemelen kullanıcının
+// bu iki kartı art arda hızlı test edip ikisinde de "hiçbir şey olmuyor"
+// izlenimini genellemesiydi — StoreReview tarafında asıl sorun native
+// tarafın `requestReview()`ı desteklememesi + `playStoreUrl` eksikliğiydi
+// (aşağıda ayrıca ele alınıyor), IntentLauncher tarafında ise bu satırdaki
+// yanlış varlık kontrolüydü. ÇÖZÜM: `NativeModules` kontrolünü tamamen
+// kaldırıp modülü doğrudan `require` edip çağırmak — yoksa/başarısız olursa
+// zaten aşağıdaki 3 katmanlı `try/catch` fallback zinciri devreye giriyor.
 
 /**
  * Uygulama şu anda pil optimizasyonundan MUAF mı (yani kısıtlama zaten
@@ -98,7 +116,7 @@ export async function pilUyarisiniGoruldiIsaretle(): Promise<void> {
 // ileride benzer bir sorun olursa (ör. belirli bir üretici cihazda) hangi
 // adımın hangi hatayla başarısız olduğu Metro/logcat çıktısında görünür.
 export async function pilKisitlamasiniKaldir(): Promise<void> {
-  if (!nativeModulBagliMi()) return;
+  if (Platform.OS !== 'android') return;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const IntentLauncher = require('expo-intent-launcher');
