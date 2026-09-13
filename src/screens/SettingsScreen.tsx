@@ -10,8 +10,8 @@
 // kullanıyor; kartlar `elevation.card` gölgesiyle Kıble/Tesbih/Kaza
 // ekranlarındaki kartlarla birebir aynı dilde.
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Linking } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Linking, AppState } from 'react-native';
 import * as Location from 'expo-location';
 import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
@@ -31,7 +31,7 @@ import {
 } from '../context/CalculationSettingsContext';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { useLocationContext } from '../context/LocationContext';
-import { pilKisitlamasiniKaldir } from '../lib/pilOptimizasyonu';
+import { pilKisitlamasiniKaldir, pilKisitlamasiKaldirilmisMi } from '../lib/pilOptimizasyonu';
 import { getSoundById } from '../data/soundCatalog';
 import SoundPickerModal from '../components/SoundPickerModal';
 import SimplePickerModal from '../components/SimplePickerModal';
@@ -114,6 +114,31 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
   const [distanceUnitPickerVisible, setDistanceUnitPickerVisible] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsStatus, setGpsStatus] = useState<string | null>(null);
+
+  // DÜZELTME (bu tur): "Pil Kısıtlamasını Kaldır"a bastıktan sonra durumun
+  // gerçekten değişip değişmediğini kullanıcı bilemiyordu — kart her zaman
+  // aynı görünüyordu. `pilKisitlamasiKaldirilmisMi()` artık gerçek native
+  // sorgu (bkz. lib/pilOptimizasyonu.ts) — ekran her odaklandığında VE
+  // butona her basıştan SONRA yeniden okunuyor. `null` = sorgu bu build'de
+  // henüz kullanılamıyor (yeni native modül, yeni build gerektirir) —
+  // böyle bir build'de kart eski (durumsuz) haliyle kalır, yanlış bilgi
+  // göstermez.
+  const [pilDurumu, setPilDurumu] = useState<boolean | null>(null);
+
+  const pilDurumunuTazele = useCallback(() => {
+    setPilDurumu(pilKisitlamasiKaldirilmisMi());
+  }, []);
+
+  useEffect(() => {
+    pilDurumunuTazele();
+    // Kullanıcı "Pil Kısıtlamasını Kaldır"a basıp sistem diyaloğuna/ayar
+    // sayfasına gidip uygulamaya GERİ DÖNDÜĞÜNDE de durumu tazelemek için —
+    // uygulama arka plandan öne (active) her geçtiğinde tekrar sorgulanır.
+    const abonelik = AppState.addEventListener('change', (durum) => {
+      if (durum === 'active') pilDurumunuTazele();
+    });
+    return () => abonelik.remove();
+  }, [pilDurumunuTazele]);
 
   let currentSelectedId = 'none';
   let pickerTitle = '';
@@ -368,12 +393,32 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
             fikrini değiştirip pil kısıtlamasını daha sonra kaldırmak isterse
             hiçbir yolu olmazdı. Aynı `lib/pilOptimizasyonu.ts` fonksiyonu
             kullanılıyor. */}
-        <TouchableOpacity style={styles.card} onPress={pilKisitlamasiniKaldir} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={async () => {
+            await pilKisitlamasiniKaldir();
+            // Kullanıcı sistem diyaloğunda "İzin Ver" derse durum ANINDA
+            // değişir — ama bazı cihazlarda diyalog kapanışı ile React'in
+            // öne dönmesi arasında küçük bir gecikme olabiliyor, bu yüzden
+            // hem hemen hem de kısa bir gecikmeyle tekrar sorgulanıyor.
+            pilDurumunuTazele();
+            setTimeout(pilDurumunuTazele, 800);
+          }}
+          activeOpacity={0.85}
+        >
           <View style={styles.cardTopRow}>
             <Icon name="bildirimAcik" size={20} color={colors.copper} />
             <Text style={styles.cardLabelInline}>{t('pilKisitlamasiniKaldir')}</Text>
           </View>
           <Text style={styles.cardSubtext}>{t('pilKisitlamasiniKaldirAciklama')}</Text>
+          {pilDurumu !== null && (
+            <View style={styles.pilDurumSatiri}>
+              <View style={[styles.pilDurumNoktasi, pilDurumu ? styles.pilDurumNoktasiAcik : styles.pilDurumNoktasiKapali]} />
+              <Text style={[styles.pilDurumYazisi, pilDurumu ? styles.pilDurumYazisiAcik : styles.pilDurumYazisiKapali]}>
+                {pilDurumu ? t('pilKisitlamasiKaldirildi') : t('pilKisitlamasiHalaAktif')}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <View style={styles.card}>
@@ -633,6 +678,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+
+  // DÜZELTME (bu tur): "Pil Kısıtlamasını Kaldır" kartındaki gerçek zamanlı
+  // durum göstergesi — küçük renkli nokta + kısa metin, diğer alt metinlerle
+  // (cardSubtext) kalabalıklaşmasın diye ayrı bir satırda ve daha küçük punto.
+  pilDurumSatiri: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.xs },
+  pilDurumNoktasi: { width: 8, height: 8, borderRadius: 4 },
+  pilDurumNoktasiAcik: { backgroundColor: colors.primaryBright },
+  pilDurumNoktasiKapali: { backgroundColor: colors.copper },
+  pilDurumYazisi: { fontFamily: typography.bodyMedium, fontSize: fontSize.tiny },
+  pilDurumYazisiAcik: { color: colors.primaryBright },
+  pilDurumYazisiKapali: { color: colors.copper },
   stepperBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   stepperBtnText: { color: colors.white, fontSize: fontSize.title, fontFamily: typography.bodyBold },
   stepperValue: { fontFamily: typography.displaySemibold, color: colors.primaryDark, fontSize: fontSize.title, minWidth: 32, textAlign: 'center' },

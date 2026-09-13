@@ -1,0 +1,7 @@
+{
+  "name": "azanatlas-pil-durumu",
+  "version": "1.0.0",
+  "description": "AzanAtlas projesine özel yerel Expo modülü — Android pil optimizasyonu muafiyet durumunu (PowerManager.isIgnoringBatteryOptimizations) sorgular.",
+  "main": "src/index.ts",
+  "private": true
+}

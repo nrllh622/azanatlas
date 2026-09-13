@@ -40,8 +40,27 @@
 
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { pilKisitlamasiKaldirilmisMi as nativeDurumSorgula } from 'azanatlas-pil-durumu';
 
 const GORULDU_ANAHTARI = 'azanatlas_pil_optimizasyonu_uyarisi_goruldu_v1';
+
+// DÜZELTME (bu tur — "tekrar tıklandığında iptal edilmiyor" + "durumu
+// gösteren yazı" isteği): Android'in PowerManager.isIgnoringBatteryOptimizations()
+// sorgusu `expo-intent-launcher` ile YAPILAMAZ — o paket yalnızca Intent
+// açar, gerçek muafiyet durumunu okuyamaz. Bu yüzden projeye özel, tek
+// fonksiyonlu bir yerel Expo native modülü eklendi: `modules/pil-durumu`
+// (bkz. o klasördeki PilDurumuModule.kt). Bu, projenin kendi
+// `settings.gradle`'ındaki `expoAutolinking.useExpoModules()` mekanizmasıyla
+// otomatik olarak native tarafa bağlanır — node_modules'taki paketlerden
+// farklı bir kurulum GEREKTİRMEZ, ama native tarafta YENİ KOD eklediği için
+// bu değişikliğin etkili olması için YENİ BİR BUILD (prebuild + EAS build)
+// şart; salt JS/Metro güncellemesiyle görünmez.
+//
+// "Neden bu ayrı bir buton değil de tek fonksiyon": kullanıcı ayarlardan
+// istediği an kısıtlamayı tekrar açabilir (sistem ayarları), bu yüzden
+// SABİT bir "kaldırıldı" bayrağı TUTULMUYOR — SettingsScreen her açılışta
+// ve her "Pil Kısıtlamasını Kaldır"a basıştan SONRA bu fonksiyonu tekrar
+// çağırıp GERÇEK anlık durumu okuyor.
 
 // DÜZELTME (bu tur — kesin kök neden bulundu): önceki sürüm burada
 // `NativeModules.ExpoIntentLauncher` (React Native'in ESKİ bridge sözlüğü)
@@ -90,6 +109,21 @@ export async function pilUyarisiniGoruldiIsaretle(): Promise<void> {
   } catch {
     // yoksay — en kötü ihtimalle kullanıcı bir dahaki açılışta tekrar görür.
   }
+}
+
+/**
+ * Pil kısıtlaması bu cihazda ŞU AN gerçekten kaldırılmış mı?
+ *
+ * `true`  → kısıtlama kaldırılmış (uygulama muaf).
+ * `false` → kısıtlama hâlâ uygulanıyor.
+ * `null`  → bilinmiyor (henüz bu native koda sahip bir build kurulu değil,
+ *           ya da Android değil) — bu durumda çağıran taraf NE "kaldırıldı"
+ *           NE "kısıtlı" yazmamalı, sorgunun kendisinin kullanılamadığını
+ *           belirtmeli.
+ */
+export function pilKisitlamasiKaldirilmisMi(): boolean | null {
+  if (Platform.OS !== 'android') return null;
+  return nativeDurumSorgula();
 }
 
 /**

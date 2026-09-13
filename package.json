@@ -13,6 +13,7 @@
     "@expo-google-fonts/manrope": "^0.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "adhan": "^4.4.4",
+    "azanatlas-pil-durumu": "file:./modules/pil-durumu",
     "expo": "~54.0.35",
     "expo-av": "~16.0.8",
     "expo-dev-client": "~6.0.21",
