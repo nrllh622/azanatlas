@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.azanatlas.app",
-      "versionCode": 2,
+      "versionCode": 8,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
