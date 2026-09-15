@@ -25,7 +25,7 @@
 // sonuç gösterilir (kullanıcı asla boş ekran görmez), ardından Türkiye
 // içindeyse Diyanet'in resmi verisi çekilip üzerine yazılır.
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -46,7 +46,7 @@ import {
 } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
 import { useNotificationSettings, OnTimeVakitKey } from '../context/NotificationSettingsContext';
-import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useCalculationSettings, CALC_METHODS } from '../context/CalculationSettingsContext';
 import { useGeneralSettings } from '../context/GeneralSettingsContext';
 import { useVaktindeKil } from '../context/VaktindeKilContext';
 import { useKaza } from '../context/KazaContext';
@@ -190,6 +190,50 @@ export default function HomeScreen() {
   const [sub, setSub] = useState<SubScreen>(null);
   const [vakitKaynak, setVakitKaynak] = useState<VakitKaynak>('yerel');
 
+  // DÜZELTME (2. tur — madde 4): kullanıcı, Ayarlar'da Hesaplama Yöntemi'ni
+  // manuel olarak değiştirdiğinde Anasayfa/İmsakiye'deki kaynak etiketinin
+  // hâlâ sabit "Yerel Hesaplama" yazdığını, seçilen yöntemin (ör. "Ümmül
+  // Kurra") hiçbir yerde görünmediğini bildirdi. `methodLabel`,
+  // SettingsScreen.tsx'teki AYNI `CALC_METHODS.find(...)` deseniyle
+  // hesaplanıyor — tek doğruluk kaynağı orada tanımlı liste. `autoMethod`
+  // açıkken (Diyanet/otomatik ülke yöntemi) bu değer kullanılmıyor; yalnızca
+  // kullanıcı MANUEL bir yöntem seçtiğinde kaynak çipinde görünüyor.
+  const methodLabel =
+    (dil === 'tr'
+      ? CALC_METHODS.find((m) => m.id === methodId)?.label
+      : CALC_METHODS.find((m) => m.id === methodId)?.labelEn) ?? t('yerelHesaplama');
+
+  // DÜZELTME (bu tur — madde 5): kullanıcı "Keşfet üzerinden açılan bir
+  // araçtan (Cami Bul, Tesbih, Esma, Kaza vb.) Geri'ye basınca Ana Sayfa'ya
+  // gidiyor, bir önceki ekrana (Keşfet) dönmesi gerekirken" bildirdi.
+  //
+  // KÖK NEDEN: bir SubScreen açan HER yer (kesfetYonlendir, Ana Sayfa'nın
+  // HIZLI_ARACLAR şeridi, "Bildirim" ikonu vb.) yalnızca `setSub(hedef)`
+  // çağırıyordu — `tab` state'i o an ne ise öylece KALIYORDU, hiçbir yerde
+  // "bu SubScreen hangi sekmeden açıldı" bilgisi tutulmuyordu. Çoğu durumda
+  // bu sorun yaratmaz (kullanıcı zaten `tab==='home'` iken bir araca girip
+  // Ana Sayfa'ya dönmek ister) — ama `sub` kapatılırken `tab`'ın DEĞİŞMEMİŞ
+  // olması, aradaki gezinme geçmişinde bir kayıt tutulmadığı anlamına geliyor.
+  // Kullanıcı belirtilen senaryoda muhtemelen Keşfet ızgarasına Ana Sayfa'dan
+  // geçici olarak (sekmeyi hiç değiştirmeden) ulaşıyordu; bu ref, SubScreen
+  // açılmadan HEMEN ÖNCEKİ `tab` değerini saklayıp "Geri"de tam o sekmeye
+  // dönülmesini garanti ediyor — artık nereden açılırsa açılsın, kapatma
+  // her zaman doğru önceki sekmeye gider.
+  const subAcilmadanOncekiTabRef = useRef<Tab>('home');
+
+  /** `setSub(hedef)` ile birebir aynı, ama açılış anındaki `tab`'ı hatırlar. */
+  const subAc = useCallback((hedef: SubScreen) => {
+    subAcilmadanOncekiTabRef.current = tab;
+    setSub(hedef);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  /** "Geri" — SubScreen'i kapatır ve açılmadan önceki sekmeye döner. */
+  const subKapat = useCallback(() => {
+    setSub(null);
+    setTab(subAcilmadanOncekiTabRef.current);
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
@@ -217,12 +261,13 @@ export default function HomeScreen() {
     return () => sub2.remove();
   }, []);
 
-  // Donanım geri tuşu: önce açık aracı kapat, sonra Ana Sayfa'ya dön,
-  // en sonunda uygulamadan çıkışa izin ver.
+  // Donanım geri tuşu: önce açık aracı kapat (açıldığı sekmeye dönerek —
+  // bkz. `subKapat` tanımı), sonra Ana Sayfa'ya dön, en sonunda uygulamadan
+  // çıkışa izin ver.
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
       if (sub !== null) {
-        setSub(null);
+        subKapat();
         return true;
       }
       if (tab !== 'home') {
@@ -232,7 +277,7 @@ export default function HomeScreen() {
       return false;
     });
     return () => listener.remove();
-  }, [sub, tab]);
+  }, [sub, tab, subKapat]);
 
   const [vakitler, setVakitler] = useState<VakitEntry[]>(() =>
     calculateVakitler(
@@ -468,8 +513,9 @@ export default function HomeScreen() {
       camiler: 'camiler',
     };
     const altEkran = ALT_EKRAN_ESLEME[hedef];
-    if (altEkran) setSub(altEkran);
-  }, []);
+    if (altEkran) subAc(altEkran);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subAc]);
 
   // -------------------------------------------------------------------
   // TAM EKRAN ARAÇLAR — yalnızca Konum Seçici (alt navigasyon gizlenir)
@@ -485,7 +531,7 @@ export default function HomeScreen() {
   // "araç" değil, ayrı ve kendi kendine yeten bir seçim akışı (yeni konum
   // ekleme/GPS/arama), navigasyon şeridiyle birlikte gösterilmesinin bir
   // faydası yok.
-  if (sub === 'location') return <LocationPickerScreen onDone={() => setSub(null)} />;
+  if (sub === 'location') return <LocationPickerScreen onDone={subKapat} />;
 
   // -------------------------------------------------------------------
   // SEKME İÇERİKLERİ
@@ -501,21 +547,21 @@ export default function HomeScreen() {
   // ile birebir aynı deseni kullanıyor — sekmedeyken bile Geri butonuna
   // basılınca Ana Sayfa'ya dönüyor.
   if (sub === 'tema') {
-    sekmeIcerigi = <TemaScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <TemaScreen onClose={subKapat} />;
   } else if (sub === 'takip') {
-    sekmeIcerigi = <TakipScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <TakipScreen onClose={subKapat} />;
   } else if (sub === 'kaza') {
-    sekmeIcerigi = <KazaScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <KazaScreen onClose={subKapat} />;
   } else if (sub === 'vaktindekil') {
-    sekmeIcerigi = <VaktindeKilScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <VaktindeKilScreen onClose={subKapat} />;
   } else if (sub === 'reminders') {
-    sekmeIcerigi = <RemindersScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <RemindersScreen onClose={subKapat} />;
   } else if (sub === 'tesbih') {
-    sekmeIcerigi = <TesbihScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <TesbihScreen onClose={subKapat} />;
   } else if (sub === 'esma') {
-    sekmeIcerigi = <EsmaulHusnaScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <EsmaulHusnaScreen onClose={subKapat} />;
   } else if (sub === 'camiler') {
-    sekmeIcerigi = <CamilerScreen onClose={() => setSub(null)} />;
+    sekmeIcerigi = <CamilerScreen onClose={subKapat} />;
   } else if (tab === 'imsakiye') {
     sekmeIcerigi = <ImsakiyeScreen onClose={() => setTab('home')} />;
   } else if (tab === 'kesfet') {
@@ -526,8 +572,8 @@ export default function HomeScreen() {
     sekmeIcerigi = (
       <SettingsScreen
         onClose={() => setTab('home')}
-        onOpenVaktindeKil={() => setSub('vaktindekil')}
-        onOpenReminders={() => setSub('reminders')}
+        onOpenVaktindeKil={() => subAc('vaktindekil')}
+        onOpenReminders={() => subAc('reminders')}
       />
     );
   } else {
@@ -559,7 +605,7 @@ export default function HomeScreen() {
           <IslamicPattern color={colors.cream} opacity={0.07} tile={44} />
           <TouchableOpacity
             style={styles.konumBlok}
-            onPress={() => setSub('location')}
+            onPress={() => subAc('location')}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={t('konumDegistirEtiketi')}
@@ -689,14 +735,18 @@ export default function HomeScreen() {
                 color={vakitKaynak === 'diyanet' ? colors.success : colors.textMuted}
               />
               <Text style={styles.kaynakCipYazi}>
-                {vakitKaynak === 'diyanet' ? t('diyanetTakvimi') : t('yerelHesaplama')}
+                {vakitKaynak === 'diyanet'
+                  ? t('diyanetTakvimi')
+                  : autoMethod
+                  ? t('yerelHesaplama')
+                  : methodLabel}
               </Text>
             </View>
 
             {seri > 0 && (
               <TouchableOpacity
                 style={styles.seriCip}
-                onPress={() => setSub('takip')}
+                onPress={() => subAc('takip')}
                 accessibilityRole="button"
                 accessibilityLabel={t('gunlukSeriEtiketi', seri)}
               >
@@ -908,7 +958,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={arac.adAnahtari}
                 style={styles.hizliOge}
-                onPress={() => setSub(arac.hedef)}
+                onPress={() => subAc(arac.hedef)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={t(arac.adAnahtari)}

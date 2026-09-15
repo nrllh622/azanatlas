@@ -141,57 +141,63 @@ export default function QiblaScreen({ onClose }: Props) {
   const [sensorHatasi, setSensorHatasi] = useState<string | null>(null);
   const [rehberAcik, setRehberAcik] = useState(false);
 
-  // Madde 4 (bu tur) — "hassas konumla kıble bulma" özelliği:
+  // "HASSAS KONUMLA KIBLE BULMA" — 2. TUR (madde 6, bu tur):
   // ─────────────────────────────────────────────────────────────────────────
-  // Kullanıcının sorusu: konum açılarak kıble bulma seçeneği çalışır mı, daha
-  // doğru olur mu, internetsiz yerde işe yarar mı?
+  // Kullanıcının isteği kesin: "Hassas konumu kullanıcıya BIRAKMADAN kendin
+  // doğru kıbleyi bulmak için kullanabilmelisin; illa sormamız gerekiyorsa
+  // Kıble'ye tıklandığında izin isteyelim." Önceki turda bu zaten büyük
+  // ölçüde kurulmuştu (ekran açılışında otomatik/sessiz GPS denemesi) ama
+  // İKİ eksik vardı:
+  //  1) İzin sistemde zaten "reddedilmiş" (denied) durumdaysa hiçbir uyarı
+  //     gösterilmiyordu — sessizce kayıtlı/eski konuma düşülüyordu; kullanıcı
+  //     bunun FARKINA bile varmıyordu, "hâlâ hassas konum kullanmıyor" hissi
+  //     buradan geliyordu.
+  //  2) Ekranda hâlâ "Hassas Konumla Güncelle" diye TIKLANABİLİR/opsiyonel
+  //     görünen bir satır vardı — bu, işlemi kullanıcının başlatması gereken
+  //     bir seçenekmiş gibi gösteriyordu; oysa artık ekran zaten kendisi
+  //     otomatik yapıyor.
   //
-  // Kıble AÇISI hesabı zaten location-based'di — `calculateQiblaBearing`
-  // aşağıda her zaman `LocationContext`'teki KAYITLI konumu (lat/lng)
-  // kullanıyordu, bu turdan önce de öyleydi. Eksik olan, bunun TAZE bir GPS
-  // okuması olmaması; kullanıcı konumunu değiştirmişse (seyahat, yeni şehir)
-  // uygulama açılana kadar kaydedilmiş eski konumu kullanır.
+  // ÇÖZÜM: satır artık yalnızca bir DURUM GÖSTERGESİ (aktif/yükleniyor/
+  // reddedildi) — tıklanabilir olmaktan çıkarılmadı (bina içinden dışarı
+  // çıkıldığında manuel tazeleme için hâlâ faydalı) ama birincil buton
+  // görünümünden çıkarılıp ince bir "yenile" linkine indirgendi. İzin
+  // reddedilirse veya konum servisi kapalıysa artık SESSİZCE geçilmiyor —
+  // aynı ısrarcı uyarı kartı (kalibrasyon kartıyla aynı görsel dil) bu
+  // durumda da gösteriliyor, "Konumu Aç"a ek olarak izin diyaloğunu tekrar
+  // tetikleyen bir "İzin Ver" aksiyonuyla.
   //
-  // GPS'in kendisi İNTERNETSİZ çalışır (uydu sinyaliyle konum bulur) — yalnızca
-  // "bu koordinat hangi il/ilçe" diye ADRES ÇÖZÜMLEMESİ (reverse-geocode)
-  // internet ister. Bu yüzden aşağıdaki `hassasKonumAl`, reverse-geocode'u
-  // BİLEREK atlıyor — yalnızca ham lat/lng alıp doğrudan kıble hesabında
-  // kullanıyor, böylece internetsiz ortamda da (uydu görüşü varsa) çalışır.
-  //
-  // Bu, isteğe bağlı bir "Hassas Konumla Güncelle" satırı olarak eklendi;
-  // kayıtlı konum yine varsayılan olarak kullanılmaya devam ediyor.
+  // GPS'in kendisi İNTERNETSİZ çalışır (uydu sinyaliyle konum bulur) —
+  // yalnızca "bu koordinat hangi il/ilçe" diye ADRES ÇÖZÜMLEMESİ
+  // (reverse-geocode) internet ister. Bu yüzden `hassasKonumAl`,
+  // reverse-geocode'u BİLEREK atlıyor — yalnızca ham lat/lng alıp doğrudan
+  // kıble hesabında kullanıyor, böylece internetsiz ortamda da (uydu görüşü
+  // varsa) çalışır. Kıble AÇISI hesabı `calculateQiblaBearing` ile büyük
+  // daire formülüyle bulunuyor.
   const [hassasKonum, setHassasKonum] = useState<{ lat: number; lng: number } | null>(null);
   const [hassasKonumYukleniyor, setHassasKonumYukleniyor] = useState(false);
   const [hassasKonumHata, setHassasKonumHata] = useState<string | null>(null);
-  // YENİ (bu tur — madde 3): kullanıcı isteği net — "Hassas Konum kullanım
-  // seçeneğini kullanıcıya bırakmadan, Konum açık değilse kullanıcıdan
-  // açmasını iste". Önceki davranış: konum servisi kapalıyken/izin
-  // reddedilmişken SESSİZCE kayıtlı (LocationContext) konuma düşülüyordu —
-  // kullanıcı hiçbir zaman "konumunu aç" diye zorlanmıyordu. Artık servis
-  // kapalıyken (izin verilmiş olsa bile) bu bayrak `true` olur ve ekranda
-  // ısrarcı bir "Konumu Aç" kartı gösterilir — kart kapatılamaz, yalnızca
-  // kullanıcı konumu gerçekten açtığında (ve tekrar denediğinde) kaybolur.
-  const [konumServisiKapali, setKonumServisiKapali] = useState(false);
+  // Konum servisi kapalıyken VEYA izin reddedilmişken — ikisi de artık aynı
+  // ısrarcı uyarı kartını tetikliyor (bkz. yukarıdaki gerekçe, madde 1'in
+  // düzeltmesi). Hangi metnin/aksiyonun gösterileceğini ayırt etmek için tek
+  // bir "sebep" bayrağı kullanılıyor.
+  const [konumSorunu, setKonumSorunu] = useState<'yok' | 'servisKapali' | 'izinYok'>('yok');
 
   const aktifLat = hassasKonum?.lat ?? location.latitude;
   const aktifLng = hassasKonum?.lng ?? location.longitude;
 
-  const hassasKonumAl = async (sessiz: boolean = false) => {
-    // `sessiz` — bkz. aşağıdaki otomatik-çağrı `useEffect`i: ekran ilk
-    // açıldığında kullanıcı hiçbir şeye basmadan biz kendimiz çağırıyoruz.
-    // DÜZELTME (bu tur — madde 3): `sessiz` artık yalnızca "kırmızı hata
-    // metni gösterme" anlamına geliyor — konum servisi KAPALIYSA bu durum
-    // artık sessiz modda bile `konumServisiKapali` bayrağıyla AÇIKÇA
-    // bildiriliyor (eskiden ikisi de aynı şekilde sessizce yutulup kayıtlı
-    // konuma düşülüyordu). "İzin reddedildi" durumu farklı: kullanıcı
-    // izni açıkça reddetmişse tekrar tekrar sistem diyaloğuyla rahatsız
-    // etmiyoruz, yalnızca manuel denemede (`sessiz=false`) hata gösteriyoruz.
+  const hassasKonumAl = async () => {
+    // DÜZELTME (2. tur — madde 6): artık bir "sessiz" parametre YOK — her
+    // çağrı (otomatik açılış dahil) izin/servis sorunlarını AÇIKÇA
+    // bildiriyor. Önceki `sessiz=true` modu, ekran ilk açıldığında izin
+    // reddedilirse kullanıcıya hiçbir şey göstermeden kayıtlı konuma
+    // düşüyordu — bu, kullanıcının "hâlâ istediğim gibi değil" şikayetinin
+    // kök nedeniydi.
     setHassasKonumYukleniyor(true);
-    if (!sessiz) setHassasKonumHata(null);
+    setHassasKonumHata(null);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        if (!sessiz) setHassasKonumHata(t('konumIzniVerilmedi'));
+        setKonumSorunu('izinYok');
         return;
       }
       if (Platform.OS === 'android') {
@@ -203,16 +209,16 @@ export default function QiblaScreen({ onClose }: Props) {
             // Android'in kendi "Konumu Aç" sistem diyaloğunu açar; kullanıcı
             // "Hayır" derse aşağıdaki catch'e düşer ve kart ekranda kalır.
             await Location.enableNetworkProviderAsync();
-            setKonumServisiKapali(false);
+            setKonumSorunu('yok');
           } else {
-            setKonumServisiKapali(false);
+            setKonumSorunu('yok');
           }
         } catch {
           // Kullanıcı sistem diyaloğunda "Hayır" dedi ya da servis hâlâ
           // kapalı — ısrarcı uyarı kartını göster, kayıtlı konuma SESSİZCE
           // düşülmeden önce kullanıcıya bir şans daha (kart üzerindeki
           // "Konumu Aç" butonu) tanınmış olur.
-          setKonumServisiKapali(true);
+          setKonumSorunu('servisKapali');
           setHassasKonumYukleniyor(false);
           return;
         }
@@ -220,21 +226,19 @@ export default function QiblaScreen({ onClose }: Props) {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setHassasKonum({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     } catch {
-      if (!sessiz) setHassasKonumHata(t('konumAlinamadi'));
+      setHassasKonumHata(t('konumAlinamadi'));
     } finally {
       setHassasKonumYukleniyor(false);
     }
   };
 
-  // MADDE 1 (bu tur) — kullanıcı isteği: "Hassas Konumla Güncelle"ye
-  // tıklandıktan sonra pusula doğru çalışıyorsa, kullanıcıyı bu düğmeye
-  // basmaya zorlamak yerine ekran açılır açılmaz kendiliğinden bir kez
-  // otomatik çağrılsın. Buton yine de ekranda kalıyor — kullanıcı GPS'i
-  // yeniledikten sonra (ör. bina içinden dışarı çıktıysa) tekrar manuel
-  // tazeleyebilsin diye.
+  // Ekran açılır açılmaz, kullanıcıdan hiçbir şey istemeden (buton bekletmeden)
+  // otomatik olarak izin/GPS akışı başlatılıyor — kullanıcının "kendin yap,
+  // seçeneği bana bırakma" isteği tam olarak bu. Sistem izin diyaloğu (izin
+  // daha önce hiç sorulmadıysa) burada, ekran açılır açılmaz çıkar.
   useEffect(() => {
-    hassasKonumAl(true);
-    // Yalnızca ekran ilk açıldığında bir kez — bkz. yukarıdaki `sessiz` notu.
+    hassasKonumAl();
+    // Yalnızca ekran ilk açıldığında bir kez.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -394,23 +398,34 @@ export default function QiblaScreen({ onClose }: Props) {
         {/* Madde 1 (bu tur): AKTİF kalibrasyon uyarısı — pasif "Pusula doğru
             göstermiyor mu?" butonunun tersine, kullanıcı bir şey yapmadan
             kendiliğinden beliriyor (bkz. dosya başındaki araştırma notu). */}
-        {/* YENİ (bu tur — madde 3): konum servisi kapalıyken gösterilen
-            ISRARCI uyarı kartı — kalibrasyon kartıyla aynı görsel dilde
-            (kırmızımsı, dikkat çekici) ama farklı bir aksiyon sunuyor:
-            doğrudan Android'in konum ayarlarını açmayı dener. */}
-        {konumServisiKapali && (
+        {/* YENİ (2. tur — madde 6): konum servisi kapalıyken VEYA izin
+            reddedilmişken gösterilen ISRARCI uyarı kartı — kalibrasyon
+            kartıyla aynı görsel dilde (kırmızımsı, dikkat çekici). İzin
+            reddedilmişse tekrar `hassasKonumAl()` çağrısı sistemin izin
+            diyaloğunu yeniden tetikler (Android, kullanıcı "Bir daha sorma"
+            demediyse tekrar sorar); servis kapalıysa doğrudan Android'in
+            konum ayarlarını açmayı dener. */}
+        {konumSorunu !== 'yok' && (
           <TouchableOpacity
             style={styles.kalibrasyonKart}
-            onPress={() => hassasKonumAl(false)}
+            onPress={hassasKonumAl}
             disabled={hassasKonumYukleniyor}
             activeOpacity={0.85}
           >
             <Icon name="konum" size={22} color={colors.danger} />
             <View style={styles.kalibrasyonMetinKap}>
-              <Text style={styles.kalibrasyonBaslik}>{t('konumServisiKapaliBaslik')}</Text>
-              <Text style={styles.kalibrasyonMetin}>{t('konumServisiKapaliMetin')}</Text>
+              <Text style={styles.kalibrasyonBaslik}>
+                {konumSorunu === 'izinYok' ? t('konumIzniGerekliBaslik') : t('konumServisiKapaliBaslik')}
+              </Text>
+              <Text style={styles.kalibrasyonMetin}>
+                {konumSorunu === 'izinYok' ? t('konumIzniGerekliMetin') : t('konumServisiKapaliMetin')}
+              </Text>
               <Text style={styles.konumuAcLink}>
-                {hassasKonumYukleniyor ? t('konumAliniyor') : t('konumuAc')}
+                {hassasKonumYukleniyor
+                  ? t('konumAliniyor')
+                  : konumSorunu === 'izinYok'
+                  ? t('izinVer')
+                  : t('konumuAc')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -674,17 +689,19 @@ export default function QiblaScreen({ onClose }: Props) {
           </View>
         </View>
 
+        {/* DÜZELTME (bu tur — madde 6): kullanıcı artık hassas konumu
+            kendisi "açması gereken" bir seçenek olarak görmemeli — ekran
+            açılır açılmaz otomatik olarak istenip kullanılıyor (yukarıdaki
+            mount useEffect'i, `hassasKonumAl()`). Bu satır artık bir
+            "buton" değil, sadece durumu bildiren pasif bir gösterge;
+            aktifken dokunma da yalnızca manuel bir yenileme yapıyor
+            (kullanıcı konumunu değiştirip tekrar okutmak isteyebilir). */}
         <TouchableOpacity
           style={styles.hassasKonumSatir}
-          onPress={() => hassasKonumAl(false)}
+          onPress={hassasKonumAl}
           disabled={hassasKonumYukleniyor}
           activeOpacity={0.75}
         >
-          {/* DÜZELTME (bu tur — madde 3): kullanıcı isteği — "Hassas Konum
-              kullanılıyor" mesajını yazı olarak daha da büyüt. İkon 14→18,
-              yazı boyutu 13→16 ve kalın (bodyBold) yapıldı; "aktif" durumda
-              ayrıca vurgu rengiyle (success) gösteriliyor ki fark edilirliği
-              artsın. */}
           <Icon name="konum" size={18} color={hassasKonum ? colors.success : colors.textMuted} />
           <Text
             style={[
@@ -698,6 +715,11 @@ export default function QiblaScreen({ onClose }: Props) {
               ? t('hassasKonumAktif')
               : t('hassasKonumlaGuncelle')}
           </Text>
+          {hassasKonum && (
+            <View style={{ marginLeft: 4 }}>
+              <Icon name="yenile" size={14} color={colors.textMuted} />
+            </View>
+          )}
         </TouchableOpacity>
         {hassasKonumHata && <Text style={styles.hassasKonumHataYazi}>{hassasKonumHata}</Text>}
 

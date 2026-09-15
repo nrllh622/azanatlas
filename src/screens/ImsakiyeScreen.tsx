@@ -20,7 +20,7 @@ import Icon from '../components/Icon';
 import { colors, spacing, radius, typography, elevation } from '../theme';
 import { calculateVakitler, getVakitlerWithDiyanetFallback } from '../lib/prayerCalculator';
 import { useLocationContext } from '../context/LocationContext';
-import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useCalculationSettings, CALC_METHODS } from '../context/CalculationSettingsContext';
 import { useCeviri } from '../i18n/DilContext';
 import { AY_ANAHTARLARI, GUN_ANAHTARLARI } from '../i18n/ceviriler';
 
@@ -55,7 +55,17 @@ export default function ImsakiyeScreen({ onClose }: Props) {
   const { location } = useLocationContext();
   const { autoMethod, methodId, madhab, highLatRule } = useCalculationSettings();
   const [bugun] = useState(() => new Date());
-  const { t, vakitAdi } = useCeviri();
+  const { t, vakitAdi, dil } = useCeviri();
+
+  // DÜZELTME (2. tur — madde 4): kullanıcı manuel bir Hesaplama Yöntemi
+  // seçtiğinde bu ekranda hâlâ sabit "Yerel hesaplama — manuel ayarların
+  // kullanılıyor" yazdığını, seçtiği yöntemin adının hiçbir yerde
+  // görünmediğini bildirdi — HomeScreen.tsx'teki AYNI düzeltme burada da
+  // uygulanıyor (tek doğruluk kaynağı CALC_METHODS).
+  const methodLabel =
+    (dil === 'tr'
+      ? CALC_METHODS.find((m) => m.id === methodId)?.label
+      : CALC_METHODS.find((m) => m.id === methodId)?.labelEn) ?? t('yerelHesaplama');
 
   const yerelGunler = useMemo((): GunSatiri[] => {
     const sonuc: GunSatiri[] = [];
@@ -146,7 +156,7 @@ export default function ImsakiyeScreen({ onClose }: Props) {
                 ? t('diyanetTakvimiVerisi')
                 : autoMethod
                 ? t('yerelHesaplamaUlasilamadi')
-                : t('yerelHesaplamaManuel')}
+                : methodLabel}
             </Text>
           </View>
         }

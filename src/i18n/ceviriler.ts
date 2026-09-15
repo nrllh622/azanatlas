@@ -1384,6 +1384,12 @@ const kibleEkrani = {
     konumServisiKapaliBaslik: 'Konum servisi kapalı',
     konumServisiKapaliMetin: 'En doğru kıble yönü için telefonunuzun konum (GPS) servisini açmanız gerekiyor.',
     konumuAc: 'Konumu Aç',
+    // YENİ (2. tur — madde 6): izin REDDEDİLMİŞKEN (servis değil, sistem
+    // izni) gösterilen ayrı başlık/metin/aksiyon — "Konumu Aç" yerine
+    // sistemin izin diyaloğunu tekrar tetikleyen "İzin Ver".
+    konumIzniGerekliBaslik: 'Konum izni gerekli',
+    konumIzniGerekliMetin: 'En doğru kıble yönünü hesaplayabilmemiz için hassas konum iznine ihtiyacımız var.',
+    izinVer: 'İzin Ver',
   },
   en: {
     kible: 'Qibla',
@@ -1413,6 +1419,9 @@ const kibleEkrani = {
     konumServisiKapaliBaslik: 'Location service is off',
     konumServisiKapaliMetin: 'For the most accurate qibla direction, please turn on your phone\'s location (GPS) service.',
     konumuAc: 'Turn On Location',
+    konumIzniGerekliBaslik: 'Location permission needed',
+    konumIzniGerekliMetin: 'We need precise location permission to calculate the most accurate qibla direction.',
+    izinVer: 'Grant Permission',
   },
   id: {
     kible: 'Kiblat',
@@ -1442,6 +1451,9 @@ const kibleEkrani = {
     konumServisiKapaliBaslik: 'Layanan lokasi nonaktif',
     konumServisiKapaliMetin: 'Untuk arah kiblat yang paling akurat, aktifkan layanan lokasi (GPS) ponsel Anda.',
     konumuAc: 'Aktifkan Lokasi',
+    konumIzniGerekliBaslik: 'Izin lokasi diperlukan',
+    konumIzniGerekliMetin: 'Kami memerlukan izin lokasi presisi untuk menghitung arah kiblat yang paling akurat.',
+    izinVer: 'Berikan Izin',
   },
   fr: {
     kible: 'Qibla',
@@ -1471,6 +1483,9 @@ const kibleEkrani = {
     konumServisiKapaliBaslik: 'Le service de localisation est désactivé',
     konumServisiKapaliMetin: 'Pour une direction de la qibla la plus précise possible, veuillez activer le service de localisation (GPS) de votre téléphone.',
     konumuAc: 'Activer la position',
+    konumIzniGerekliBaslik: 'Autorisation de localisation requise',
+    konumIzniGerekliMetin: 'Nous avons besoin de l\'autorisation de localisation précise pour calculer la direction de la qibla la plus exacte.',
+    izinVer: 'Autoriser',
   },
 };
 

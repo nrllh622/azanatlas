@@ -1,70 +1,53 @@
 // src/lib/camiBul.ts
 //
-// EN YAKIN CAMİLERİ BULMA (bu tur — madde 2: "Cami Bul kesinlikle çalışmıyor")
+// EN YAKIN CAMİLERİ BULMA (bu tur — madde 2, 2. deneme: "gene çalışmadı")
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// VERİ KAYNAĞI: OpenStreetMap / Overpass API
+// VERİ KAYNAĞI: OpenStreetMap (iki BAĞIMSIZ altyapı üzerinden)
 //
 // Google Places API'nin aksine API anahtarı, faturalandırma hesabı veya
 // kota takibi GEREKTİRMEZ — tamamen ücretsiz, açık bir coğrafi veritabanı.
-// `amenity=place_of_worship` + `religion=muslim` etiketli noktalar sorgulanır
-// — bu, dünya çapında OSM'de camileri işaretlemenin standart yoludur.
-//
-// Overpass sorgu dili "QL" düz metin olarak POST body'sinde gönderilir;
-// yanıt JSON olarak gelir. Kullanıcının konumundan `YARICAP_METRE` içindeki
-// tüm camiler tek istekte alınır — sunucu tarafı filtreleme sayesinde
-// istemci cihazda ağır bir hesap yapılmaz.
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// KÖK NEDEN ARAŞTIRMASI (bu tur — madde 2)
+// KÖK NEDEN ARAŞTIRMASI — 2. TUR
 //
-// Önceki turda (madde 3, geçen devir) üç yedek sunucu + 8sn zaman aşımı
-// eklenmişti ama kullanıcı "defalarca denedim, kesinlikle çalışmıyor" diye
-// bildirdi. OpenStreetMap topluluğunun resmi kaynaklarını (help.openstreetmap.org,
-// Overpass API bakımcısı Roland Olbricht'in kendi açıklamaları) araştırınca şu
-// çıktı:
+// Önceki turda (madde 2, 1. deneme) üç Overpass aynasına `Referer`/
+// `User-Agent` header'ları eklendi ve 429 için otomatik yeniden deneme
+// kondu. Kullanıcı yine de "gene çalışmadı" bildirdi — ekran görüntüsünde bu
+// sefer "sunucu meşgul" değil, "İnternet bağlantına ulaşılamadı" (yani
+// `durum: 'agYok'`) mesajı çıktı. Bu ÖNEMLİ bir ayrım: 429 değil, ÜÇ
+// Overpass sunucusunun (`kumi.systems`, `overpass-api.de`,
+// `openstreetmap.ru`) HİÇBİRİNE bağlantı kurulamadı (zaman aşımı/bağlantı
+// reddi). Aynı anda Diyanet API'sinin (ezanvakti.emushaf.net, tamamen farklı
+// bir sunucu/altyapı) sorunsuz çalıştığı ekran görüntülerden anlaşılıyor —
+// yani cihazın interneti VAR, sorun özellikle Overpass'ın kullandığı üç
+// host'a özgü.
 //
-//  1) Overpass'ın "kötüye kullanım" tespiti IP BAZLI çalışıyor, kullanıcı
-//     bazlı değil. Mobil operatör ağları genelde CGNAT kullanır — yani
-//     binlerce farklı kullanıcı sunucuya AYNI görünür IP'den bağlanır. O
-//     havuzdaki biri agresif istek atarsa, aynı IP'yi paylaşan HERKES bir
-//     süreliğine 429 (Too Many Requests) alabilir. Bu, kullanıcının kontrolü
-//     dışında bir durum ve "kesinlikle çalışmıyor" hissini açıklıyor.
-//  2) Bakımcının kendi ifadesiyle, geçici 429 blokları özellikle şu üç
-//     özelliğin BİR ARADA görüldüğü isteklere uygulanıyor: POST metodu +
-//     `Referer` header'ının HİÇ olmaması + büyük sorgu gövdesi. Önceki
-//     kodumuzda `sunucudanIste()` yalnızca `Content-Type` gönderiyordu —
-//     ne `Referer` ne `User-Agent` ne `Accept` vardı. Yani kod, sunucunun
-//     "şüpheli" saydığı profile tam uyuyordu.
-//  3) Bakımcı, uygulamaların isteklerini "distinct" (ayırt edilebilir) hale
-//     getirmesinin çözüm olduğunu, bunun için de `Referer` ve/veya açıklayıcı
-//     bir `User-Agent` göndermenin yeterli olduğunu belirtiyor.
+// Olası açıklama: bazı mobil operatör ağları / kurumsal ağlar / bölgesel
+// DNS filtreleri, Overpass'ın kamu aynalarını (özellikle Rusya merkezli
+// `overpass.openstreetmap.ru` gibi bir alan adını) engelleyebiliyor, ya da
+// bu üç sunucu o an gerçekten kullanıcının bulunduğu bölgeden yavaş/kapalı.
+// Overpass'ın kendisi tek bir proje/topluluk tarafından işletilen aynı
+// "aile"den sunucular olduğu için, üçünün de aynı anda erişilemez olması
+// (kullanıcının ağından bakıldığında) tek bir kaynağa bağımlılığın riskini
+// gösteriyor.
 //
-// YAPILAN DÜZELTMELER:
-//  1) Her isteğe artık `Referer`, açıklayıcı bir `User-Agent` ve `Accept`
-//     header'ları ekleniyor — sunucunun "kimliksiz/şüpheli" sınıflandırmasına
-//     girme ihtimalini azaltıyor.
-//  2) 429 durumu ayrı ele alınıyor: o sunucuyu hemen terk edip sıradakine
-//     geçmek yerine, KISA bir bekleme (backoff) sonrası AYNI sunucuyu bir kez
-//     daha deniyoruz (bakımcının notuna göre 429 blokları birkaç dakika
-//     içinde otomatik kalkıyor; yine de kullanıcıyı uzun süre bekletmemek
-//     için bekleme süresi kısa tutuldu) — başarısız olursa sıradaki sunucuya
-//     geçiliyor.
-//  3) `overpass.kumi.systems` (bağımsız, uzun süredir var olan, farklı
-//     işletmeci) sıralamada ÖNE alındı — resmi `overpass-api.de` üzerinde en
-//     çok yük/kısıtlama görülüyor, bağımsız aynalar genelde daha rahat.
-//  4) Sorgu gövdesi olabildiğince küçük tutulmaya devam ediyor (tek radius
-//     sorgusu, alan sınırlaması `out center` ile) — "büyük gövde" şüphesini
-//     tetiklememek için.
-//  5) Başarısız/boş sonuç ile "ağ tamamen erişilemez" durumu artık ayrı
-//     bilgi taşıyor (`SonucTuru`) — CamilerScreen.tsx kullanıcıya daha
-//     isabetli bir mesaj gösterebiliyor (bkz. o dosyadaki güncelleme).
+// ÇÖZÜM — 2. TUR: Overpass'a ek olarak, TAMAMEN FARKLI bir işletmeci/altyapı
+// tarafından barındırılan, ücretsiz ve kayıtsız bir İKİNCİ kaynak eklendi:
+// Photon (komoot.io tarafından işletilen açık kaynaklı OSM geocoder,
+// photon.komoot.io) — Almanya merkezli, Overpass projesiyle hiçbir sunucu/
+// altyapı paylaşımı yok. `/reverse` uç noktası enlem/boylam + yarıçap ile
+// yakındaki OSM noktalarını GET isteğiyle döndürüyor (Overpass'ın aksine
+// POST + özel sorgu dili gerektirmiyor — daha basit, engellenme yüzeyi
+// daha düşük bir istek deseni).
 //
-// Not: Bilinmeyen/doğrulanamamış üçüncü taraf "sınırsız, kayıtsız" Overpass
-// servisleri (ör. bazı blog yazılarında geçen adresler) bilinçli olarak
-// EKLENMEDİ — bu tür kaynaklar doğrulanamadan koda eklenirse ileride sessizce
-// kapanabilir ya da kötüye kullanım listelerine girebilir. Yalnızca resmi OSM
-// wiki'sinde uzun süredir belgeli, bilinen ayna sunucular kullanılıyor.
+// YENİ SIRALAMA: önce üç Overpass aynası (hâlâ en zengin/en doğru
+// `religion=muslim` filtresini destekliyor), hepsi başarısız olursa Photon
+// denenir. Photon `osm_tag=amenity:place_of_worship` ile TÜM dinlerin
+// ibadethanelerini döndürür (kendi sorgu dilinde birleşik bir "VE dinî=
+// müslüman" filtresi yok) — bu yüzden sonuçlar istemci tarafında
+// `properties.religion === 'muslim'` alanına göre süzülüyor; bu alan
+// OSM'de zaten cami etiketlemesinin standart parçası, veri kaybı olmuyor.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const OVERPASS_SUNUCULARI = [
@@ -73,13 +56,17 @@ const OVERPASS_SUNUCULARI = [
   'https://overpass.openstreetmap.ru/api/interpreter',
 ];
 
+// YENİ (2. tur): Overpass'tan tamamen bağımsız, farklı işletmeci/altyapı.
+const PHOTON_URL = 'https://photon.komoot.io/reverse';
+
 const YARICAP_METRE = 5000; // 5 km
+const YARICAP_KM = YARICAP_METRE / 1000;
 const ZAMAN_ASIMI_MS = 9000;
 // 429 alındığında aynı sunucuyu bir kez daha denemeden önceki kısa bekleme.
 const RATE_LIMIT_BEKLEME_MS = 1500;
 
 export interface CamiSonucu {
-  id: number;
+  id: number | string;
   ad: string;
   lat: number;
   lng: number;
@@ -91,18 +78,22 @@ export interface CamiSonucu {
  * `yakinCamileriBul` çağrısının sonucu hakkında ek bağlam. CamilerScreen.tsx
  * bu bilgiyle kullanıcıya "camiler alınamadı" yerine daha isabetli bir mesaj
  * gösterebilir:
- *  - 'ok'         → istek başarılı, `sonuclar` güvenilir (boş da olabilir,
- *                    gerçekten 5km içinde OSM'de kayıtlı cami yok demektir).
- *  - 'sunucuMesgul' → tüm sunuculardan 429/5xx döndü — geçici, tekrar
- *                    denemesi önerilir.
- *  - 'agYok'      → hiçbir sunucuya bağlanılamadı (zaman aşımı / ağ hatası) —
- *                    muhtemelen cihazın interneti yok ya da çok zayıf.
+ *  - 'ok'           → istek başarılı, `sonuclar` güvenilir (boş da olabilir,
+ *                      gerçekten 5km içinde OSM'de kayıtlı cami yok demektir).
+ *  - 'sunucuMesgul' → sunucu(lar)dan 429/5xx döndü — geçici, tekrar
+ *                      denemesi önerilir.
+ *  - 'agYok'        → hiçbir kaynağa (Overpass'ın 3 aynası VE Photon)
+ *                      bağlanılamadı — muhtemelen cihazın interneti yok ya
+ *                      da çok zayıf.
  */
 export type CamiAramaDurumu = 'ok' | 'sunucuMesgul' | 'agYok';
 
 export interface CamiAramaSonucu {
   durum: CamiAramaDurumu;
   sonuclar: CamiSonucu[];
+  /** YENİ (2. tur, tanı amaçlı): sonuç hangi kaynaktan geldi — kullanıcı
+   *  desteği/hata ayıklaması için faydalı, arayüzde ZORUNLU gösterilmiyor. */
+  kaynak?: 'overpass' | 'photon';
 }
 
 function toRad(deg: number): number {
@@ -142,16 +133,16 @@ function gecikme(ms: number): Promise<void> {
  * `HTTP_429` özel bir hata sınıfı: çağıran taraf (yakinCamileriBul) bunu
  * "sunucu meşgul, kısa bekleyip aynı sunucuyu bir kez daha dene" sinyali
  * olarak ayırt edebilsin diye. Diğer hatalar (zaman aşımı, DNS, 5xx) direkt
- * bir sonraki sunucuya geçilmesi gereken durumlar olarak kalıyor.
+ * bir sonraki kaynağa geçilmesi gereken durumlar olarak kalıyor.
  */
 class Http429Hatasi extends Error {
   constructor() {
-    super('Overpass HTTP 429');
+    super('HTTP 429');
     this.name = 'Http429Hatasi';
   }
 }
 
-async function sunucudanIsteTekSefer(sunucuUrl: string, lat: number, lng: number): Promise<any> {
+async function overpassIsteTekSefer(sunucuUrl: string, lat: number, lng: number): Promise<any> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ZAMAN_ASIMI_MS);
   try {
@@ -159,16 +150,9 @@ async function sunucudanIsteTekSefer(sunucuUrl: string, lat: number, lng: number
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain',
-        // ───────────────────────────────────────────────────────────────
-        // KÖK NEDEN DÜZELTMESİ (bu tur — madde 2): Overpass'ın kötüye
-        // kullanım tespiti, "Referer'ı hiç olmayan POST istekleri"ni
-        // şüpheli sayıyor. Uygulamamızın kimliğini açıkça bildiren bir
-        // `Referer` + açıklayıcı bir `User-Agent` eklemek, isteklerimizin
-        // anonim/otomatik kötüye kullanım trafiğinden ayrışmasını sağlıyor.
-        // React Native'de `User-Agent` bazı platformlarda motor tarafından
-        // değiştirilebiliyor; bu yüzden aynı bilgi ayrıca özel bir header'da
-        // (`X-App-Name`) da tekrarlanıyor — zararsız, sunucu tarafından
-        // yok sayılsa bile bir kaybımız olmuyor.
+        // Overpass'ın kötüye kullanım tespiti "Referer'ı hiç olmayan POST
+        // istekleri"ni şüpheli sayıyor (bkz. önceki tur notu) — açıklayıcı
+        // Referer/User-Agent isteklerin anonim trafikten ayrışmasını sağlıyor.
         Referer: 'https://azanatlas.app/cami-bul',
         'User-Agent': 'AzanAtlas/1.0 (Android; cami-bul; +https://azanatlas.app)',
         'X-App-Name': 'AzanAtlas-CamiBul',
@@ -186,51 +170,24 @@ async function sunucudanIsteTekSefer(sunucuUrl: string, lat: number, lng: number
 }
 
 /**
- * Tek bir sunucuyu dener; 429 alırsa kısa bir bekleme sonrası AYNI sunucuyu
- * bir kez daha dener (bakımcının notuna göre bloklar birkaç dakikada
- * kalkıyor — kısa bir bekleme bazen yeterli oluyor). İkinci deneme de
- * başarısız olursa hata çağıran tarafa (yakinCamileriBul) iletilir ve o,
- * bir sonraki sunucuya geçer.
+ * Tek bir Overpass sunucusunu dener; 429 alırsa kısa bir bekleme sonrası
+ * AYNI sunucuyu bir kez daha dener. İkinci deneme de başarısız olursa hata
+ * çağıran tarafa (yakinCamileriBul) iletilir ve o, bir sonraki kaynağa geçer.
  */
-async function sunucudanIste(sunucuUrl: string, lat: number, lng: number): Promise<any> {
+async function overpassIste(sunucuUrl: string, lat: number, lng: number): Promise<any> {
   try {
-    return await sunucudanIsteTekSefer(sunucuUrl, lat, lng);
+    return await overpassIsteTekSefer(sunucuUrl, lat, lng);
   } catch (err) {
     if (err instanceof Http429Hatasi) {
       await gecikme(RATE_LIMIT_BEKLEME_MS);
-      return await sunucudanIsteTekSefer(sunucuUrl, lat, lng);
+      return await overpassIsteTekSefer(sunucuUrl, lat, lng);
     }
     throw err;
   }
 }
 
-/**
- * Verilen koordinatın YARICAP_METRE (5km) çevresindeki camileri, en
- * yakından en uzağa sıralı olarak döndürür. `durum` alanı hatanın türünü
- * (sunucu meşgul / ağ yok / başarılı) ayırt eder — bkz. `CamiAramaDurumu`.
- * Ağ hatası/zaman aşımında istisna FIRLATMAZ, `sonuclar: []` ile döner —
- * çağıran taraf "bulunamadı" durumunu kendi arayüzünde ele alır.
- */
-export async function yakinCamileriBul(lat: number, lng: number): Promise<CamiAramaSonucu> {
-  let veri: any = null;
-  let sonHataliDurum: CamiAramaDurumu = 'agYok';
-
-  for (const sunucu of OVERPASS_SUNUCULARI) {
-    try {
-      veri = await sunucudanIste(sunucu, lat, lng);
-      break;
-    } catch (err) {
-      // 429 (iki denemeden sonra da) → "sunucu meşgul" olarak işaretle ama
-      // yine de listedeki bir sonraki bağımsız sunucuyu denemeye devam et.
-      sonHataliDurum = err instanceof Http429Hatasi ? 'sunucuMesgul' : sonHataliDurum;
-      continue;
-    }
-  }
-
-  if (!veri || !Array.isArray(veri.elements)) {
-    return { durum: sonHataliDurum, sonuclar: [] };
-  }
-
+function overpassYanitiniAyristir(veri: any, lat: number, lng: number): CamiSonucu[] {
+  if (!veri || !Array.isArray(veri.elements)) return [];
   const sonuclar: CamiSonucu[] = [];
   for (const el of veri.elements) {
     // node'larda lat/lon doğrudan var; way/relation'larda `out center` ile
@@ -248,9 +205,101 @@ export async function yakinCamileriBul(lat: number, lng: number): Promise<CamiAr
       mesafeMetre: ikiNoktaMesafesiMetre(lat, lng, camiLat, camiLng),
     });
   }
+  return sonuclar;
+}
 
-  sonuclar.sort((a, b) => a.mesafeMetre - b.mesafeMetre);
-  return { durum: 'ok', sonuclar };
+/**
+ * YENİ (2. tur): Photon (komoot.io) üzerinden yakındaki ibadethaneleri
+ * getirir — Overpass'la HİÇBİR altyapı/sunucu paylaşmayan, tamamen bağımsız
+ * bir kaynak. Basit GET isteği (Overpass'ın POST + özel sorgu dili yerine)
+ * — ağ engelleme/filtreleme yüzeyi daha küçük.
+ *
+ * Photon'un kendi sorgu dilinde "VE dini=müslüman" filtresi yok; `osm_tag`
+ * yalnızca `amenity:place_of_worship` ile TÜM dinlerin ibadethanelerini
+ * getirir. Bu yüzden sonuç istemci tarafında `properties.religion` alanına
+ * göre süzülüyor (bu alan OSM'in cami etiketleme standardının parçası —
+ * `overpassSorgusu`'nun sunucu tarafında yaptığı filtrelemenin istemci
+ * tarafı karşılığı, veri kaybı yok).
+ */
+async function photonIste(lat: number, lng: number): Promise<CamiSonucu[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ZAMAN_ASIMI_MS);
+  try {
+    const url =
+      `${PHOTON_URL}?lat=${lat}&lon=${lng}&radius=${YARICAP_KM}` +
+      `&osm_tag=amenity:place_of_worship&limit=50`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    if (response.status === 429) throw new Http429Hatasi();
+    if (!response.ok) throw new Error(`Photon HTTP ${response.status}`);
+    const veri = await response.json();
+    const features: any[] = Array.isArray(veri?.features) ? veri.features : [];
+
+    const sonuclar: CamiSonucu[] = [];
+    for (const f of features) {
+      const props = f?.properties ?? {};
+      // Yalnızca İslam ibadethaneleri — bkz. yukarıdaki fonksiyon yorumu.
+      if (props.religion && props.religion !== 'muslim') continue;
+
+      const coords = f?.geometry?.coordinates; // GeoJSON: [lon, lat]
+      if (!Array.isArray(coords) || coords.length < 2) continue;
+      const camiLng = coords[0];
+      const camiLat = coords[1];
+      if (typeof camiLat !== 'number' || typeof camiLng !== 'number') continue;
+
+      const ad: string = props.name || '';
+      sonuclar.push({
+        id: props.osm_id ?? `${camiLat},${camiLng}`,
+        ad,
+        lat: camiLat,
+        lng: camiLng,
+        mesafeMetre: ikiNoktaMesafesiMetre(lat, lng, camiLat, camiLng),
+      });
+    }
+    return sonuclar;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Verilen koordinatın YARICAP_METRE (5km) çevresindeki camileri, en
+ * yakından en uzağa sıralı olarak döndürür. `durum` alanı hatanın türünü
+ * (sunucu meşgul / ağ yok / başarılı) ayırt eder — bkz. `CamiAramaDurumu`.
+ *
+ * SIRALAMA (2. tur): önce 3 Overpass aynası denenir (en doğru/zengin
+ * filtreleme). HEPSİ başarısız olursa — özellikle "hiçbirine bağlanılamadı"
+ * durumunda, ki kullanıcının bildirdiği asıl sorun buydu — tamamen farklı
+ * bir altyapı olan Photon denenir. İkisi de başarısız olursa çağıran taraf
+ * boş liste + 'agYok'/'sunucuMesgul' alır; istisna FIRLATILMAZ.
+ */
+export async function yakinCamileriBul(lat: number, lng: number): Promise<CamiAramaSonucu> {
+  let sonHataliDurum: CamiAramaDurumu = 'agYok';
+
+  for (const sunucu of OVERPASS_SUNUCULARI) {
+    try {
+      const veri = await overpassIste(sunucu, lat, lng);
+      const sonuclar = overpassYanitiniAyristir(veri, lat, lng);
+      sonuclar.sort((a, b) => a.mesafeMetre - b.mesafeMetre);
+      return { durum: 'ok', sonuclar, kaynak: 'overpass' };
+    } catch (err) {
+      sonHataliDurum = err instanceof Http429Hatasi ? 'sunucuMesgul' : sonHataliDurum;
+      continue;
+    }
+  }
+
+  // Overpass'ın üç aynası da başarısız oldu — bağımsız ikinci kaynağı dene.
+  try {
+    const sonuclar = await photonIste(lat, lng);
+    sonuclar.sort((a, b) => a.mesafeMetre - b.mesafeMetre);
+    return { durum: 'ok', sonuclar, kaynak: 'photon' };
+  } catch (err) {
+    const photonDurum = err instanceof Http429Hatasi ? 'sunucuMesgul' : sonHataliDurum;
+    return { durum: photonDurum, sonuclar: [] };
+  }
 }
 
 /**

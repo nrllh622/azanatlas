@@ -231,16 +231,19 @@ export function calculateVakitler(
   // SABAH: Ezan Vakti Pro'nun ANA EKRANINDA gösterdiği "Sabah" değeri, gerçek
   // Fecr-i Sadık (İmsak) değil — gerçek verilerle doğrulandı: 21 Ağustos 2026,
   // İstanbul/Küçükçekmece için Ezan Vakti Pro İmsak=04:39, Sabah=05:13,
-  // Güneş=06:13 gösteriyor; 05:13 tam olarak Güneş-60dk. Bu, Türkiye'de
-  // "sabah ezanı güneş doğuşundan bir saat önce okunur" şeklinde bilinen,
-  // Diyanet'in kesin açı hesabından bağımsız, pratik/geleneksel bir
-  // gösterim kuralı. SADECE Türkiye/Diyanet konvansiyonu kullanılırken
-  // uygulanıyor — başka ülke/yöntemlerde (ör. ISNA, MWL) "Sabah" evrensel
-  // fıkıh kuralına göre yine Fecr-i Sadık'ın (İmsak/Fajr) kendisidir.
-  const turkiyeKonvansiyonu = countryCode === 'TR' && (autoMethod || methodId === 'Turkey');
-  const sabah = turkiyeKonvansiyonu
-    ? new Date(Math.max(fajr.getTime(), sunrise.getTime() - 60 * 60 * 1000))
-    : fajr;
+  // Güneş=06:13 gösteriyor; 05:13 tam olarak Güneş-60dk.
+  //
+  // DÜZELTME (2. tur — madde 3): bu kural önceden SADECE Türkiye/Diyanet
+  // konvansiyonu seçiliyken uygulanıyordu; kullanıcı Diyanet dışında HANGİ
+  // yöntemi seçerse seçsin İmsak ve Sabah'ın birebir aynı saati gösterdiğini
+  // ve bunun tutarsız/hatalı göründüğünü bildirdi ("İmsak diğer Hesaplama
+  // Yöntemlerinde kullanılmıyor mu?"). İmsak (Fecr-i Sadık/Fajr) HER yöntemde
+  // dini olarak sabah namazının gerçek giriş vaktiyle aynı kalmaya devam
+  // ediyor — bu değişmedi. Ama uygulamanın "Sabah" alanı artık HER ülke/
+  // yöntemde de aynı "Güneş doğuşundan 1 saat önce" pratik gösterim kuralına
+  // göre türetiliyor, böylece İmsak ile Sabah her zaman görsel olarak
+  // birbirinden ayrışıyor ve kullanıcı için tutarlı bir davranış sergiliyor.
+  const sabah = new Date(Math.max(fajr.getTime(), sunrise.getTime() - 60 * 60 * 1000));
 
   return [
     { key: 'imsak', label: LABELS.imsak, date: imsak },
