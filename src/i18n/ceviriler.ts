@@ -46,7 +46,14 @@
 // devir dosyası / pazar stratejisi raporu.
 export type DilKodu = 'tr' | 'en' | 'id' | 'fr';
 
-export const VARSAYILAN_DIL: DilKodu = 'tr';
+// DÜZELTME (bu tur — madde 5): varsayılan dil TÜRKÇE'den İNGİLİZCE'ye
+// değiştirildi — kullanıcı isteği net: Play Store'dan ilk kez indirildiğinde
+// (henüz hiçbir dil seçimi yapılmamışken) uygulama İngilizce açılmalı, hedef
+// kitle Türkiye'yle sınırlı değil (bkz. proje kimliği: TR/EN/ID/FR, global
+// hedef kitle). Kullanıcı onboarding'deki YENİ dil seçim adımında (bkz.
+// aşağıdaki `dilSecimi` bloğu) istediği dile anında geçebiliyor; bu değer
+// yalnızca "henüz hiç seçim yapılmadıysa" kullanılan başlangıç noktası.
+export const VARSAYILAN_DIL: DilKodu = 'en';
 
 export const DIL_ADLARI: Record<DilKodu, string> = {
   tr: 'Türkçe',
@@ -56,13 +63,41 @@ export const DIL_ADLARI: Record<DilKodu, string> = {
 };
 
 /**
- * Cihazın sistem diline göre başlangıç dilini seçer. `expo-localization`
- * kurulu değilse (bu pakette henüz eklenmedi) `VARSAYILAN_DIL`e düşer —
- * bu yüzden bu fonksiyon senkron ve bağımlılıksız tutuldu; ilerideki bir
- * pakette gerçek cihaz-dili tespiti eklenebilir.
+ * Cihazın sistem diline göre başlangıç dilini seçer.
+ *
+ * DÜZELTME (bu tur — madde 5): önceki sürüm bu fonksiyonu bilerek
+ * bağlamsız/sabit bırakmıştı ("ilerideki bir pakette eklenebilir" notuyla).
+ * Artık `react-native`'in kendi yerleşik `NativeModules` üzerinden (harici
+ * bir paket — `expo-localization` vb. — EKLEMEDEN) cihazın sistem dilini
+ * okuyoruz: Android'de `I18nManager.localeIdentifier`, iOS'ta
+ * `SettingsManager.settings.AppleLocale`/`AppleLanguages[0]`. Cihaz dili
+ * uygulamanın desteklediği 4 dilden (tr/en/id/fr) biriyle eşleşirse o dil,
+ * eşleşmezse `VARSAYILAN_DIL` (İngilizce) kullanılır — kullanıcının net
+ * isteği: "uygulama ilk kurulumda varsayılan olarak İngilizce açılsın,
+ * dışarıdaki 4 dilin dışında bir cihaz dili varsa yine İngilizce'ye düş".
+ * Bu fonksiyon yalnızca hiç kayıtlı dil seçimi YOKKEN (bkz. `dilDeposu.ts`)
+ * çağrılır; kullanıcı onboarding'deki dil adımında istediği an değiştirebilir.
  */
 export function sistemDiliniTahminEt(): DilKodu {
-  return VARSAYILAN_DIL;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { NativeModules, Platform } = require('react-native');
+    let ham: string | undefined;
+    if (Platform.OS === 'ios') {
+      const ayarlar = NativeModules.SettingsManager?.settings;
+      ham = ayarlar?.AppleLocale || (ayarlar?.AppleLanguages && ayarlar.AppleLanguages[0]);
+    } else {
+      ham = NativeModules.I18nManager?.localeIdentifier;
+    }
+    if (!ham || typeof ham !== 'string') return VARSAYILAN_DIL;
+    // "tr_TR", "tr-TR", "en_US" gibi biçimlerden yalnızca dil kodunu al.
+    const kod = ham.slice(0, 2).toLowerCase();
+    const desteklenenler: DilKodu[] = ['tr', 'en', 'id', 'fr'];
+    return (desteklenenler as string[]).includes(kod) ? (kod as DilKodu) : VARSAYILAN_DIL;
+  } catch {
+    // Herhangi bir platform/ortam sorununda güvenli varsayılana düş.
+    return VARSAYILAN_DIL;
+  }
 }
 
 // Her ekran kendi bölümünde ayrı bir nesne olarak tutuluyor — hem dosyanın
@@ -165,6 +200,12 @@ const anaSayfa = {
     pilKisitlamasiniKaldirAciklama: 'Listede AzanAtlas\'ı bul ve pil optimizasyonunu kapat',
     pilKisitlamasiKaldirildi: 'Pil kısıtlaması kaldırıldı',
     pilKisitlamasiHalaAktif: 'Pil kısıtlaması hâlâ aktif',
+    // YENİ (bu tur — madde 1): "Kıldım"/"Sonra Hatırlat" butonlarının ve
+    // genel olarak tüm bildirimlerin uygulama KAPALIYKEN vaktinde/hiç
+    // gelmemesi şikayetine karşı — kullanıcıya kod dışı, cihaz ayarına bağlı
+    // bu iki nedeni açıkça anlatan metin. Pil kartının hemen altında gösterilir.
+    bildirimGuvenilirligiBaslik: 'Bildirimler vaktinde gelmiyor mu?',
+    bildirimGuvenilirligiMetin: 'Android, pil tasarrufu için uygulama kapalıyken zamanlanmış bildirimleri geciktirebilir. Yukarıdaki pil kısıtlamasını kaldırdıktan sonra, telefonunuzun üreticisine göre (Xiaomi/Samsung/Huawei vb.) "Otomatik başlatma" veya "Arka planda çalışmaya izin ver" ayarını da açmanız gerekebilir.',
     gununAyeti: 'Günün Ayeti',
     kalanGunKaldi: (ad: string, n: number) => `${ad}'a ${n} gün kaldı`,
     oncekiKonum: 'Önceki konum',
@@ -226,6 +267,8 @@ const anaSayfa = {
     pilKisitlamasiniKaldirAciklama: 'Find AzanAtlas in the list and turn off battery optimization',
     pilKisitlamasiKaldirildi: 'Battery restriction removed',
     pilKisitlamasiHalaAktif: 'Battery restriction still active',
+    bildirimGuvenilirligiBaslik: 'Notifications not arriving on time?',
+    bildirimGuvenilirligiMetin: "To save battery, Android may delay scheduled notifications while the app is closed. After removing the battery restriction above, depending on your phone's manufacturer (Xiaomi/Samsung/Huawei, etc.) you may also need to enable \"Autostart\" or \"Allow background activity\".",
     gununAyeti: 'Verse of the Day',
     kalanGunKaldi: (ad: string, n: number) => `${n} days until ${ad}`,
     oncekiKonum: 'Previous location',
@@ -281,6 +324,8 @@ const anaSayfa = {
     pilKisitlamasiniKaldirAciklama: 'Temukan AzanAtlas di daftar dan matikan optimisasi baterai',
     pilKisitlamasiKaldirildi: 'Batasan baterai telah dihapus',
     pilKisitlamasiHalaAktif: 'Batasan baterai masih aktif',
+    bildirimGuvenilirligiBaslik: 'Notifikasi tidak muncul tepat waktu?',
+    bildirimGuvenilirligiMetin: 'Untuk menghemat baterai, Android dapat menunda notifikasi terjadwal saat aplikasi ditutup. Setelah menghapus batasan baterai di atas, tergantung merek ponsel Anda (Xiaomi/Samsung/Huawei, dll.) Anda mungkin juga perlu mengaktifkan "Mulai otomatis" atau "Izinkan aktivitas latar belakang".',
     gununAyeti: 'Ayat Hari Ini',
     kalanGunKaldi: (ad: string, n: number) => `${n} hari menuju ${ad}`,
     oncekiKonum: 'Lokasi sebelumnya',
@@ -339,6 +384,8 @@ const anaSayfa = {
     pilKisitlamasiniKaldirAciklama: 'Trouve AzanAtlas dans la liste et désactive l\'optimisation de la batterie',
     pilKisitlamasiKaldirildi: 'Restriction de batterie supprimée',
     pilKisitlamasiHalaAktif: 'Restriction de batterie encore active',
+    bildirimGuvenilirligiBaslik: 'Les notifications n\'arrivent pas à l\'heure ?',
+    bildirimGuvenilirligiMetin: "Pour économiser la batterie, Android peut retarder les notifications programmées lorsque l'application est fermée. Après avoir supprimé la restriction de batterie ci-dessus, selon le fabricant de votre téléphone (Xiaomi/Samsung/Huawei, etc.) vous devrez peut-être aussi activer le \"démarrage automatique\" ou \"autoriser l'activité en arrière-plan\".",
     gununAyeti: 'Verset du jour',
     kalanGunKaldi: (ad: string, n: number) => `${n} jours avant ${ad}`,
     oncekiKonum: 'Lieu précédent',
@@ -626,6 +673,8 @@ const kesfet = {
     aciklamaYakinCamiler: 'Yakındaki camiler',
     camilerAraniyor: 'Yakındaki camiler aranıyor…',
     camiBulunamadi: 'Şu anda yakındaki camiler alınamadı. İnternet bağlantını kontrol edip tekrar deneyebilir ya da Google Haritalar\'da arayabilirsin.',
+    camiSunucuMesgul: 'Cami verisi sağlayan sunucu şu anda çok yoğun. Genelde birkaç dakika içinde düzeliyor — lütfen kısa bir süre sonra tekrar dene.',
+    camiAgYok: 'İnternet bağlantına ulaşılamadı. Wi-Fi ya da mobil verinin açık olduğundan emin olup tekrar dene.',
     tekrarDene: 'Tekrar Dene',
     googleHaritalardaAra: 'Google Haritalar\'da Ara',
     camiAdiBilinmiyor: 'Cami',
@@ -654,6 +703,8 @@ const kesfet = {
     aciklamaYakinCamiler: 'Nearby mosques',
     camilerAraniyor: 'Searching for nearby mosques…',
     camiBulunamadi: "Couldn't fetch nearby mosques right now. Check your internet connection and try again, or search on Google Maps.",
+    camiSunucuMesgul: 'The mosque data server is busy right now. This usually clears up within a few minutes — please try again shortly.',
+    camiAgYok: "Couldn't reach the internet. Make sure Wi-Fi or mobile data is turned on and try again.",
     tekrarDene: 'Try Again',
     googleHaritalardaAra: 'Search on Google Maps',
     camiAdiBilinmiyor: 'Mosque',
@@ -682,6 +733,8 @@ const kesfet = {
     aciklamaYakinCamiler: 'Masjid terdekat',
     camilerAraniyor: 'Mencari masjid terdekat…',
     camiBulunamadi: 'Tidak dapat memuat masjid terdekat saat ini. Periksa koneksi internetmu dan coba lagi, atau cari di Google Maps.',
+    camiSunucuMesgul: 'Server data masjid sedang sibuk. Biasanya normal kembali dalam beberapa menit — coba lagi sebentar lagi.',
+    camiAgYok: 'Tidak dapat terhubung ke internet. Pastikan Wi-Fi atau data seluler aktif, lalu coba lagi.',
     tekrarDene: 'Coba Lagi',
     googleHaritalardaAra: 'Cari di Google Maps',
     camiAdiBilinmiyor: 'Masjid',
@@ -710,6 +763,8 @@ const kesfet = {
     aciklamaYakinCamiler: 'Mosquées à proximité',
     camilerAraniyor: 'Recherche des mosquées à proximité…',
     camiBulunamadi: "Impossible de récupérer les mosquées à proximité pour le moment. Vérifie ta connexion internet et réessaie, ou effectue une recherche sur Google Maps.",
+    camiSunucuMesgul: "Le serveur de données des mosquées est actuellement surchargé. Cela se résout généralement en quelques minutes — réessaie bientôt.",
+    camiAgYok: "Impossible d'accéder à internet. Vérifie que le Wi-Fi ou les données mobiles sont activés, puis réessaie.",
     tekrarDene: 'Réessayer',
     googleHaritalardaAra: 'Rechercher sur Google Maps',
     camiAdiBilinmiyor: 'Mosquée',
@@ -998,6 +1053,8 @@ const bildirimler = {
     // Android kanalının GÖRÜNEN adı (kullanıcı telefonun bildirim ayarları
     // listesinde bu adı görür).
     bildirimCubuguKanalAdi: 'AzanAtlas — Bildirim Çubuğu Widgeti',
+    // YENİ (bu tur — madde 7): kullanıcı bugün için widget'ı kapatmak isterse.
+    bildirimCubuguKapatButonu: 'Bugün İçin Kapat',
     kerahatGunesBatarken: 'Güneş batarken namaz kılınması mekruhtur.',
     kerahatZeval: 'Zeval vakti — namaz kılınması mekruhtur.',
     titresimli: 'Titreşimli',
@@ -1028,6 +1085,7 @@ const bildirimler = {
     kalanSureDakika: (dakika: number) => `${dakika}m left`,
     bildirimCubuguGovde: (vakitAdi: string) => `Next prayer: ${vakitAdi}`,
     bildirimCubuguKanalAdi: 'AzanAtlas — Notification Bar Widget',
+    bildirimCubuguKapatButonu: 'Dismiss for Today',
     kerahatGunesBatarken: 'It is disliked (makrooh) to pray while the sun is setting.',
     kerahatZeval: 'Zawal time — prayer is disliked (makrooh) during this period.',
     titresimli: 'Vibration',
@@ -1058,6 +1116,7 @@ const bildirimler = {
     kalanSureDakika: (dakika: number) => `${dakika} m tersisa`,
     bildirimCubuguGovde: (vakitAdi: string) => `Salat berikutnya: ${vakitAdi}`,
     bildirimCubuguKanalAdi: 'AzanAtlas — Widget Bilah Notifikasi',
+    bildirimCubuguKapatButonu: 'Tutup untuk Hari Ini',
     kerahatGunesBatarken: 'Makruh melaksanakan salat saat matahari terbenam.',
     kerahatZeval: 'Waktu zawal — makruh melaksanakan salat pada periode ini.',
     titresimli: 'Bergetar',
@@ -1088,6 +1147,7 @@ const bildirimler = {
     kalanSureDakika: (dakika: number) => `${dakika} min restantes`,
     bildirimCubuguGovde: (vakitAdi: string) => `Prochaine prière : ${vakitAdi}`,
     bildirimCubuguKanalAdi: 'AzanAtlas — Widget de la barre de notification',
+    bildirimCubuguKapatButonu: 'Fermer pour aujourd\'hui',
     kerahatGunesBatarken: 'Il est déconseillé (makrouh) de prier pendant le coucher du soleil.',
     kerahatZeval: 'Heure du zawal — la prière est déconseillée (makrouh) durant cette période.',
     titresimli: 'Vibration',
@@ -1318,6 +1378,12 @@ const kibleEkrani = {
     // TAZE bir GPS okuması alabilmesi için eklendi (bkz. QiblaScreen.tsx).
     hassasKonumlaGuncelle: 'Hassas Konumla Güncelle',
     hassasKonumAktif: 'Hassas konum kullanılıyor',
+    // YENİ (bu tur — madde 3): konum servisi KAPALIYKEN kullanıcıyı doğrudan
+    // sistem ayarına yönlendiren uyarı kartı — artık sessizce yerel konuma
+    // düşülmüyor, kullanıcıdan konumu açması açıkça isteniyor.
+    konumServisiKapaliBaslik: 'Konum servisi kapalı',
+    konumServisiKapaliMetin: 'En doğru kıble yönü için telefonunuzun konum (GPS) servisini açmanız gerekiyor.',
+    konumuAc: 'Konumu Aç',
   },
   en: {
     kible: 'Qibla',
@@ -1344,6 +1410,9 @@ const kibleEkrani = {
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'W',
     hassasKonumlaGuncelle: 'Update with Precise Location',
     hassasKonumAktif: 'Using precise location',
+    konumServisiKapaliBaslik: 'Location service is off',
+    konumServisiKapaliMetin: 'For the most accurate qibla direction, please turn on your phone\'s location (GPS) service.',
+    konumuAc: 'Turn On Location',
   },
   id: {
     kible: 'Kiblat',
@@ -1370,6 +1439,9 @@ const kibleEkrani = {
     yonKuzey: 'U', yonDogu: 'T', yonGuney: 'S', yonBati: 'B',
     hassasKonumlaGuncelle: 'Perbarui dengan Lokasi Presisi',
     hassasKonumAktif: 'Menggunakan lokasi presisi',
+    konumServisiKapaliBaslik: 'Layanan lokasi nonaktif',
+    konumServisiKapaliMetin: 'Untuk arah kiblat yang paling akurat, aktifkan layanan lokasi (GPS) ponsel Anda.',
+    konumuAc: 'Aktifkan Lokasi',
   },
   fr: {
     kible: 'Qibla',
@@ -1396,6 +1468,9 @@ const kibleEkrani = {
     yonKuzey: 'N', yonDogu: 'E', yonGuney: 'S', yonBati: 'O',
     hassasKonumlaGuncelle: 'Mettre à jour avec la position précise',
     hassasKonumAktif: 'Position précise utilisée',
+    konumServisiKapaliBaslik: 'Le service de localisation est désactivé',
+    konumServisiKapaliMetin: 'Pour une direction de la qibla la plus précise possible, veuillez activer le service de localisation (GPS) de votre téléphone.',
+    konumuAc: 'Activer la position',
   },
 };
 
@@ -1405,6 +1480,17 @@ const kibleEkrani = {
 // göstergesi olmadan doğrusal ilerleyen 4 kart.
 const onboarding = {
   tr: {
+    // YENİ (bu tur — madde 5): dil seçim adımı, onboarding akışının EN
+    // BAŞINA eklendi (Karşılama'dan bile önce) — kullanıcının net isteği:
+    // "başlangıç sayfaları arasına dil seçeneğini de ekle". Bu ekran
+    // HomeScreen'e ait olmayan tek yerdir (onboarding zaten DilProvider'ın
+    // içinde render ediliyor, bkz. AppGovde.tsx) — kullanıcı burada bir dil
+    // seçtiği an `diliDegistir()` çağrılır ve GERİ KALAN tüm onboarding
+    // adımları (Karşılama, Konum, Bildirim, Tamam) o an SEÇİLEN dilde
+    // render edilir.
+    dilSecBaslik: 'Dilinizi Seçin',
+    dilSecMetin: 'AzanAtlas hangi dilde açılsın?',
+    dilSecDevam: 'Devam Et',
     onbKarsilamaBaslik: 'Selamünaleyküm',
     onbKarsilamaMetin: 'Vaktinde ibadete, doğru vakitle.\nAzanAtlas’a hoş geldiniz.',
     onbDevamEt: 'Devam Et',
@@ -1421,6 +1507,9 @@ const onboarding = {
     onbAtla: 'Atla',
   },
   en: {
+    dilSecBaslik: 'Choose Your Language',
+    dilSecMetin: 'Which language should AzanAtlas open in?',
+    dilSecDevam: 'Continue',
     onbKarsilamaBaslik: 'Peace be upon you',
     onbKarsilamaMetin: 'Prayer on time, with the right time.\nWelcome to AzanAtlas.',
     onbDevamEt: 'Continue',
@@ -1437,6 +1526,9 @@ const onboarding = {
     onbAtla: 'Skip',
   },
   id: {
+    dilSecBaslik: 'Pilih Bahasa Anda',
+    dilSecMetin: 'AzanAtlas ingin dibuka dalam bahasa apa?',
+    dilSecDevam: 'Lanjutkan',
     onbKarsilamaBaslik: 'Assalamu’alaikum',
     onbKarsilamaMetin: 'Beribadah tepat waktu, dengan waktu yang tepat.\nSelamat datang di AzanAtlas.',
     onbDevamEt: 'Lanjutkan',
@@ -1453,6 +1545,9 @@ const onboarding = {
     onbAtla: 'Lewati',
   },
   fr: {
+    dilSecBaslik: 'Choisissez votre langue',
+    dilSecMetin: 'Dans quelle langue AzanAtlas doit-il s\'ouvrir ?',
+    dilSecDevam: 'Continuer',
     onbKarsilamaBaslik: 'Salam alaykoum',
     onbKarsilamaMetin: "La prière à l'heure, avec la bonne heure.\nBienvenue sur AzanAtlas.",
     onbDevamEt: 'Continuer',

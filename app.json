@@ -33,7 +33,8 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+        "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+        "SCHEDULE_EXACT_ALARM"
       ]
     },
     "web": {

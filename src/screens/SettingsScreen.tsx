@@ -421,6 +421,22 @@ export default function SettingsScreen({ onClose, onOpenVaktindeKil, onOpenRemin
           )}
         </TouchableOpacity>
 
+        {/* YENİ (bu tur — madde 1): "Kıldım"/"Sonra Hatırlat" ve genel
+            bildirimlerin uygulama kapalıyken vaktinde/hiç gelmemesi
+            şikayetine karşı — bu, kod tarafında TAMAMEN çözülemeyen bir
+            Android işletim sistemi davranışı (Doze modu/OEM pil yönetimi).
+            Pil kısıtlaması kartının HEMEN ALTINA, salt bilgilendirici
+            (aksiyon gerektirmeyen) bir kart eklendi ki kullanıcı NEDEN
+            bazen gecikme olabileceğini anlasın ve üretici-özel ek adımı
+            (Xiaomi/Samsung/Huawei "Otomatik başlatma" vb.) bilsin. */}
+        <View style={styles.infoCard}>
+          <View style={styles.cardTopRow}>
+            <Icon name="bilgi" size={18} color={colors.textMuted} />
+            <Text style={styles.cardLabelInline}>{t('bildirimGuvenilirligiBaslik')}</Text>
+          </View>
+          <Text style={styles.cardSubtext}>{t('bildirimGuvenilirligiMetin')}</Text>
+        </View>
+
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Switch value={vibrationEnabled} onValueChange={setVibrationEnabled} trackColor={{ true: colors.primaryBright, false: undefined }} thumbColor={colors.white} />
@@ -621,6 +637,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
     position: 'relative',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  // YENİ (bu tur — madde 1): salt bilgilendirici kart — `card` ile aynı
+  // ölçüler ama tıklanabilir olmadığını belli eden daha soluk zemin/kenarlık.
+  infoCard: {
+    backgroundColor: colors.creamDeep,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },

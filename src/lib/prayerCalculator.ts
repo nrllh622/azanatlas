@@ -20,14 +20,17 @@ const LABELS: Record<VakitKey, string> = {
   yatsi: 'Yatsı',
 };
 
-// Madde 9 (bu tur): Faz-1'e eklenen yeni ülkeler (GB/AU/ID/FR) için otomatik
-// yöntem seçimi. GB/AU/ID için MWL (Muslim World League) — pek çok namaz
-// vakti uygulamasının bu ülkelerde varsayılan olarak kullandığı, yaygın
-// kabul gören açı seti — zaten `default` dalıyla zımnen kapsanıyordu; burada
-// AÇIKÇA listelendi (davranış DEĞİŞMEDİ, yalnızca niyet netleşti). FR için
-// ise `getMethodById('Uoif')`'de zaten tanımlı olan Fransa'ya özgü UOIF açı
-// setine (Fecr 12°, Yatsı 12°) yönlendirildi — bu, `default`'taki MWL'den
-// (Fecr 18°, Yatsı 17°) daha isabetli bir yerel tercih.
+// DÜZELTME/GENİŞLETME (bu tur — madde 4): kullanıcının sorusu üzerine
+// ("4 dil ekledik, TR için Diyanet çalışıyor, peki diğer diller/ülkeler için
+// o ülkelerin resmi yöntemleri neden yok?") ülke→yöntem eşleştirmesi ciddi
+// şekilde genişletildi. Önceki sürüm yalnızca 12 ülke/bölgeyi AÇIKÇA
+// biliyordu, geri kalan TÜM dünya (100+ ülke) sessizce genel MWL'ye
+// düşüyordu — bu, örneğin Endonezya/Fas/Tunus/Cezayir/Rusya gibi kendi
+// resmi/yaygın kabul gören yöntemi olan ülkelerde gereksiz bir isabetsizlik
+// yaratıyordu. Her yeni eklenen ülke için kaynak: AlAdhan API
+// (api.aladhan.com/v1/methods, aladhan.com/calculation-methods) — geniş
+// çapta kullanılan, resmi kurum adlarıyla eşleşen bir referans veritabanı;
+// tahmini/uydurma açı değeri YOK.
 function getMethodForCountry(countryCode: string) {
   switch (countryCode) {
     case 'TR': return CalculationMethod.Turkey();
@@ -35,13 +38,79 @@ function getMethodForCountry(countryCode: string) {
     case 'SA': return CalculationMethod.UmmAlQura();
     case 'EG': return CalculationMethod.Egyptian();
     case 'PK': case 'IN': case 'BD': return CalculationMethod.Karachi();
-    case 'GB': case 'AU': case 'ID': return CalculationMethod.MuslimWorldLeague();
+    case 'KW': return CalculationMethod.Kuwait();
+    case 'QA': return CalculationMethod.Qatar();
+    case 'SG': return CalculationMethod.Singapore();
+    case 'AE': return CalculationMethod.Dubai();
+    case 'IR': return CalculationMethod.Tehran();
+    case 'MY': case 'BN': {
+      // JAKIM (Malezya resmi yöntemi) — Brunei de aynı bölgesel standardı
+      // kullanıyor (kaynak: aladhan.com yöntem listesi).
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 20;
+      p.ishaAngle = 18;
+      return p;
+    }
     case 'FR': {
+      // UOIF (Fransa) — Fecr 12°, Yatsı 12°.
       const p = CalculationMethod.Other();
       p.fajrAngle = 12;
       p.ishaAngle = 12;
       return p;
     }
+    case 'ID': {
+      // Kemenag (Endonezya Din İşleri Bakanlığı) — Fecr 20°, Yatsı 18°.
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 20;
+      p.ishaAngle = 18;
+      return p;
+    }
+    case 'MA': case 'EH': {
+      // Fas (Habous/Evkaf Bakanlığı) — Fecr 19°, Yatsı 17°.
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 19;
+      p.ishaAngle = 17;
+      return p;
+    }
+    case 'TN': {
+      // Tunus — Fecr 18°, Yatsı 18°.
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 18;
+      p.ishaAngle = 18;
+      return p;
+    }
+    case 'DZ': {
+      // Cezayir — Fecr 18°, Yatsı 17°.
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 18;
+      p.ishaAngle = 17;
+      return p;
+    }
+    case 'RU': case 'KZ': case 'KG': case 'TJ': case 'UZ': case 'TM': case 'AZ': {
+      // Rusya Müslümanları Ruhani İdaresi — Rusya'nın kendi resmi yöntemi;
+      // yakın Orta Asya/Kafkasya ülkelerinde de yaygın referans olarak
+      // kullanılıyor (kesin yerel resmi kurumları yok/doğrulanamadı,
+      // bölgesel olarak en yakın doğrulanmış kaynak bu). Fecr 16°, Yatsı 15°.
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 16;
+      p.ishaAngle = 15;
+      return p;
+    }
+    case 'BH': case 'OM': {
+      // Körfez Bölgesi geneli (BAE hariç, o Dubai yöntemini kullanıyor) —
+      // Fecr 19.5°, Yatsı gün batımından sabit 90 dakika sonra.
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 19.5;
+      p.ishaInterval = 90;
+      return p;
+    }
+    // GB/AU ve MWL'nin zaten fiilen resmi/yaygın kabul gören standart olduğu
+    // ülkeler (bkz. önceki tur notu — davranış değişmedi, yalnızca niyet
+    // netleştirildi ve MENA/Güney Asya'nın geri kalanı da eklendi).
+    case 'GB': case 'AU': case 'DE': case 'NL': case 'BE': case 'IT':
+    case 'ES': case 'JO': case 'LB': case 'SY': case 'IQ': case 'YE':
+    case 'SD': case 'LY': case 'PS':
+      return CalculationMethod.MuslimWorldLeague();
     default: return CalculationMethod.MuslimWorldLeague();
   }
 }
@@ -72,6 +141,45 @@ function getMethodById(id: string) {
       const p = CalculationMethod.Other();
       p.fajrAngle = 12;
       p.ishaAngle = 12;
+      return p;
+    }
+    // YENİ (bu tur — madde 4): bkz. CalculationSettingsContext.tsx'teki
+    // CalcMethodId üstündeki kaynak notu — tüm açılar AlAdhan API'sinden
+    // doğrulandı.
+    case 'Kemenag': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 20;
+      p.ishaAngle = 18;
+      return p;
+    }
+    case 'Morocco': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 19;
+      p.ishaAngle = 17;
+      return p;
+    }
+    case 'Tunisia': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 18;
+      p.ishaAngle = 18;
+      return p;
+    }
+    case 'Algeria': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 18;
+      p.ishaAngle = 17;
+      return p;
+    }
+    case 'Russia': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 16;
+      p.ishaAngle = 15;
+      return p;
+    }
+    case 'Gulf': {
+      const p = CalculationMethod.Other();
+      p.fajrAngle = 19.5;
+      p.ishaInterval = 90;
       return p;
     }
     default: return null;

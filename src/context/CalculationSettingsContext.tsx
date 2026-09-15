@@ -12,7 +12,20 @@ const STORAGE_KEY = 'azanatlas_calculation_settings_v1';
 export type CalcMethodId =
   | 'Turkey' | 'NorthAmerica' | 'MuslimWorldLeague' | 'Egyptian'
   | 'Karachi' | 'UmmAlQura' | 'Tehran' | 'Kuwait' | 'Qatar' | 'Singapore'
-  | 'Dubai' | 'MoonsightingCommittee' | 'Jakim' | 'Uoif';
+  | 'Dubai' | 'MoonsightingCommittee' | 'Jakim' | 'Uoif'
+  // YENİ (bu tur — madde 4): kullanıcının sorusu üzerine araştırılıp
+  // doğrulanan, resmi kaynaklarla (AlAdhan API — aladhan.com/calculation-methods
+  // ve api.aladhan.com/v1/methods, geniş çapta kabul gören bir referans
+  // veritabanı) teyit edilen ek ülke/bölge yöntemleri. Her biri gerçek
+  // resmi açı değerleriyle eklendi, tahmini/uydurma değer YOK:
+  //  - Kemenag (Endonezya Din İşleri Bakanlığı): Fecr 20°, Yatsı 18°
+  //  - Fas (Morocco, Habous Bakanlığı): Fecr 19°, Yatsı 17°
+  //  - Tunus: Fecr 18°, Yatsı 18°
+  //  - Cezayir: Fecr 18°, Yatsı 17°
+  //  - Rusya (Rusya Müslümanları Ruhani İdaresi): Fecr 16°, Yatsı 15°
+  //  - Körfez Bölgesi (BAE dışındaki Körfez ülkeleri için genel): Fecr 19.5°,
+  //    Yatsı gün batımından 90 dk sonra (sabit dakika, açı değil)
+  | 'Kemenag' | 'Morocco' | 'Tunisia' | 'Algeria' | 'Russia' | 'Gulf';
 
 // Madde 7 (i18n taraması, bu tur): bu dosya React bileşeni değil, `label`
 // dizileri MODÜL YÜKLENİRKEN bir kez oluşur — `useCeviri()` çağıramaz. Aynı
@@ -35,6 +48,13 @@ export const CALC_METHODS: { id: CalcMethodId; label: string; labelEn: string }[
   { id: 'MoonsightingCommittee', label: 'Ay Gözlem Komitesi', labelEn: 'Moonsighting Committee' },
   { id: 'Jakim', label: 'JAKIM (Malezya)', labelEn: 'JAKIM (Malaysia)' },
   { id: 'Uoif', label: 'UOIF (Fransa)', labelEn: 'UOIF (France)' },
+  // YENİ (bu tur — madde 4): bkz. CalcMethodId üstündeki kaynak notu.
+  { id: 'Kemenag', label: 'Kemenag (Endonezya)', labelEn: 'Kemenag (Indonesia)' },
+  { id: 'Morocco', label: 'Fas (Evkaf Bakanlığı)', labelEn: 'Morocco (Habous Ministry)' },
+  { id: 'Tunisia', label: 'Tunus', labelEn: 'Tunisia' },
+  { id: 'Algeria', label: 'Cezayir', labelEn: 'Algeria' },
+  { id: 'Russia', label: 'Rusya Müslümanları Ruhani İdaresi', labelEn: 'Spiritual Administration of Muslims of Russia' },
+  { id: 'Gulf', label: 'Körfez Bölgesi', labelEn: 'Gulf Region' },
 ];
 
 export const KERAHAT_OPTIONS = [15, 30, 45, 60];

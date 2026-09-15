@@ -5,8 +5,10 @@ import * as Notifications from 'expo-notifications';
 import {
   handleMarkPrayedAction,
   handleDismissReminderAction,
+  handleBildirimCubuguKapatAction,
   MARK_PRAYED_ACTION,
   DISMISS_ACTION,
+  BILDIRIM_CUBUGU_KAPAT_ACTION,
 } from './src/lib/vaktindeKilActions';
 
 import App from './App';
@@ -98,6 +100,13 @@ try {
       await handleMarkPrayedAction(content);
     } else if (response.actionIdentifier === DISMISS_ACTION) {
       await handleDismissReminderAction(content);
+    } else if (response.actionIdentifier === BILDIRIM_CUBUGU_KAPAT_ACTION) {
+      // YENİ (bu tur — madde 7): bildirim çubuğu widget'ının "Kapat"
+      // butonuna uygulama TAMAMEN KAPALIYKEN basılırsa da (killed-state)
+      // "bugün için kapatıldı" bayrağı doğru şekilde yazılsın diye buraya
+      // eklendi — aynı ortak fonksiyon, aynı desen (Kıldım/Sonra Hatırlat
+      // ile birebir aynı killed-state mekanizması).
+      await handleBildirimCubuguKapatAction();
     }
   });
 

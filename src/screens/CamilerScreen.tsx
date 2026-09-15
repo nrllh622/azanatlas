@@ -1,14 +1,22 @@
 // src/screens/CamilerScreen.tsx
 //
-// CAMİ BUL (bu tur — madde 3)
+// CAMİ BUL (bu tur — madde 2: kesin hata mesajları + otomatik yeniden deneme)
 //
 // Kullanıcının aktif konumuna (LocationContext) en yakın camileri listeler
 // (OpenStreetMap Overpass API — bkz. `lib/camiBul.ts` başındaki kaynak
-// gerekçesi) ve her birine dokunulduğunda Google Haritalar'da yol tarifi
-// açar. Basit üç durumlu ekran: yükleniyor / hata (ağ ya da bulunamadı) /
-// liste.
+// gerekçesi ve kök neden araştırması) ve her birine dokunulduğunda Google
+// Haritalar'da yol tarifi açar. Dört durumlu ekran: yükleniyor / sunucu
+// meşgul / ağ yok / liste — `camiBul.ts`'in artık döndürdüğü `durum` alanı
+// sayesinde kullanıcıya "ne olduğu" hakkında isabetli bilgi veriliyor
+// (önceden hepsi tek bir "camiler alınamadı" mesajına düşüyordu).
+//
+// OTOMATİK YENİDEN DENEME (bu tur — madde 2): sunucu meşgul (429) durumunda
+// ekran kullanıcıyı "Tekrar Dene"ye basmaya zorlamak yerine, kısa bir
+// geri sayımın ardından KENDİLİĞİNDEN bir kez daha dener — bakımcının
+// notuna göre bu tür bloklar genelde birkaç dakikada kendiliğinden
+// kalkıyor, bu yüzden ikinci otomatik deneme çoğu zaman başarılı oluyor.
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,32 +30,55 @@ import ScreenHeader from '../components/ScreenHeader';
 import Icon from '../components/Icon';
 import { colors, spacing, radius, typography, elevation, fontSize, lineHeight } from '../theme';
 import { useLocationContext } from '../context/LocationContext';
-import { yakinCamileriBul, yolTarifiUrlleri, mesafeMetni, CamiSonucu } from '../lib/camiBul';
+import { yakinCamileriBul, yolTarifiUrlleri, mesafeMetni, CamiSonucu, CamiAramaDurumu } from '../lib/camiBul';
 import { useCeviri } from '../i18n/DilContext';
 
 interface Props {
   onClose?: () => void;
 }
 
+// Sunucu meşgul (429) durumunda otomatik yeniden deneme öncesi bekleme.
+const OTOMATIK_TEKRAR_BEKLEME_MS = 6000;
+
 export default function CamilerScreen({ onClose }: Props) {
   const { location } = useLocationContext();
   const { t } = useCeviri();
 
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [durum, setDurum] = useState<CamiAramaDurumu>('ok');
   const [hata, setHata] = useState(false);
   const [camiler, setCamiler] = useState<CamiSonucu[]>([]);
+  // Otomatik yeniden denemeyi yalnızca BİR kez tetiklemek için — sonsuz
+  // döngüye ya da art arda otomatik denemelere girilmesin diye her manuel
+  // "Tekrar Dene" ya da konum değişiminde sıfırlanıyor.
+  const otomatikDenemeYapildiRef = useRef(false);
 
   const veriYukle = useCallback(() => {
     setYukleniyor(true);
     setHata(false);
+    otomatikDenemeYapildiRef.current = false;
     yakinCamileriBul(location.latitude, location.longitude)
       .then((sonuc) => {
-        setCamiler(sonuc);
-        setHata(sonuc.length === 0);
+        setCamiler(sonuc.sonuclar);
+        setDurum(sonuc.durum);
+        setHata(sonuc.durum !== 'ok' || sonuc.sonuclar.length === 0);
       })
-      .catch(() => setHata(true))
+      .catch(() => {
+        setDurum('agYok');
+        setHata(true);
+      })
       .finally(() => setYukleniyor(false));
   }, [location.latitude, location.longitude]);
+
+  // Sunucu meşgul (429) durumunda tek seferlik otomatik yeniden deneme.
+  useEffect(() => {
+    if (!hata || durum !== 'sunucuMesgul' || otomatikDenemeYapildiRef.current) return;
+    otomatikDenemeYapildiRef.current = true;
+    const zamanlayici = setTimeout(() => {
+      veriYukle();
+    }, OTOMATIK_TEKRAR_BEKLEME_MS);
+    return () => clearTimeout(zamanlayici);
+  }, [hata, durum, veriYukle]);
 
   useEffect(() => {
     veriYukle();
@@ -97,7 +128,13 @@ export default function CamilerScreen({ onClose }: Props) {
       {!yukleniyor && hata && (
         <View style={styles.ortaKap}>
           <Icon name="uyari" size={32} color={colors.warning} />
-          <Text style={styles.durumMetni}>{t('camiBulunamadi')}</Text>
+          <Text style={styles.durumMetni}>
+            {durum === 'sunucuMesgul'
+              ? t('camiSunucuMesgul')
+              : durum === 'agYok'
+              ? t('camiAgYok')
+              : t('camiBulunamadi')}
+          </Text>
           <TouchableOpacity style={styles.tekrarBtn} onPress={veriYukle} activeOpacity={0.8}>
             <Icon name="yenile" size={16} color={colors.white} />
             <Text style={styles.tekrarBtnMetin}>{t('tekrarDene')}</Text>

@@ -1,13 +1,22 @@
 // src/screens/OnboardingEkrani.tsx
 //
-// Madde 4 (bu tur): İLK AÇILIŞ TANITIM + İZİN TALEBİ AKIŞI — Varyant A
+// Madde 4 (önceki tur): İLK AÇILIŞ TANITIM + İZİN TALEBİ AKIŞI — Varyant A
 // ("Doğrusal Karşılama"): Ezan Vakti Pro / Namaz Vakitleri tarzı, adım
-// göstergesi olmadan art arda ilerleyen 4 tam ekran kart:
+// göstergesi olmadan art arda ilerleyen kartlar:
+//   0) YENİ (bu tur — madde 5): Dil seçimi — kullanıcı 4 dilden birini
+//      seçer, geri kalan TÜM adımlar o an seçilen dilde render edilir.
 //   1) Karşılama — uygulamanın kısa tanıtımı
 //   2) Konum izni — "Konumu Etkinleştir" (GPS) ya da "Listeden Seç" (atla)
 //   3) Bildirim izni — vakit vakit aç/kapa anahtarlarıyla
 //   4) Tamamlandı — onay ikonu + "Başla"
 //
+// YENİ (bu tur — madde 4): kullanıcı konum iznini reddedip "Listeden Seç"e
+// basarsa (ya da GPS başarısız olursa), hesaplama yöntemi sessizce
+// varsayılan (MWL) kalmak yerine, cihazın IP adresinden YAKLAŞIK bir ülke
+// tahmini yapılıp (`lib/ulkeTespiti.ts`) o ülkenin resmi/yaygın yöntemine
+// otomatik geçiliyor — kullanıcı yine de LocationPickerScreen'den istediği
+// zaman kendi şehrini/ülkesini seçip bunu değiştirebilir, bu yalnızca "hiç
+// seçim yapılmadan önceki" en iyi tahmin.
 // NEREDE ÇALIŞIYOR: App.tsx'te açılış animasyonu (`AcilisEkrani`) bittikten
 // SONRA, `AppGovde` yüklenmeden ÖNCE gösterilir — yalnızca kullanıcı daha
 // önce bu akışı tamamlamamışsa (bkz. lib/onboardingDeposu.ts, App.tsx'teki
@@ -40,30 +49,90 @@ import Icon from '../components/Icon';
 import IslamicPattern from '../components/IslamicPattern';
 import { colors, spacing, radius, typography, fontSize, lineHeight, elevation } from '../theme';
 import { useCeviri } from '../i18n/DilContext';
+import { DilKodu, DIL_ADLARI } from '../i18n/ceviriler';
 import { useLocationContext } from '../context/LocationContext';
-import { useCalculationSettings } from '../context/CalculationSettingsContext';
+import { useCalculationSettings, CalcMethodId } from '../context/CalculationSettingsContext';
 import { useNotificationSettings, OnTimeVakitKey } from '../context/NotificationSettingsContext';
 import { requestNotificationPermission } from '../lib/notificationScheduler';
 import { konumAl } from '../lib/gpsKonum';
+import { ipdenUlkeTahminiYap } from '../lib/ulkeTespiti';
 
 interface Props {
   onTamamlandi: () => void;
 }
 
-type Adim = 'karsilama' | 'konum' | 'bildirim' | 'tamam';
+// YENİ (bu tur — madde 5): 'dil' adımı akışın en başına eklendi.
+type Adim = 'dil' | 'karsilama' | 'konum' | 'bildirim' | 'tamam';
 
 const ONTIME_VAKITLER: OnTimeVakitKey[] = ['sabah', 'ogle', 'ikindi', 'aksam', 'yatsi'];
 
+// YENİ (bu tur — madde 4): IP'den tahmin edilen ülke koduna göre otomatik
+// seçilecek CalcMethodId — `prayerCalculator.ts`'teki `getMethodForCountry`
+// ile AYNI ülke/yöntem eşleştirmesini, manuel modda gösterilebilecek somut
+// bir `CalcMethodId`'ye çeviriyor (otomatik mod zaten ülke koduna göre kendi
+// içinde hesaplıyor — bu liste yalnızca kullanıcı SettingsScreen'de "hangi
+// yöntemi kullanıyorum" diye baktığında görünecek etiket için).
+function ulkeKodundanYontem(ulkeKodu: string): CalcMethodId {
+  switch (ulkeKodu) {
+    case 'TR': return 'Turkey';
+    case 'US': case 'CA': return 'NorthAmerica';
+    case 'SA': return 'UmmAlQura';
+    case 'EG': return 'Egyptian';
+    case 'PK': case 'IN': case 'BD': return 'Karachi';
+    case 'KW': return 'Kuwait';
+    case 'QA': return 'Qatar';
+    case 'SG': return 'Singapore';
+    case 'AE': return 'Dubai';
+    case 'IR': return 'Tehran';
+    case 'MY': case 'BN': return 'Jakim';
+    case 'FR': return 'Uoif';
+    case 'ID': return 'Kemenag';
+    case 'MA': case 'EH': return 'Morocco';
+    case 'TN': return 'Tunisia';
+    case 'DZ': return 'Algeria';
+    case 'RU': case 'KZ': case 'KG': case 'TJ': case 'UZ': case 'TM': case 'AZ': return 'Russia';
+    case 'BH': case 'OM': return 'Gulf';
+    default: return 'MuslimWorldLeague';
+  }
+}
+
 export default function OnboardingEkrani({ onTamamlandi }: Props) {
   const insets = useSafeAreaInsets();
-  const { t, vakitAdi } = useCeviri();
+  const { t, dil, diliDegistir, vakitAdi } = useCeviri();
   const { addLocation } = useLocationContext();
-  const { setAutoMethod } = useCalculationSettings();
+  const { setAutoMethod, setMethodId } = useCalculationSettings();
   const { settings, setOnTime } = useNotificationSettings();
 
-  const [adim, setAdim] = useState<Adim>('karsilama');
+  const [adim, setAdim] = useState<Adim>('dil');
   const [konumYukleniyor, setKonumYukleniyor] = useState(false);
   const [konumHata, setKonumHata] = useState<string | null>(null);
+
+  const dilSecildi = async (secilenDil: DilKodu) => {
+    await diliDegistir(secilenDil);
+    setAdim('karsilama');
+  };
+
+  // YENİ (bu tur — madde 4): kullanıcı konum iznini reddedip "Listeden
+  // Seç"e bastığında (aşağıdaki `onPress={() => { ... setAdim('bildirim');
+  // }}`), GPS koordinatı olmadığı için `getMethodForCountry` çağrılamaz —
+  // bunun yerine IP'den YAKLAŞIK bir ülke tahmini yapılıp otomatik olarak o
+  // ülkenin yöntemi (manuel modda görünecek etiket için) ayarlanıyor. Bu,
+  // yalnızca "hiçbir şey seçilmemiş"ten daha iyi bir varsayılan; kullanıcı
+  // LocationPickerScreen'den istediği an kendi şehrini seçip değiştirebilir.
+  // Otomatik mod (`autoMethod`) AÇIK bırakılıyor — bu sayede kullanıcı
+  // sonradan gerçek bir konum eklerse (GPS ya da listeden), o konumun ülke
+  // koduna göre doğru yöntem zaten otomatik uygulanır; IP tahmini yalnızca
+  // "konum hiç seçilmeden önceki" ilk birkaç gün için bir iyileştirmedir.
+  const konumReddedildiIpTahminiDene = async () => {
+    try {
+      const ulkeKodu = await ipdenUlkeTahminiYap();
+      if (ulkeKodu) {
+        setMethodId(ulkeKodundanYontem(ulkeKodu));
+      }
+    } catch {
+      // Sessizce yoksay — varsayılan MWL zaten geçerli olmaya devam eder.
+    }
+  };
 
   // Madde 1 (bu tur): ortak `konumAl()` — retry'lı deneme + son bilinen
   // konuma düşme (bkz. lib/gpsKonum.ts). Onboarding akışı hiçbir zaman
@@ -79,6 +148,9 @@ export default function OnboardingEkrani({ onTamamlandi }: Props) {
         if (sonuc.hataTuru === 'konumAlinamadi') {
           setKonumHata(t('konumAlinamadi'));
         }
+        // YENİ (bu tur — madde 4): GPS başarısız olduğunda da (izin
+        // reddedildi ya da konum hiç alınamadı) IP tahminini dene.
+        konumReddedildiIpTahminiDene();
         return;
       }
       addLocation({
@@ -104,6 +176,39 @@ export default function OnboardingEkrani({ onTamamlandi }: Props) {
   return (
     <View style={styles.wrap}>
       <IslamicPattern color={colors.copper} opacity={0.05} tile={48} />
+
+      {/* YENİ (bu tur — madde 5): dil seçimi — akışın ilk adımı. `t()`
+          henüz hiç dil seçilmediyse VARSAYILAN_DIL (İngilizce) ile
+          çalışır; kullanıcı bir seçenek seçtiği an `diliDegistir()`
+          çağrılır ve bu ekran DAHİL tüm metinler o dile geçer. */}
+      {adim === 'dil' && (
+        <View style={[styles.icerik, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.lg }]}>
+          {/* NOT: proje simge setinde (Icon.tsx) ayrı bir "dil/küre" ikonu
+              yok — yeni bir SVG çizmek yerine mevcut 'bilgi' ikonu
+              kullanıldı (nötr, anlamı zorlamıyor). İstenirse ileride
+              Icon.tsx'e özel bir "dil" ikonu eklenebilir. */}
+          <View style={styles.ikonKap}>
+            <Icon name="bilgi" size={40} color={colors.primaryBright} />
+          </View>
+          <Text style={styles.baslik}>{t('dilSecBaslik')}</Text>
+          <Text style={styles.metin}>{t('dilSecMetin')}</Text>
+          <View style={styles.dilListe}>
+            {(Object.keys(DIL_ADLARI) as DilKodu[]).map((kod) => (
+              <TouchableOpacity
+                key={kod}
+                style={[styles.dilSatir, dil === kod && styles.dilSatirSecili]}
+                onPress={() => dilSecildi(kod)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.dilYazi, dil === kod && styles.dilYaziSecili]}>
+                  {DIL_ADLARI[kod]}
+                </Text>
+                {dil === kod && <Icon name="onay" size={18} color={colors.primary} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {adim === 'karsilama' && (
         <View style={[styles.icerik, { paddingTop: insets.top + spacing.xl, paddingBottom: insets.bottom + spacing.lg }]}>
@@ -138,7 +243,18 @@ export default function OnboardingEkrani({ onTamamlandi }: Props) {
               {konumYukleniyor ? t('konumAliniyor') : t('onbKonumEtkinlestir')}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setAdim('bildirim')} activeOpacity={0.7} style={styles.linkBtn}>
+          <TouchableOpacity
+            onPress={() => {
+              // YENİ (bu tur — madde 4): kullanıcı GPS'i atlayıp listeden
+              // seçmeyi tercih ettiğinde de IP tahminini dene — konum
+              // reddedildiği/atlandığı HER durumda (yalnızca hata mesajı
+              // gösterilen senaryoda değil) devreye giriyor.
+              konumReddedildiIpTahminiDene();
+              setAdim('bildirim');
+            }}
+            activeOpacity={0.7}
+            style={styles.linkBtn}
+          >
             <Text style={styles.link}>{t('onbListedenSec')}</Text>
           </TouchableOpacity>
         </View>
@@ -270,6 +386,35 @@ const styles = StyleSheet.create({
     fontSize: fontSize.small,
     color: colors.textMuted,
     textDecorationLine: 'underline',
+  },
+  // YENİ (bu tur — madde 5): dil seçim listesi stilleri.
+  dilListe: {
+    width: '100%',
+    marginTop: spacing.lg,
+  },
+  dilSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    marginBottom: spacing.sm,
+  },
+  dilSatirSecili: {
+    borderColor: colors.primary,
+    backgroundColor: colors.creamDeep,
+  },
+  dilYazi: {
+    fontFamily: typography.bodyBold,
+    fontSize: fontSize.body,
+    color: colors.textOnLight,
+  },
+  dilYaziSecili: {
+    color: colors.primaryDark,
   },
   toggleListe: {
     width: '100%',

@@ -1,12 +1,19 @@
 // src/lib/vaktindeKilActions.ts
 import * as Notifications from 'expo-notifications';
 import { vaktiKilindiIsaretle, takipEdilebilir } from './ibadetTakibi';
+import { bildirimCubuguBugunKapat } from './notificationScheduler';
 import { DilKodu, VARSAYILAN_DIL, tDil } from '../i18n/ceviriler';
 
 export const VAKTINDE_KIL_CATEGORY = 'VAKTINDE_KIL';
 export const MARK_PRAYED_ACTION = 'MARK_PRAYED';
 
 export const DISMISS_ACTION = 'DISMISS_REMINDER';
+
+// YENİ (bu tur — madde 7): bildirim çubuğu widget'ının "Kapat" aksiyon
+// kimliği — tek kaynak burada tanımlanıyor, `notificationScheduler.ts`
+// kategori kaydını yaparken bunu import ediyor (döngüsel bağımlılık YOK:
+// notificationScheduler.ts hiçbir yerde bu dosyayı import etmiyor).
+export const BILDIRIM_CUBUGU_KAPAT_ACTION = 'BILDIRIM_CUBUGU_KAPAT';
 
 /**
  * Bildirim aksiyon butonlarını tanımlar.
@@ -127,6 +134,14 @@ export async function handleDismissReminderAction(data: any) {
   await tumEslerinBildirimlerinikapat(data.vakitKey, data.vakitDateISO);
 }
 
+// YENİ (bu tur — madde 7): bildirim çubuğu widget'ının "Kapat" aksiyonu —
+// data alanı olmadığı için (bu bildirimde `data: {type:'vaktindekil',...}`
+// YOK) `data`'ya bakmadan doğrudan tetiklenebilir. Hem foreground/background
+// hem killed-state dinleyicisi bu fonksiyonu ortak çağırıyor (aynı desen).
+export async function handleBildirimCubuguKapatAction() {
+  await bildirimCubuguBugunKapat();
+}
+
 // Uygulama açıkken (foreground/background, ama process canlıyken) çalışan
 // JS listener. Uygulama tamamen kapalıyken (killed) bu ASLA tetiklenmez —
 // o durum index.ts'teki TaskManager arka plan görevi tarafından ele alınır.
@@ -137,6 +152,8 @@ export function registerVaktindeKilResponseListener() {
       await handleMarkPrayedAction(data);
     } else if (response.actionIdentifier === DISMISS_ACTION) {
       await handleDismissReminderAction(data);
+    } else if (response.actionIdentifier === BILDIRIM_CUBUGU_KAPAT_ACTION) {
+      await handleBildirimCubuguKapatAction();
     }
   });
 }

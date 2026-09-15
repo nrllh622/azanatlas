@@ -195,9 +195,24 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // "Kıldım" bildirim aksiyonu bir kez kuruluyor (kategori + yanıt dinleyicisi)
+  // DÜZELTME (bu tur — madde 6): "Kıldım"/"Sonra Hatırlat" bildirim
+  // aksiyon butonları dil değiştirildiğinde Türkçe kalmaya devam ediyordu.
+  // KÖK NEDEN: `setupVaktindeKilCategory()` yalnızca `[]` bağımlılığıyla,
+  // yani uygulama açılışında BİR KEZ çağrılıyordu — `dil` parametresi de
+  // hiç geçirilmiyordu (varsayılan VARSAYILAN_DIL ile kuruluyordu).
+  // `setNotificationCategoryAsync` (expo-notifications) AYNI kategori
+  // ID'sini (`VAKTINDE_KIL_CATEGORY`) tekrar çağırınca var olan kategoriyi
+  // GÜNCELLER (yeni bir tane oluşturmaz) — bu yüzden `dil` bağımlılık
+  // dizisine eklenip her dil değişiminde yeniden çağırmak güvenli ve yeterli.
+  // `registerVaktindeKilResponseListener` ise dilden bağımsız (yalnızca
+  // `data.vakitKey`/`vakitDateISO` okuyor) — o yüzden ayrı bir `useEffect`te,
+  // yalnızca AÇILIŞTA bir kez kalmaya devam ediyor; dil değiştikçe
+  // abonelikleri gereksiz yere iptal edip yeniden kurmuyoruz.
   useEffect(() => {
-    setupVaktindeKilCategory();
+    setupVaktindeKilCategory(dil);
+  }, [dil]);
+
+  useEffect(() => {
     const sub2 = registerVaktindeKilResponseListener();
     return () => sub2.remove();
   }, []);

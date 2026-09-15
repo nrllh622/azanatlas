@@ -1,10 +1,12 @@
 // src/lib/notificationScheduler.ts
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VakitEntry } from './prayerCalculator';
 import { NotificationSettings } from '../context/NotificationSettingsContext';
 import { getSoundById, SOUND_CATALOG } from '../data/soundCatalog';
 import { DilKodu, VARSAYILAN_DIL, tDil, vakitAdiDil, sesAdiDil } from '../i18n/ceviriler';
+import { BILDIRIM_CUBUGU_KAPAT_ACTION } from './vaktindeKilActions';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -126,6 +128,10 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
     vibrationPattern: [0],
     sound: 'default',
   });
+
+  // YENİ (bu tur — madde 7): bildirim çubuğu widget'ının "Kapat" aksiyon
+  // kategorisi — kanallarla AYNI yerde (uygulama açılışında bir kez) kuruluyor.
+  await setupBildirimCubuguKategorisi(dil);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,7 +170,23 @@ export async function configureAndroidChannels(dil: DilKodu = VARSAYILAN_DIL) {
 // bulup manuel olarak "Sessiz"e çekmesi gerekir — koddan zorla değiştirilemez
 // (platform kısıtı, bkz. dosya başındaki "Android kanal/ses kısıtı" notu).
 const BILDIRIM_CUBUGU_ID = 'bildirim-cubugu-widget';
-const BILDIRIM_CUBUGU_KANAL_ID = 'bildirim-cubugu-widget-kanal-v2';
+// DÜZELTME (bu tur — madde 7): kanal ID'si v2 → v3'e çıkarıldı. KÖK NEDEN
+// İHTİMALİ: kullanıcı hâlâ "her dakika bildirim çıkıyor, elle silince
+// anında geri geliyor" bildiriyor — ama bu dosyadaki kanal ZATEN
+// AndroidImportance.LOW + sound:null ile tanımlı. Android'in KESİN platform
+// kısıtı: BİR KANAL ID'Sİ ilk oluşturulduğunda hangi önem seviyesindeyse
+// SONSUZA DEK o seviyede kalır — kodu ne kadar düzeltirsek düzeltelim,
+// kullanıcının cihazında `bildirim-cubugu-widget-kanal-v2` ID'si daha önce
+// (bu düzeltmeden önceki bir build'de) YÜKSEK önemle oluşmuş olabilir ve
+// hâlâ o şekilde kalıyordur. ID'yi v3'e çıkarmak Android'i TAMAMEN YENİ,
+// temiz bir kanal oluşturmaya zorluyor — bu yeni kanal ilk andan itibaren
+// doğru (LOW) önemle kurulacak. (Eski v2 kanalı sistemde yetim kalır,
+// zararsızdır — kullanıcı isterse telefon ayarlarından silebilir.)
+const BILDIRIM_CUBUGU_KANAL_ID = 'bildirim-cubugu-widget-kanal-v3';
+// YENİ (bu tur — madde 7): "kullanıcı widget bildirimini kapattığında bir
+// daha aynı gün çıkmasın" isteği için — kullanıcının o gün için bilinçli
+// olarak kapattığı bilgisi AsyncStorage'da tarih damgasıyla saklanıyor.
+const BILDIRIM_CUBUGU_KAPATILDI_ANAHTARI = 'azanatlas_bildirim_cubugu_kapatildi_tarih_v1';
 
 // DÜZELTME (bu tur — madde 7): `Math.round` yerine `Math.ceil` kullanılıyor.
 // Kullanıcı "kalan sürenin dakika bazında AZALMASINI" istedi — round ile
@@ -183,10 +205,54 @@ function kalanSureMetni(dil: DilKodu, hedefTarih: Date): string {
   return tDil(dil, 'kalanSureDakika', dakika);
 }
 
+// YENİ (bu tur — madde 7): "Kapat" bildirim aksiyonu — kullanıcı bu düğmeye
+// bastığında, o GÜN için bir daha gösterilmesin isteniyor. Bu, kaydırarak
+// kapatmadan (swipe-to-dismiss) FARKLI bir mekanizma: expo-notifications'ın
+// swipe-dismiss'i algılayan resmi bir olayı YOK (yalnızca dokunma/aksiyon
+// yakalanabiliyor — bkz. addNotificationResponseReceivedListener), bu
+// yüzden kullanıcının NİYETİNİ net yakalamak için ayrı, görünür bir "Kapat"
+// butonu ekliyoruz; rastgele bir sistem kaydırmasıyla karıştırılmıyor.
+const BILDIRIM_CUBUGU_KATEGORI = 'BILDIRIM_CUBUGU_WIDGET';
+
+export async function setupBildirimCubuguKategorisi(dil: DilKodu = VARSAYILAN_DIL) {
+  await Notifications.setNotificationCategoryAsync(BILDIRIM_CUBUGU_KATEGORI, [
+    {
+      identifier: BILDIRIM_CUBUGU_KAPAT_ACTION,
+      buttonTitle: tDil(dil, 'bildirimCubuguKapatButonu'),
+      options: { opensAppToForeground: false },
+    },
+  ]);
+}
+
+function bugununTarihDamgasi(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+/** Kullanıcı "Kapat" butonuna bastığında çağrılır — bugün için hatırlatmayı susturur. */
+export async function bildirimCubuguBugunKapat() {
+  try {
+    await AsyncStorage.setItem(BILDIRIM_CUBUGU_KAPATILDI_ANAHTARI, bugununTarihDamgasi());
+  } catch {
+    // yoksay — en kötü ihtimalle widget bir sonraki güncellemede tekrar görünür.
+  }
+  await Notifications.dismissNotificationAsync(BILDIRIM_CUBUGU_ID).catch(() => {});
+}
+
+async function bugunKapatildiMi(): Promise<boolean> {
+  try {
+    const kayitliTarih = await AsyncStorage.getItem(BILDIRIM_CUBUGU_KAPATILDI_ANAHTARI);
+    return kayitliTarih === bugununTarihDamgasi();
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Bildirim çubuğu widget'ını günceller (ya da anahtar kapalıysa/hiç
- * kurulmamışsa hiçbir şey yapmaz — çağıran taraf `enabled` bayrağını kontrol
- * eder). `next.date` gelecekteki bir vakit olmalı.
+ * kurulmamışsa/kullanıcı bugün için elle kapattıysa hiçbir şey yapmaz —
+ * çağıran taraf `enabled` bayrağını kontrol eder). `next.date` gelecekteki
+ * bir vakit olmalı.
  */
 export async function bildirimCubuguWidgetiniGuncelle(
   enabled: boolean,
@@ -199,6 +265,10 @@ export async function bildirimCubuguWidgetiniGuncelle(
     await Notifications.dismissNotificationAsync(BILDIRIM_CUBUGU_ID).catch(() => {});
     return;
   }
+  // YENİ (bu tur — madde 7): kullanıcı bugün için "Kapat"a bastıysa, bu
+  // günün geri kalanında widget'ı YENİDEN GÖSTERME — ertesi güne (yeni
+  // tarih damgasıyla) otomatik olarak geri döner, kalıcı olarak kapanmaz.
+  if (await bugunKapatildiMi()) return;
   try {
     await Notifications.scheduleNotificationAsync({
       identifier: BILDIRIM_CUBUGU_ID,
@@ -208,11 +278,13 @@ export async function bildirimCubuguWidgetiniGuncelle(
         sticky: true,
         sound: false,
         autoDismiss: false,
-        // DÜZELTME (bu tur — madde 7): artık özel SESSİZ/DÜŞÜK öncelikli
-        // kanaldan gönderiliyor (bkz. `configureAndroidChannels`teki
-        // `BILDIRIM_CUBUGU_KANAL_ID` tanımı) — bu, her dakikalık güncellemenin
-        // ekrana heads-up olarak çıkmasını/ses çalmasını engeller, bildirim
-        // yalnızca durum çubuğunda sessizce güncellenir.
+        categoryIdentifier: BILDIRIM_CUBUGU_KATEGORI,
+        // DÜZELTME (bu tur — madde 7): artık özel SESSİZ/DÜŞÜK öncelikli,
+        // YENİ (v3) kanaldan gönderiliyor (bkz. dosya başındaki
+        // `BILDIRIM_CUBUGU_KANAL_ID` tanımı ve oradaki kök neden notu) — bu,
+        // her dakikalık güncellemenin ekrana heads-up olarak çıkmasını/ses
+        // çalmasını engeller, bildirim yalnızca durum çubuğunda sessizce
+        // güncellenir.
         ...(Platform.OS === 'android' ? { channelId: BILDIRIM_CUBUGU_KANAL_ID } : {}),
       },
       trigger: null, // null trigger = anında göster (zamanlanmış değil, doğrudan güncelleme)

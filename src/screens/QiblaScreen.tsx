@@ -163,18 +163,29 @@ export default function QiblaScreen({ onClose }: Props) {
   const [hassasKonum, setHassasKonum] = useState<{ lat: number; lng: number } | null>(null);
   const [hassasKonumYukleniyor, setHassasKonumYukleniyor] = useState(false);
   const [hassasKonumHata, setHassasKonumHata] = useState<string | null>(null);
+  // YENİ (bu tur — madde 3): kullanıcı isteği net — "Hassas Konum kullanım
+  // seçeneğini kullanıcıya bırakmadan, Konum açık değilse kullanıcıdan
+  // açmasını iste". Önceki davranış: konum servisi kapalıyken/izin
+  // reddedilmişken SESSİZCE kayıtlı (LocationContext) konuma düşülüyordu —
+  // kullanıcı hiçbir zaman "konumunu aç" diye zorlanmıyordu. Artık servis
+  // kapalıyken (izin verilmiş olsa bile) bu bayrak `true` olur ve ekranda
+  // ısrarcı bir "Konumu Aç" kartı gösterilir — kart kapatılamaz, yalnızca
+  // kullanıcı konumu gerçekten açtığında (ve tekrar denediğinde) kaybolur.
+  const [konumServisiKapali, setKonumServisiKapali] = useState(false);
 
   const aktifLat = hassasKonum?.lat ?? location.latitude;
   const aktifLng = hassasKonum?.lng ?? location.longitude;
 
   const hassasKonumAl = async (sessiz: boolean = false) => {
     // `sessiz` — bkz. aşağıdaki otomatik-çağrı `useEffect`i: ekran ilk
-    // açıldığında kullanıcı hiçbir şeye basmadan biz kendimiz çağırıyoruz;
-    // bu durumda izin reddi/hata için kırmızı bir hata metni GÖSTERMİYORUZ
-    // (kullanıcı henüz bir eylemde bulunmadı, "hata" göstermek yanlış
-    // izlenim verir) — sessizce kayıtlı konuma (LocationContext) düşülür.
-    // Kullanıcı "Hassas Konumla Güncelle" satırına kendisi basarsa (sessiz
-    // = false) hata/izin durumu her zamanki gibi bildirilir.
+    // açıldığında kullanıcı hiçbir şeye basmadan biz kendimiz çağırıyoruz.
+    // DÜZELTME (bu tur — madde 3): `sessiz` artık yalnızca "kırmızı hata
+    // metni gösterme" anlamına geliyor — konum servisi KAPALIYSA bu durum
+    // artık sessiz modda bile `konumServisiKapali` bayrağıyla AÇIKÇA
+    // bildiriliyor (eskiden ikisi de aynı şekilde sessizce yutulup kayıtlı
+    // konuma düşülüyordu). "İzin reddedildi" durumu farklı: kullanıcı
+    // izni açıkça reddetmişse tekrar tekrar sistem diyaloğuyla rahatsız
+    // etmiyoruz, yalnızca manuel denemede (`sessiz=false`) hata gösteriyoruz.
     setHassasKonumYukleniyor(true);
     if (!sessiz) setHassasKonumHata(null);
     try {
@@ -186,9 +197,24 @@ export default function QiblaScreen({ onClose }: Props) {
       if (Platform.OS === 'android') {
         try {
           const hizmetAcik = await Location.hasServicesEnabledAsync();
-          if (!hizmetAcik) await Location.enableNetworkProviderAsync();
+          if (!hizmetAcik) {
+            // Kullanıcıyı ZORLA konumu açmaya yönlendir — sessizce yerel
+            // konuma düşülmüyor. `enableNetworkProviderAsync` zaten
+            // Android'in kendi "Konumu Aç" sistem diyaloğunu açar; kullanıcı
+            // "Hayır" derse aşağıdaki catch'e düşer ve kart ekranda kalır.
+            await Location.enableNetworkProviderAsync();
+            setKonumServisiKapali(false);
+          } else {
+            setKonumServisiKapali(false);
+          }
         } catch {
-          // yine de dene — bazı cihazlarda servis zaten açık olabilir
+          // Kullanıcı sistem diyaloğunda "Hayır" dedi ya da servis hâlâ
+          // kapalı — ısrarcı uyarı kartını göster, kayıtlı konuma SESSİZCE
+          // düşülmeden önce kullanıcıya bir şans daha (kart üzerindeki
+          // "Konumu Aç" butonu) tanınmış olur.
+          setKonumServisiKapali(true);
+          setHassasKonumYukleniyor(false);
+          return;
         }
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -368,6 +394,28 @@ export default function QiblaScreen({ onClose }: Props) {
         {/* Madde 1 (bu tur): AKTİF kalibrasyon uyarısı — pasif "Pusula doğru
             göstermiyor mu?" butonunun tersine, kullanıcı bir şey yapmadan
             kendiliğinden beliriyor (bkz. dosya başındaki araştırma notu). */}
+        {/* YENİ (bu tur — madde 3): konum servisi kapalıyken gösterilen
+            ISRARCI uyarı kartı — kalibrasyon kartıyla aynı görsel dilde
+            (kırmızımsı, dikkat çekici) ama farklı bir aksiyon sunuyor:
+            doğrudan Android'in konum ayarlarını açmayı dener. */}
+        {konumServisiKapali && (
+          <TouchableOpacity
+            style={styles.kalibrasyonKart}
+            onPress={() => hassasKonumAl(false)}
+            disabled={hassasKonumYukleniyor}
+            activeOpacity={0.85}
+          >
+            <Icon name="konum" size={22} color={colors.danger} />
+            <View style={styles.kalibrasyonMetinKap}>
+              <Text style={styles.kalibrasyonBaslik}>{t('konumServisiKapaliBaslik')}</Text>
+              <Text style={styles.kalibrasyonMetin}>{t('konumServisiKapaliMetin')}</Text>
+              <Text style={styles.konumuAcLink}>
+                {hassasKonumYukleniyor ? t('konumAliniyor') : t('konumuAc')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {kalibrasyonGerekli && (
           <TouchableOpacity
             style={styles.kalibrasyonKart}
@@ -632,8 +680,18 @@ export default function QiblaScreen({ onClose }: Props) {
           disabled={hassasKonumYukleniyor}
           activeOpacity={0.75}
         >
-          <Icon name="konum" size={14} color={hassasKonum ? colors.success : colors.textMuted} />
-          <Text style={styles.hassasKonumYazi}>
+          {/* DÜZELTME (bu tur — madde 3): kullanıcı isteği — "Hassas Konum
+              kullanılıyor" mesajını yazı olarak daha da büyüt. İkon 14→18,
+              yazı boyutu 13→16 ve kalın (bodyBold) yapıldı; "aktif" durumda
+              ayrıca vurgu rengiyle (success) gösteriliyor ki fark edilirliği
+              artsın. */}
+          <Icon name="konum" size={18} color={hassasKonum ? colors.success : colors.textMuted} />
+          <Text
+            style={[
+              styles.hassasKonumYazi,
+              hassasKonum && styles.hassasKonumYaziAktif,
+            ]}
+          >
             {hassasKonumYukleniyor
               ? t('konumAliniyor')
               : hassasKonum
@@ -739,8 +797,22 @@ const styles = StyleSheet.create({
   },
   hassasKonumYazi: {
     fontFamily: typography.bodyMedium,
-    fontSize: 13,
+    fontSize: 16,
     color: colors.textMuted,
+  },
+  // YENİ (bu tur — madde 3): "Hassas konum kullanılıyor" aktifken kalın +
+  // vurgu rengiyle gösteriliyor, büyütülmüş yazıyla birlikte fark edilirliği
+  // pasif "Hassas Konumla Güncelle" durumundan belirgin şekilde ayrışıyor.
+  hassasKonumYaziAktif: {
+    fontFamily: typography.bodyBold,
+    color: colors.success,
+  },
+  konumuAcLink: {
+    fontFamily: typography.bodyBold,
+    fontSize: 13.5,
+    color: colors.danger,
+    marginTop: 6,
+    textDecorationLine: 'underline',
   },
   hassasKonumHataYazi: {
     fontFamily: typography.bodyMedium,
